@@ -4,6 +4,7 @@ Run build_static.py first. This does not commit, push or alter Pages settings.
 Credentials/raw datasets/local configuration are never copied.
 """
 import argparse
+import json
 import shutil
 import subprocess
 from pathlib import Path
@@ -37,6 +38,11 @@ def prepare(checkout):
         if (ROOT/name).is_file():shutil.copyfile(ROOT/name,checkout/name)
     for name in ['web','scripts','worker','tests']:
         shutil.copytree(ROOT/name,checkout/name,dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__','*.pyc','node_modules','.wrangler','.dev.vars*'))
+    # Workers Builds may start at the repository root. Generate this entry
+    # from the canonical Worker config, so either root-directory choice works.
+    worker_config=json.loads((ROOT/'worker/wrangler.jsonc').read_text())
+    worker_config['main']='worker/src/worker.mjs'
+    (checkout/'wrangler.jsonc').write_text('// Generated from worker/wrangler.jsonc by scripts/prepare_publication.py.\n'+json.dumps(worker_config,indent=2)+'\n')
     (checkout/'project-notes').mkdir(exist_ok=True)
     for name in NOTES:
         if (ROOT/name).is_file():shutil.copyfile(ROOT/name,checkout/'project-notes'/name)

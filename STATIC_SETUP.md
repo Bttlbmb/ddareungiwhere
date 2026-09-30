@@ -69,4 +69,6 @@ Public data attribution is retained: Seoul Open Data Plaza for station/count/arc
 
 The prepared Git checkout is `dist/publication`, separate from this source workspace. Run `scripts/prepare_publication.py dist/publication` after rebuilding and updating owning documents, inspect its changes, then commit and push there. It verifies the intended HTTPS/SSH remote and scans all candidate public bytes for the locally configured Seoul credential. `docs/` is generated; `project-notes/` contains the maintained source documents.
 
+The publication also includes a generated root `wrangler.jsonc`, derived from the canonical `worker/wrangler.jsonc` with its entry point adjusted. This allows the original dashboard command `npx wrangler@4.33.1 deploy` to work from the repository root too. Regenerate it rather than maintaining two separate configurations. After this file is published, a connected Workers Build can retry without browser access to change its build settings.
+
 For a repeatable native/browser routing check, run `scripts/check_browser_routes.py --native-lib /path/to/separate/site-packages` after building. Open `/__routing_check.html` on the local preview, inspect the visible results and native summaries. This diagnostic page is explicitly excluded from publication.
