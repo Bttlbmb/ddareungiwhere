@@ -19,7 +19,7 @@ Site: https://bttlbmb.github.io/ddareungiwhere/
 
 Enable **Settings → Pages → Deploy from a branch → main → /docs**. The generated site is in `docs/`; source is in `web/`, `worker/` and `scripts/`. Do not edit generated files to maintain application behavior: rebuild from source.
 
-The connected Cloudflare proxy fetches the official bike website’s citywide station feed over HTTPS without a key. Shared caching and refresh limits protect the upstream; unavailable or expired counts become unknown. See [the account and deployment walkthrough](STATIC_SETUP.md).
+The connected Cloudflare proxy is configured for the official bike website’s HTTPS citywide feed without a key. The feed works from the maintainer computer but the deployed upstream connection currently fails, so live counts remain unavailable. Shared caching and expiry safeguards are retained. See [the account and deployment walkthrough](STATIC_SETUP.md).
 
 History currently covers October–December 2025. The builder supports six calendar months when those source months are supplied. Historical bands are descriptive, not refill forecasts.
 

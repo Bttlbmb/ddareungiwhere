@@ -8,7 +8,7 @@ A public repository works with GitHub Free. A private repository requires a plan
 
 The publication checkout contains an explicitly selected source set and generated `docs/` site. Never upload this entire working folder: it contains ignored credentials, downloaded sources and local analysis. In the repository choose **Settings → Pages → Deploy from a branch → main → /docs → Save**. Expected URL: https://bttlbmb.github.io/ddareungiwhere/. HTTPS is required for browser GPS. Relative asset and data URLs support this project subdirectory.
 
-`docs/config.json` contains the public Worker endpoint `https://ddareungiwhere-live.hey-bf4.workers.dev/api/live`, never a key. The proxy uses `LIVE_SOURCE=seoul-website`; no Seoul secret is needed.
+`docs/config.json` contains the public Worker endpoint `https://ddareungiwhere-live.hey-bf4.workers.dev/api/live`, never a key. The proxy uses `LIVE_SOURCE=seoul-website`; no Seoul secret is needed. The 2026-10-01 deployment succeeded, but its upstream request fails with `website-transport` while the same HTTPS feed works from the maintainer computer. Live counts remain unavailable on the hosted site. This classification does not establish whether the cause is TLS, network filtering or another transport failure. Provider confirmation or a host able to reach the feed is still needed.
 
 ## Cloudflare, step by step
 
