@@ -8,7 +8,7 @@ A public repository works with GitHub Free. A private repository requires a plan
 
 The publication checkout contains an explicitly selected source set and generated `docs/` site. Never upload this entire working folder: it contains ignored credentials, downloaded sources and local analysis. In the repository choose **Settings → Pages → Deploy from a branch → main → /docs → Save**. Expected URL: https://bttlbmb.github.io/ddareungiwhere/. HTTPS is required for browser GPS. Relative asset and data URLs support this project subdirectory.
 
-`docs/config.json` contains a public Worker endpoint, never a key. Its initial `liveUrl` is null, so the prototype shows unknown live counts while routing and historical comparisons work.
+`docs/config.json` contains the public Worker endpoint `https://ddareungiwhere-live.hey-bf4.workers.dev/api/live`, never a key. On 2026-10-01 this endpoint returned HTTP 200 with the correct GitHub Pages CORS origin and an unavailable-count state. Routing and historical comparisons work while secure provider access remains unresolved.
 
 ## Cloudflare, step by step
 

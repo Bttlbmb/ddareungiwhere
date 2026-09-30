@@ -6,7 +6,7 @@ Site: https://bttlbmb.github.io/ddareungiwhere/
 
 Enable **Settings → Pages → Deploy from a branch → main → /docs**. The generated site is in `docs/`; source is in `web/`, `worker/` and `scripts/`. Do not edit generated files to maintain application behavior: rebuild from source.
 
-Live bike counts are currently disconnected. The prepared Cloudflare proxy keeps the Seoul credential server-side, but a supported secure upstream endpoint must be verified first. See [the account and deployment walkthrough](STATIC_SETUP.md).
+The deployed Cloudflare proxy is connected to the site. Live bike counts remain unavailable until a supported secure upstream endpoint is verified and the Seoul credential is configured as a Cloudflare secret. See [the account and deployment walkthrough](STATIC_SETUP.md).
 
 History currently covers October–December 2025. The builder supports six calendar months when those source months are supplied. Historical bands are descriptive, not refill forecasts.
 
