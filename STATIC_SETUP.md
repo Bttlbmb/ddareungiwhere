@@ -1,6 +1,6 @@
 # Static deployment: 따릉이 Where?
 
-Prototype prepared 2026-10-01 for https://github.com/Bttlbmb/ddareungiwhere. The browser calculates routes and reads compact archive counts; a separate Cloudflare Worker owns the Seoul credential. The localhost app remains available.
+Prototype prepared 2026-10-01 for https://github.com/Bttlbmb/ddareungiwhere. The browser calculates routes and reads compact archive counts; a separate Cloudflare Worker fetches the official bike website’s HTTPS station feed without a key. The localhost app remains available.
 
 ## GitHub Pages
 
@@ -8,7 +8,7 @@ A public repository works with GitHub Free. A private repository requires a plan
 
 The publication checkout contains an explicitly selected source set and generated `docs/` site. Never upload this entire working folder: it contains ignored credentials, downloaded sources and local analysis. In the repository choose **Settings → Pages → Deploy from a branch → main → /docs → Save**. Expected URL: https://bttlbmb.github.io/ddareungiwhere/. HTTPS is required for browser GPS. Relative asset and data URLs support this project subdirectory.
 
-`docs/config.json` contains the public Worker endpoint `https://ddareungiwhere-live.hey-bf4.workers.dev/api/live`, never a key. On 2026-10-01 this endpoint returned HTTP 200 with the correct GitHub Pages CORS origin and an unavailable-count state. Routing and historical comparisons work while secure provider access remains unresolved.
+`docs/config.json` contains the public Worker endpoint `https://ddareungiwhere-live.hey-bf4.workers.dev/api/live`, never a key. The proxy uses `LIVE_SOURCE=seoul-website`; no Seoul secret is needed.
 
 ## Cloudflare, step by step
 
@@ -16,14 +16,15 @@ The publication checkout contains an explicitly selected source set and generate
 2. Open **Workers & Pages** once to finish any initial account setup. For dashboard deployment, choose **Create application → Import a repository**, authorize GitHub for `Bttlbmb/ddareungiwhere`, and select that repository. Set the Worker name to `ddareungiwhere-live`, production branch to `main`, root directory to the repository root (`/`), build command empty, and deploy command to `npx wrangler@4.33.1 deploy --config worker/wrangler.jsonc`. Keep preview/non-production builds disabled. Click **Save and Deploy**. The explicit configuration path creates the Worker and shared storage together. [Dashboard Git integration](https://developers.cloudflare.com/workers/ci-cd/builds/).
 3. **Optional Terminal alternative:** open Terminal in this project and authorize the installed Cloudflare deployment tool with `wrangler login`. Complete the Cloudflare login/authorization page yourself. Do not put Cloudflare tokens or the Seoul key in GitHub or chat.
 4. For that Terminal alternative, deploy from this project with `wrangler deploy --config worker/wrangler.jsonc`. Both methods create `ddareungiwhere-live`, its SQLite-backed `INVENTORY` coordinator, and a `workers.dev` address. No Seoul credential is needed to deploy the unavailable-count state. The compatibility date uses September 30 to avoid a future date relative to Cloudflare's UTC deployment clock during the October 1 Seoul setup.
-5. In Cloudflare select **ddareungiwhere-live → Settings → Variables and Secrets → Add**, choose **Secret**, name it `SEOUL_OPEN_DATA_API_KEY`, paste the existing key yourself, and deploy/save the change. Only do this after a supported secure Seoul endpoint is established. [Secret storage documentation](https://developers.cloudflare.com/workers/configuration/secrets/).
-6. Set `SEOUL_API_BASE` to the verified HTTPS base address. It is restricted to `openapi.seoul.go.kr`; foreign hosts, HTTP, redirects and credentials in configuration URLs are rejected. Do not disable TLS certificate validation.
-7. Visit the Worker's `/api/live` endpoint. A complete snapshot must contain station quantities and their original fetch times. Check the result in the GitHub Pages app too: its request origin must be `https://bttlbmb.github.io`.
-8. Rebuild with `--live-url https://ddareungiwhere-live.YOUR-SUBDOMAIN.workers.dev/api/live`, then publish the new generated `docs/`. The Worker address is public; the key remains a Cloudflare secret.
+5. Leave the Seoul secret unset. The checked-in `LIVE_SOURCE=seoul-website` configuration fetches the official public station map over HTTPS without login, cookies or a key.
+6. Visit the Worker's `/api/live` endpoint and check station quantities with original receipt timestamps. The GitHub Pages request origin must be `https://bttlbmb.github.io`.
+7. When changing the Worker address, rebuild with `--live-url https://YOUR-WORKER.workers.dev/api/live` and publish the generated `docs/`. The current deployed address is already connected.
 
-**Current live-count blocker:** Seoul documents HTTP port 8088. A credential-free HTTPS handshake to that port failed on 2026-10-01. This is evidence about the tested endpoint, not proof that Seoul has no secure alternative. The Worker intentionally has no HTTP fallback. Until a supported HTTPS endpoint is verified, live counts stay unavailable. Contact the provider or establish another approved secure data source before enabling the secret. Cloudflare protects storage of a secret, but cannot encrypt a connection to an HTTP-only origin.
+**Source and limits:** the official website's fixed `https://www.bikeseoul.com/app/station/getStationRealtimeStatus.do` endpoint accepts `stationGrpSeq=ALL`. Its map code sums legacy, regular QR and smaller 새싹 counts; the proxy does the same. A 2026-10-01 check returned 2,748 unique stations, including all 2,735 saved IDs. This website endpoint lacks a published versioned API contract; format changes or access restrictions can interrupt counts. Failed refreshes retain original timestamps, so expired quantities become unknown. No provider observation time is supplied: `fetched_at` means receipt time. An ALL echo, successful status, unique valid rows and a 2,500-row coverage floor reject obvious partial responses; they cannot independently prove completeness.
 
-The initial upstream request budget is **1,000 page requests per Seoul day**, a protective default, not a verified Seoul account quota. A citywide refresh currently takes about four page requests; adjust the budget after checking your account. All visitors share one refresh at most once per minute. The endpoint is public; CORS is a browser restriction, not authentication. Shared throttling and the daily budget limit upstream consumption even for direct callers.
+The optional `LIVE_SOURCE=seoul-openapi` adapter remains HTTPS-only and requires a supported secure `SEOUL_API_BASE` on `openapi.seoul.go.kr` before adding `SEOUL_OPEN_DATA_API_KEY` as a [Cloudflare secret](https://developers.cloudflare.com/workers/configuration/secrets/). Seoul documents HTTP port 8088; credential-free HTTPS probes failed or timed out. Do not use HTTP or disable certificate validation to enable that adapter.
+
+The upstream budget is **1,000 requests per Seoul day**, a protective default, not a verified provider quota. The website source takes one request per citywide refresh; the optional Open API adapter takes about four pages. All visitors share one refresh at most once per minute, only on explicit compare/refresh actions. CORS is a browser restriction, not authentication. Shared throttling and the daily budget limit consumption even for direct callers.
 
 ## Build and preview locally
 

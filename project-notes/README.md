@@ -6,7 +6,7 @@ Documentation reconciled **2026-09-30** against the conversation and current imp
 
 ## Static deployment prototype
 
-A browser-only export is now available alongside the local app. It calculates Valhalla routes on the device and reads a compact historical summary; current live counts remain disconnected pending Cloudflare setup and a secure Seoul endpoint. See [STATIC_SETUP.md](STATIC_SETUP.md) for build/preview instructions, GitHub Pages and the Cloudflare walkthrough.
+A browser-only export is now available alongside the local app. It calculates Valhalla routes on the device and reads a compact historical summary; a Cloudflare proxy fetches the official bike website’s HTTPS station feed without an API key. See [STATIC_SETUP.md](STATIC_SETUP.md) for build/preview instructions, GitHub Pages and the Cloudflare walkthrough.
 
 ## Run the existing workspace
 

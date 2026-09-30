@@ -6,6 +6,7 @@
   "observability": { "enabled": false },
   "vars": {
     "ALLOWED_ORIGIN": "https://bttlbmb.github.io",
+    "LIVE_SOURCE": "seoul-website",
     "SEOUL_API_BASE": "https://openapi.seoul.go.kr:8088",
     "UPSTREAM_DAILY_BUDGET": "1000"
   },

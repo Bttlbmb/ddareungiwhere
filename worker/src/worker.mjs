@@ -17,6 +17,8 @@ export function providerBase(value='https://openapi.seoul.go.kr:8088') {
 }
 
 export async function fetchInventory(env,fetcher=fetch,consume=async()=>{}) {
+  if(env.LIVE_SOURCE==='seoul-website')return fetchWebsiteInventory(fetcher,consume);
+  if(env.LIVE_SOURCE&&env.LIVE_SOURCE!=='seoul-openapi')throw new Error('Unknown live source.');
   const key=env.SEOUL_OPEN_DATA_API_KEY;
   if(typeof key!=='string'||!(/^[a-zA-Z0-9]+$/).test(key))throw new Error('Live bike counts are not configured.');
   const base=providerBase(env.SEOUL_API_BASE);
@@ -42,6 +44,40 @@ export async function fetchInventory(env,fetcher=fetch,consume=async()=>{}) {
   }
   if(!complete||!stations.size)throw new Error('The bike service returned an incomplete station list.');
   return {stations:[...stations.values()],live:{refreshing:false,error:null,fetched_at:new Date().toISOString()}};
+}
+
+// Official public station map: HTTPS, no account cookies or API credential.
+export async function fetchWebsiteInventory(fetcher=fetch,consume=async()=>{}) {
+  await consume();
+  let payload;
+  try {
+    const response=await fetcher('https://www.bikeseoul.com/app/station/getStationRealtimeStatus.do',{
+      method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:'stationGrpSeq=ALL',redirect:'error',signal:AbortSignal.timeout(8000)
+    });
+    if(!response.ok)throw new Error('Provider failed.');
+    payload=await response.json();
+  } catch {throw new Error('Live bike counts are unavailable. Try refreshing shortly.');}
+  // ALL is the website's citywide request. The size floor also detects obvious
+  // partial responses; it is a dated coverage guard, not a provider guarantee.
+  if(payload.checkResult!==true||payload.stationVO?.stationGrpSeq!=='ALL'||
+     !Array.isArray(payload.realtimeList)||payload.realtimeList.length<2500||payload.realtimeList.length>10000)
+    throw new Error('The bike service returned an incomplete station list.');
+  const stamp=new Date().toISOString(),stations=new Map();
+  for(const row of payload.realtimeList) {
+    // Unlike bikeList's aggregate, the website has three separate categories.
+    // Its all-bike map sums legacy, regular QR, and smaller 새싹 bikes.
+    const counts=['parkingBikeTotCnt','parkingQRBikeCnt','parkingELECBikeCnt'].map(name=>{
+      const value=row[name];
+      const count=typeof value==='number'?value:typeof value==='string'&&/^\d+$/.test(value.trim())?Number(value):null;
+      return Number.isSafeInteger(count)&&count>=0?count:null;
+    });
+    const bikes=counts.every(n=>n!==null)?counts.reduce((a,b)=>a+b,0):null;
+    const station=normalized({...row,parkingBikeTotCnt:bikes},stamp);
+    if(!station||stations.has(station.id))throw new Error('The bike service returned an invalid station list.');
+    stations.set(station.id,station);
+  }
+  return {stations:[...stations.values()],live:{refreshing:false,error:null,fetched_at:stamp}};
 }
 
 // All refresh misses converge here. Ordinary responses may be edge-cached.

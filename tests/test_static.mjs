@@ -66,3 +66,28 @@ test('one coordinator shares concurrent refreshes and throttles subsequent misse
   await Promise.all([first,second]);assert.equal(calls,1);
   const cached=await (await coordinator.fetch()).json();assert.equal(calls,1);assert.equal(cached.live.fetched_at,'original');
 });
+
+const websitePayload=()=>({checkResult:true,stationVO:{stationGrpSeq:'ALL'},realtimeList:
+  Array.from({length:2500},(_,i)=>({...row(i+1),parkingQRBikeCnt:'15',parkingELECBikeCnt:'5'}))});
+test('official HTTPS website source sums bike categories without reading or sending a key',async()=>{
+  const env={LIVE_SOURCE:'seoul-website',get SEOUL_OPEN_DATA_API_KEY(){throw new Error('Key must not be read');}};
+  let consumed=0;
+  const result=await fetchInventory(env,async(url,options)=>{
+    assert.equal(url,'https://www.bikeseoul.com/app/station/getStationRealtimeStatus.do');
+    assert.equal(options.method,'POST');assert.equal(options.body,'stationGrpSeq=ALL');assert.equal(options.redirect,'error');
+    const data=websitePayload();data.realtimeList[1].parkingQRBikeCnt='';
+    data.realtimeList[2].parkingQRBikeCnt='0';data.realtimeList[2].parkingELECBikeCnt='0';
+    return Response.json(data);
+  },async()=>{consumed++;});
+  assert.equal(consumed,1);assert.equal(result.stations.length,2500);
+  assert.equal(result.stations[0].bikes,20);assert.equal(result.stations[1].bikes,null);assert.equal(result.stations[2].bikes,0);
+  assert.ok(result.stations.every(s=>s.fetched_at===result.live.fetched_at));
+});
+test('website source rejects partial, duplicated, invalid and failed citywide responses',async()=>{
+  for(const mutate of [p=>p.realtimeList.pop(),p=>p.checkResult=false,p=>p.stationVO.stationGrpSeq='01',
+    p=>p.realtimeList[1]=p.realtimeList[0],p=>p.realtimeList[0].stationLatitude='0']) {
+    const payload=websitePayload();mutate(payload);
+    await assert.rejects(fetchInventory({LIVE_SOURCE:'seoul-website'},async()=>Response.json(payload)),/station list/);
+  }
+  await assert.rejects(fetchInventory({LIVE_SOURCE:'seoul-website'},async()=>new Response('Blocked',{status:403})),/unavailable/);
+});

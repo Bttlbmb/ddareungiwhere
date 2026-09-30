@@ -61,7 +61,7 @@ Put requirements in SPEC, design in DESIGN, implementation in ARCHITECTURE, rati
 ## Static deployment remaining work — 2026-10-01
 
 - GitHub Pages publication and actual hosted five-station comparison verified on 2026-10-01, including relative subdirectory paths and compressed tile transport. Continue physical-phone testing below.
-- Cloudflare proxy/coordinator deployed; its public endpoint and GitHub Pages CORS response verified on 2026-10-01 and connected in site configuration. Establish supported HTTPS provider transport before configuring the secret and enabling live counts. Confirm the actual account quota before revising the protective request budget.
+- Cloudflare proxy/coordinator deployed and connected. The official website’s HTTPS ALL station feed provides a key-free alternative; retain failure/expiry safeguards and check source format/coverage during maintenance. Secure transport for the optional authenticated Open API adapter remains unresolved; its secret stays unused. Confirm provider limits before revising the protective budget.
 - Test actual iPhone/Android download time and memory. Complete native tiles remain large; graph filtering saved little. Retain hierarchy unless further comparisons justify changing it.
 - Acquire explicit additional archive months for a genuine six-month summary, then verify coverage and station continuity; the current export still has three observed months.
 - The separate Oksu exact-origin routing defect remains.
