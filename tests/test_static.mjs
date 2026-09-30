@@ -91,3 +91,15 @@ test('website source rejects partial, duplicated, invalid and failed citywide re
   }
   await assert.rejects(fetchInventory({LIVE_SOURCE:'seoul-website'},async()=>new Response('Blocked',{status:403})),/unavailable/);
 });
+
+test('failed website refresh retains old counts and timestamps, exposing only a fixed failure label',async()=>{
+  const old={stations:[{id:1,bikes:3,fetched_at:'original'}],live:{fetched_at:'original'}};
+  const values=new Map([['snapshot',old]]),state={storage:{get:async k=>values.get(k),put:async(k,v)=>values.set(k,v)},blockConcurrencyWhile:async fn=>fn()};
+  const originalFetch=globalThis.fetch;
+  try {
+    globalThis.fetch=async()=>new Response('Blocked',{status:403});
+    const result=await (await new SeoulInventory(state,{LIVE_SOURCE:'seoul-website'}).fetch()).json();
+    assert.deepEqual(result.stations,old.stations);assert.equal(result.live.fetched_at,'original');
+    assert.equal(result.live.failure,'website-http-error');assert.equal(result.live.source,'seoul-website');
+  } finally {globalThis.fetch=originalFetch;}
+});

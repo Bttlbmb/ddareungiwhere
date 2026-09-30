@@ -47,6 +47,10 @@ export async function fetchInventory(env,fetcher=fetch,consume=async()=>{}) {
 }
 
 // Official public station map: HTTPS, no account cookies or API credential.
+function websiteFailure(code) {
+  const error=new Error('Live bike counts are unavailable. Try refreshing shortly.');
+  error.code=code;return error;
+}
 export async function fetchWebsiteInventory(fetcher=fetch,consume=async()=>{}) {
   await consume();
   let payload;
@@ -55,14 +59,16 @@ export async function fetchWebsiteInventory(fetcher=fetch,consume=async()=>{}) {
       method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
       body:'stationGrpSeq=ALL',redirect:'error',signal:AbortSignal.timeout(8000)
     });
-    if(!response.ok)throw new Error('Provider failed.');
-    payload=await response.json();
-  } catch {throw new Error('Live bike counts are unavailable. Try refreshing shortly.');}
+    if(!response.ok)throw websiteFailure('website-http-error');
+    try {payload=await response.json();}catch {throw websiteFailure('website-response-format');}
+  } catch(error) {
+    throw websiteFailure(['website-http-error','website-response-format'].includes(error?.code)?error.code:'website-transport');
+  }
   // ALL is the website's citywide request. The size floor also detects obvious
   // partial responses; it is a dated coverage guard, not a provider guarantee.
   if(payload.checkResult!==true||payload.stationVO?.stationGrpSeq!=='ALL'||
      !Array.isArray(payload.realtimeList)||payload.realtimeList.length<2500||payload.realtimeList.length>10000)
-    throw new Error('The bike service returned an incomplete station list.');
+    {const error=new Error('The bike service returned an incomplete station list.');error.code='website-incomplete';throw error;}
   const stamp=new Date().toISOString(),stations=new Map();
   for(const row of payload.realtimeList) {
     // Unlike bikeList's aggregate, the website has three separate categories.
@@ -74,10 +80,10 @@ export async function fetchWebsiteInventory(fetcher=fetch,consume=async()=>{}) {
     });
     const bikes=counts.every(n=>n!==null)?counts.reduce((a,b)=>a+b,0):null;
     const station=normalized({...row,parkingBikeTotCnt:bikes},stamp);
-    if(!station||stations.has(station.id))throw new Error('The bike service returned an invalid station list.');
+    if(!station||stations.has(station.id)){const error=new Error('The bike service returned an invalid station list.');error.code='website-invalid';throw error;}
     stations.set(station.id,station);
   }
-  return {stations:[...stations.values()],live:{refreshing:false,error:null,fetched_at:stamp}};
+  return {stations:[...stations.values()],live:{refreshing:false,error:null,fetched_at:stamp,source:'seoul-website'}};
 }
 
 // All refresh misses converge here. Ordinary responses may be edge-cached.
@@ -96,10 +102,16 @@ export class SeoulInventory {
     try {
       const snapshot=await fetchInventory(this.env,fetch,()=>this.consume());
       await this.state.storage.put('snapshot',snapshot);return snapshot;
-    } catch {
+    } catch(error) {
       // Never serialize/log a fetch exception: its URL could contain the key.
       const old=await this.state.storage.get('snapshot');
       const result={stations:old?.stations||[],live:{refreshing:false,error:'Live bike counts are unavailable. Try refreshing shortly.',fetched_at:old?.live?.fetched_at||null}};
+      if(this.env.LIVE_SOURCE==='seoul-website') {
+        result.live.source='seoul-website';
+        // Fixed diagnostic labels only; never upstream exception text/URLs.
+        const codes=['website-http-error','website-response-format','website-transport','website-incomplete','website-invalid'];
+        result.live.failure=codes.includes(error?.code)?error.code:'refresh-unavailable';
+      }
       await this.state.storage.put('snapshot',result);return result;
     }
   }
