@@ -102,6 +102,11 @@ def install_sdk(sdk, destination):
         if text.count(old) != 1:
             raise ValueError('SDK full-tile delivery patch no longer matches; inspect before upgrading.')
         text = text.replace(old, new)
+    old = 'let e=o.headers.get(`Content-Encoding`);r&&e&&e!==`identity`'
+    new = 'let encoding=o.headers.get(`Content-Encoding`);r&&encoding&&encoding!==`identity`'
+    if text.count(old) != 1:
+        raise ValueError('SDK content-encoding patch no longer matches.')
+    text = text.replace(old, new)
     old = 'bytes:await a(o,t.length,n),headers:Object.fromEntries'
     new = 'bytes:!r&&e.endsWith(`.gph`)?await(async()=>{const b=await a(o,t.length+65536,n,{exact:false});return b[0]===31&&b[1]===139?await a(new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream(`gzip`))),t.length,n):b})():await a(o,t.length,n),headers:Object.fromEntries'
     if text.count(old) != 1:

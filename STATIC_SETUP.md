@@ -14,7 +14,7 @@ The publication checkout contains an explicitly selected source set and generate
 
 1. Create an account at https://dash.cloudflare.com/sign-up and verify your email. You do not need a domain or a paid Workers plan for this prototype. SQLite Durable Objects are supported on the free plan; see [Cloudflare's documentation](https://developers.cloudflare.com/durable-objects/).
 2. Open **Workers & Pages** once to finish any initial account setup. We deploy the prepared Worker from this computer so its shared refresh coordinator and storage binding are created together. An ordinary dashboard Hello World worker alone does not include those bindings.
-3. Authorize the installed Cloudflare deployment tool with `wrangler login`. Complete the Cloudflare login/authorization page yourself. Do not put Cloudflare tokens or the Seoul key in GitHub or chat.
+3. **Manual setup (the user runs these commands):** open Terminal in this project and authorize the installed Cloudflare deployment tool with `wrangler login`. Complete the Cloudflare login/authorization page yourself. Do not put Cloudflare tokens or the Seoul key in GitHub or chat.
 4. From this project, deploy with `wrangler deploy --config worker/wrangler.jsonc`. It creates `ddareungiwhere-live`, its SQLite-backed `INVENTORY` coordinator, and a `workers.dev` address. No Seoul credential is needed to deploy the unavailable-count state.
 5. In Cloudflare select **ddareungiwhere-live → Settings → Variables and Secrets → Add**, choose **Secret**, name it `SEOUL_OPEN_DATA_API_KEY`, paste the existing key yourself, and deploy/save the change. Only do this after a supported secure Seoul endpoint is established. [Secret storage documentation](https://developers.cloudflare.com/workers/configuration/secrets/).
 6. Set `SEOUL_API_BASE` to the verified HTTPS base address. It is restricted to `openapi.seoul.go.kr`; foreign hosts, HTTP, redirects and credentials in configuration URLs are rejected. Do not disable TLS certificate validation.
@@ -68,3 +68,5 @@ Public data attribution is retained: Seoul Open Data Plaza for station/count/arc
 ## Publication maintenance
 
 The prepared Git checkout is `dist/publication`, separate from this source workspace. Run `scripts/prepare_publication.py dist/publication` after rebuilding and updating owning documents, inspect its changes, then commit and push there. It verifies the intended HTTPS/SSH remote and scans all candidate public bytes for the locally configured Seoul credential. `docs/` is generated; `project-notes/` contains the maintained source documents.
+
+For a repeatable native/browser routing check, run `scripts/check_browser_routes.py --native-lib /path/to/separate/site-packages` after building. Open `/__routing_check.html` on the local preview, inspect the visible results and native summaries. This diagnostic page is explicitly excluded from publication.
