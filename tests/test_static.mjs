@@ -1,0 +1,68 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {StaticPlanner,pickupTime} from '../web/static/planner.mjs';
+import {routeEstimate} from '../web/static/routes.mjs';
+import {StaticService} from '../web/static/service.mjs';
+import {fetchInventory,providerBase,normalized,SeoulInventory} from '../worker/src/worker.mjs';
+
+const now=Date.parse('2026-10-01T00:00:00Z');
+const stations=Array.from({length:7},(_,i)=>({id:i+1,number:String(i+1),name:`Station ${i+1}`,lat:37.55+i*.001,lng:126.97,bikes:null,fetched_at:null}));
+const history={stations:stations.map(s=>s.number),counts:stations.flatMap(()=>Array.from({length:48},(_,i)=>[30,i===33?6:0]))};
+const query=()=>new URLSearchParams({origin_lat:'37.55',origin_lng:'126.97',destination_lat:'37.556',destination_lng:'126.97',pickup:'2026-10-01T09:30',count:'5'});
+
+test('Seoul pickup interpretation and limits are independent of device timezone',()=>{
+  assert.deepEqual(pickupTime('2026-10-01T09:30',now),{stamp:now+1800000,hour:9,weekday:true});
+  assert.throws(()=>pickupTime('2026-10-09T09:00',now));
+  assert.throws(()=>pickupTime('broken',now));
+});
+test('five departures share one return; missing archive is distinct from zero; destination leaves history unchanged',()=>{
+  const planner=new StaticPlanner(stations,history),q=query(),a=planner.plan(q,{},now);
+  assert.equal(a.departures.length,5);assert.equal(a.return_station.id,7);
+  assert.deepEqual(a.departures[0].availability,{observations:30,zero:6});
+  q.set('destination_lat','37.55');const b=planner.plan(q,{},now);
+  assert.deepEqual(a.departures.map(s=>s.availability),b.departures.map(s=>s.availability));
+  q.set('departure','7');assert.equal(planner.plan(q,{},now).departures.length,5);
+  const missing=new StaticPlanner(stations,{stations:[],counts:[]}).plan(query(),{},now);
+  assert.deepEqual(missing.departures[0].availability,{observations:0,zero:0});
+});
+test('bootstrap does not fetch live data; refresh does not reroute or requery history',async()=>{
+  const service=new StaticService(new URL('http://localhost/'),{liveUrl:'https://example.test/api/live'});
+  service.loaded=Promise.resolve();service.stations=stations;service.history=history;service.popular=[];
+  service.planner={plan(){throw new Error('Unexpected plan');}};service.routes={estimate(){throw new Error('Unexpected routing');}};
+  let refreshes=0;service.refresh=()=>refreshes++;
+  await service.request('/api/bootstrap');assert.equal(refreshes,0);
+  await service.request('/api/live');assert.equal(refreshes,1);
+  await service.request('/api/live?refresh=0');assert.equal(refreshes,1);
+});
+test('walking access adjustment preserves zero, rejects long snapping gaps and retains detours',()=>{
+  const a={lat:37.55,lng:126.97},b={lat:37.56,lng:126.98};
+  const native={trip:{summary:{time:4200,length:8},legs:[{shape:'_zzrfA_hsdqF_pR_pR'}]}};
+  assert.equal(routeEstimate(native,a,b,'pedestrian').minutes,70);
+  assert.ok(routeEstimate(native,{...a,lat:a.lat+.0001},b,'pedestrian').minutes>70);
+  assert.throws(()=>routeEstimate(native,{...a,lat:a.lat+.01},b,'pedestrian'));
+});
+const row=(id=1,bikes='0')=>({stationId:`ST-${id}`,stationName:`${id}. Example`,stationLatitude:'37.55',stationLongitude:'126.97',parkingBikeTotCnt:bikes});
+test('proxy refuses insecure/foreign provider URLs and keeps malformed inventory unknown',()=>{
+  assert.throws(()=>providerBase('http://openapi.seoul.go.kr:8088'));
+  assert.throws(()=>providerBase('https://attacker.example'));
+  assert.equal(normalized(row(),'stamp').bikes,0);
+  assert.equal(normalized(row(1,''),'stamp').bikes,null);
+  assert.equal(normalized(row(1,null),'stamp').bikes,null);
+});
+test('proxy validates complete pagination and never returns credential-bearing upstream exceptions',async()=>{
+  const env={SEOUL_OPEN_DATA_API_KEY:'PrivateTestKey'};let calls=0;
+  const data=await fetchInventory(env,async()=>Response.json(++calls===1?{rentBikeStatus:{RESULT:{CODE:'INFO-000'},row:[row()]}}:{CODE:'INFO-200'}));
+  assert.equal(data.stations[0].bikes,0);assert.equal(calls,2);
+  await assert.rejects(fetchInventory(env,async()=>{throw new Error('https://provider/PrivateTestKey');}),error=>!error.message.includes('PrivateTestKey'));
+  await assert.rejects(fetchInventory(env,async()=>Response.json({rentBikeStatus:{RESULT:{CODE:'INFO-000'},row:[row()]}})),/overlapping/);
+});
+test('one coordinator shares concurrent refreshes and throttles subsequent misses',async()=>{
+  const values=new Map();const state={storage:{get:async k=>values.get(k),put:async(k,v)=>values.set(k,v)},blockConcurrencyWhile:async fn=>fn()};
+  const coordinator=new SeoulInventory(state,{});let calls=0,resolve;
+  coordinator.refresh=()=>{calls++;values.set('lastAttempt',Date.now());return new Promise(r=>{resolve=value=>{values.set('snapshot',value);r(value);};});};
+  const first=coordinator.fetch(),second=coordinator.fetch();
+  await Promise.resolve();await Promise.resolve();
+  resolve({stations:[],live:{fetched_at:'original',refreshing:false}});
+  await Promise.all([first,second]);assert.equal(calls,1);
+  const cached=await (await coordinator.fetch()).json();assert.equal(calls,1);assert.equal(cached.live.fetched_at,'original');
+});

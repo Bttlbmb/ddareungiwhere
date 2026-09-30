@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#293338" />
+    <title>따릉이 Where?</title>
+    <link rel="icon" type="image/svg+xml" href="/assets/looking-wheels.svg" />
+    <link rel="stylesheet" href="/vendor/leaflet.css" />
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/vendor/leaflet.js" defer></script>
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="따릉이 Where? home">
+        <img class="brand-mark" src="/assets/looking-wheels.svg" width="48" height="42" alt="" />
+        <span class="brand-wordmark"><span lang="ko">따릉이</span> Where?</span>
+      </a>
+    </header>
+    <main>
+      <div id="error" class="message error" role="alert" hidden></div>
+      <section id="workspace" class="planner-grid" aria-label="Plan a ride">
+        <form id="planner-form" class="planner-card">
+          <div class="section-title">
+            <h2>Where are you headed?</h2>
+          </div>
+          <div class="location-fields">
+            <div class="origin-field">
+              <div class="location-heading">
+                <label class="location-label" for="set-origin">Starting point</label>
+                <button id="use-location" class="text-button location-action" type="button">
+                  <span class="location-icon" aria-hidden="true">⌖</span>
+                  <span id="current-location-label">Current location</span>
+                </button>
+              </div>
+              <button
+                id="set-origin"
+                type="button"
+                class="location-button active"
+                aria-pressed="true"
+              >
+                <span class="point-dot start-dot">A</span
+                ><span
+                  ><strong id="origin-label">Choose starting point</strong
+                  ><em>Choose on the map</em></span
+                ><span class="crosshair" aria-hidden="true">⌖</span>
+              </button>
+              <p id="location-status" class="input-help" role="status"></p>
+            </div>
+            <div class="destination-field">
+              <label class="location-label" for="set-destination"
+                >Destination</label
+              >
+              <button
+                id="set-destination"
+                type="button"
+                class="location-button"
+                aria-pressed="false"
+              >
+                <span class="point-dot end-dot">B</span
+                ><span
+                  ><strong id="destination-label">Choose destination</strong
+                  ><em>Choose on the map</em></span
+                ><span class="crosshair" aria-hidden="true">⌖</span>
+              </button>
+            </div>
+          </div>
+          <div class="time-heading">
+            <label for="pickup">Bike pickup time</label>
+          </div>
+          <input id="pickup" type="datetime-local" />
+          <div
+            class="time-shortcuts"
+            role="group"
+            aria-label="Pickup time shortcuts"
+          >
+            <button id="now-button" type="button">Now</button>
+            <button id="plus-30" type="button">In 30min</button>
+            <button id="plus-60" type="button">In 1h</button>
+          </div>
+          <button class="primary-button" id="compare-button" type="submit" disabled>
+            Compare stations <span aria-hidden="true">↗</span>
+          </button>
+          <div class="try-journeys" id="popular-journeys" hidden>
+            <span class="eyebrow">POPULAR ROUTES</span>
+            <div id="popular-route-buttons"></div>
+          </div>
+        </form>
+        <div class="journey-panel">
+          <div id="journey-map" class="map-panel">
+            <div class="map-toolbar">
+              <span id="map-instruction"
+                >Click the map to set your starting point</span
+              ><button
+                type="button"
+                id="fit-map"
+                aria-label="Fit journey on map"
+                disabled
+              >
+                ↗ <span>Fit journey</span>
+              </button>
+            </div>
+            <div
+              id="map"
+              aria-label="Interactive station map"
+              role="region"
+            ></div>
+            <div id="map-error" class="map-error" hidden>
+              Map tiles are unavailable. Station markers and comparisons still
+              work.
+            </div>
+            <div class="map-bottom">
+              <span><i class="legend-dot"></i>Bike station</span
+              ><span><i class="legend-dot selected"></i>Selected departure</span
+              ><span
+                ><i class="journey-line-key"></i>A–B straight line, not a
+                cycling route</span
+              >
+            </div>
+          </div>
+          <section id="results" class="results-section" aria-busy="true" hidden>
+            <div class="results-heading">
+              <button
+                id="back-to-map"
+                class="secondary-button"
+                type="button"
+                aria-controls="journey-map"
+              >
+                ← Back to map
+              </button>
+              <div>
+                <h2>Choose your departure.</h2>
+              </div>
+              <button id="refresh-live" class="secondary-button" type="button">
+                ↻ Refresh bikes
+              </button>
+            </div>
+            <div class="results-body">
+              <div class="table-wrap">
+                <table id="station-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Departure station</th>
+                      <th scope="col">Bikes now</th>
+                      <th scope="col">Est. walk time</th>
+                      <th scope="col">Est. ride time</th>
+                      <th id="availability-heading" scope="col">
+                        Historical no-bike risk
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody id="station-rows">
+                    <tr>
+                      <td colspan="5" class="loading">
+                        Preparing your station comparison…
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="results-footer">
+                <span class="muted"
+                  ><span id="fetch-time"></span> · time estimates via Valhalla / OpenStreetMap</span
+                >
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+      <footer class="site-footer">
+        <span
+          >Bike data:
+          <a
+            href="https://data.seoul.go.kr/dataList/OA-15182/F/1/datasetView.do"
+            target="_blank"
+            rel="noreferrer"
+            >Seoul Open Data Plaza</a
+          >
+          · Street labels:
+          <a
+            href="https://www.openstreetmap.org/copyright"
+            target="_blank"
+            rel="noreferrer"
+            >© OpenStreetMap contributors</a
+          >
+          ·
+          <a
+            href="https://www.openstreetmap.org/fixthemap"
+            target="_blank"
+            rel="noreferrer"
+            >Report a map issue</a
+          ></span
+        >
+      </footer>
+    </main>
+  </body>
+</html>

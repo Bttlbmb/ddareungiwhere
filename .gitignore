@@ -1,0 +1,23 @@
+# Local API credentials
+.env
+.env.*
+!.env.example
+
+# Downloaded public data and local analysis caches
+data/raw/
+data/processed/
+
+# Python runtime caches
+__pycache__/
+*.pyc
+
+# Local Python routing runtime
+.venv/
+
+# Generated public build, separate native browser builder and Worker tooling
+dist/
+.browser-native/
+node_modules/
+.wrangler/
+.dev.vars
+.dev.vars.*

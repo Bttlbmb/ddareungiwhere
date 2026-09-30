@@ -1,0 +1,754 @@
+const { test } = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const vm = require("node:vm");
+
+test("panning preserves visible station markers and refreshed coordinates", () => {
+  const h = harness();
+  let created = 0;
+  const removed = [];
+  h.context.bounds = {
+    pad() {
+      return this;
+    },
+    contains() {
+      return true;
+    },
+  };
+  h.context.layer = {
+    removeLayer(marker) {
+      removed.push(marker);
+    },
+  };
+  h.context.L = {
+    circleMarker(point) {
+      created++;
+      return {
+        point,
+        bindPopup() {
+          return this;
+        },
+        addTo() {
+          return this;
+        },
+        getLatLng() {
+          return { lat: this.point[0], lng: this.point[1] };
+        },
+        setLatLng(point) {
+          this.point = point;
+        },
+      };
+    },
+  };
+  h.run(
+    "map={getBounds:()=>bounds};baseStations=layer;state.stations.push({...fixture.station,id:2});renderBaseStations()",
+  );
+  const marker = h.run("stationMarkers.get(2)");
+  h.run("renderBaseStations()");
+  assert.equal(h.run("stationMarkers.get(2)"), marker);
+  assert.equal(created, 1);
+  h.run("state.stations[1].lat=37.6;renderBaseStations()");
+  assert.equal(marker.getLatLng().lat, 37.6);
+  h.context.bounds.contains = () => false;
+  h.run("renderBaseStations()");
+  assert.equal(removed[0], marker);
+  assert.equal(h.run("stationMarkers.size"), 0);
+});
+
+// A small DOM model exercises real rendering functions and reproduces focus loss
+// when innerHTML removes a focused descendant. No browser/network dependency.
+function harness() {
+  const elements = new Map(),
+    timers = new Map();
+  let now = Date.parse("2026-09-30T00:00:00Z"),
+    nextTimer = 0;
+  const document = {
+    activeElement: null,
+    hidden: false,
+    addEventListener() {},
+  };
+  class Element {
+    constructor(id) {
+      this.id = id;
+      this.dataset = {};
+      this.children = [];
+      this.textContent = "";
+      this.writes = 0;
+      this.classes = new Set();
+      this.classList = {
+        toggle: (name, on) =>
+          on ? this.classes.add(name) : this.classes.delete(name),
+      };
+    }
+    set innerHTML(html) {
+      this.writes++;
+      if (this.children.includes(document.activeElement))
+        document.activeElement = null;
+      this.html = html;
+      this.children = [...html.matchAll(/data-select="(\d+)"/g)].map(
+        (match) => {
+          const child = new Element();
+          child.dataset.select = match[1];
+          return child;
+        },
+      );
+    }
+    get innerHTML() {
+      return this.html || "";
+    }
+    focus() {
+      document.activeElement = this;
+    }
+    setAttribute(name, value) {
+      this.attributes ||= {};
+      this.attributes[name] = value;
+    }
+  }
+  document.getElementById = (id) => {
+    if (!elements.has(id)) elements.set(id, new Element(id));
+    return elements.get(id);
+  };
+  document.querySelectorAll = (selector) =>
+    selector === "[data-select]"
+      ? document.getElementById("station-rows").children
+      : selector === "[data-live-station]"
+        ? [document.getElementById("popup-count")]
+        : [];
+  document.querySelector = (selector) =>
+    document
+      .querySelectorAll("[data-select]")
+      .find((e) => selector === `[data-select="${e.dataset.select}"]`);
+  document.getElementById("popup-count").dataset.liveStation = "1";
+  class Clock extends Date {
+    constructor(...args) {
+      super(...(args.length ? args : [now]));
+    }
+    static now() {
+      return now;
+    }
+  }
+  const context = vm.createContext({
+    document,
+    window: {},
+    Date: Clock,
+    Intl,
+    URLSearchParams,
+    console,
+    setTimeout(fn, delay) {
+      const id = ++nextTimer;
+      timers.set(id, { fn, delay });
+      return id;
+    },
+    clearTimeout(id) {
+      timers.delete(id);
+    },
+    setInterval() {},
+    AbortController,
+    fetch: async () => {
+      throw new Error("offline");
+    },
+  });
+  const source = fs
+    .readFileSync(require("node:path").join(__dirname, "../web/app.js"), "utf8")
+    .replace(/start\(\);\s*$/, "");
+  vm.runInContext(source, context);
+  const run = (code) => vm.runInContext(code, context);
+  const station = {
+    id: 1,
+    number: "4760",
+    name: "First station",
+    lat: 37.5,
+    lng: 127,
+    bikes: 4,
+    fetched_at: new Date(now).toISOString(),
+    distance_m: 20,
+    availability: { observations: 0, zero: 0 },
+  };
+  const history = {
+    start: "2026-04-01",
+    end: "2026-06-30",
+    availability_start: "2025-10-01",
+    availability_end: "2025-12-31",
+  };
+  context.fixture = { station, history };
+  run(
+    `state.stations=[fixture.station];state.history=fixture.history;state.selectedId=1;state.plan={departures:[fixture.station],return_station:fixture.station,suggested_id:1,immediate:true,live:{refreshing:false,fetched_at:fixture.station.fetched_at},};`,
+  );
+  return {
+    context,
+    run,
+    e: (id) => document.getElementById(id),
+    document,
+    timers,
+    advance: (ms) => {
+      now += ms;
+    },
+    station,
+    history,
+    Element,
+  };
+}
+
+test("counts, badges and open popup expire despite failed refresh", async () => {
+  const h = harness();
+  h.run("renderResults();renderLive(state.plan.live);scheduleExpiry()");
+  assert.ok(
+    [...h.timers.values()].some((t) => t.delay === 120001),
+    "expiration runs separately from network refresh",
+  );
+  await h.run("refreshLive()");
+  let failRequest;
+  h.context.fetch = () =>
+    new Promise((_, reject) => {
+      failRequest = reject;
+    });
+  const pending = h.run("refreshLive()");
+  const expiry = [...h.timers.values()].find((t) => t.delay === 120001);
+  h.advance(120001);
+  expiry.fn();
+  assert.doesNotMatch(h.e("station-rows").innerHTML, /Stale report/);
+  assert.doesNotMatch(h.e("station-rows").innerHTML, /small-tag">Bikes now/);
+  assert.equal(
+    h.e("popup-count").textContent,
+    "Live count unavailable",
+  );
+  failRequest(new Error("offline"));
+  await pending;
+});
+
+test("marker selection changes styling without panning or replacing popup layers", () => {
+  const h = harness();
+  let pans = 0,
+    changes = 0;
+  h.context.mapStub = {
+    panTo() {
+      pans++;
+    },
+  };
+  h.context.markers = [1, 2].map((id) => ({
+    id,
+    selected: id === 1,
+    getElement() {
+      return {
+        querySelector: () => ({
+          classList: {
+            toggle: (_name, selected) => {
+              this.selected = selected;
+              changes++;
+            },
+          },
+        }),
+      };
+    },
+    setZIndexOffset(n) {
+      this.z = n;
+    },
+  }));
+  h.run(
+    "map=mapStub;markers.forEach(m=>departureMarkers.set(m.id,m));selectDeparture(2,false)",
+  );
+  assert.equal(pans, 0);
+  assert.equal(changes, 2);
+  assert.equal(h.context.markers[0].selected, false);
+  assert.equal(h.context.markers[1].selected, true);
+  assert.equal(h.context.markers[1].z, 300);
+});
+
+test("station focus survives selection and live result redraw", () => {
+  const h = harness();
+  h.run("renderResults()");
+  h.e("station-rows").children[0].focus();
+  const old = h.document.activeElement;
+  h.run("selectDeparture(1,false)");
+  assert.notEqual(h.document.activeElement, old);
+  assert.equal(h.document.activeElement.dataset.select, "1");
+  h.run("renderResults()");
+  assert.equal(h.document.activeElement.dataset.select, "1");
+});
+
+test("failed bootstrap recovers metadata without selecting a journey", async () => {
+  const h = harness();
+  h.run("state.history=null;state.plan=null");
+  await h.run("loadBootstrap()");
+  assert.match(h.e("error").textContent, /offline/);
+  const requested = [];
+  h.context.fetch = async (path) => {
+    requested.push(path);
+    return {
+      ok: true,
+      json: async () => ({
+        stations: [h.station, { ...h.station, id: 2, number: "4796" }],
+        history: h.history,
+        live: { refreshing: false },
+      }),
+    };
+  };
+  await h.run("refreshLive()");
+  assert.equal(requested[0], "/api/bootstrap");
+  assert.equal(h.run("state.history.start"), "2026-04-01");
+  assert.equal(h.run("state.origin"), null);
+  assert.equal(h.run("state.destination"), null);
+  assert.equal(h.e("compare-button").disabled, true);
+  assert.equal(h.e("error").hidden, true);
+  assert.equal(
+    requested.some((path) => path.startsWith("/api/plan")),
+    false,
+  );
+  assert.equal(h.run("state.plan"), null);
+});
+
+test("table shows station, current bikes, walk and cycling durations, and historical risk", () => {
+  const h = harness();
+  h.run("state.plan.immediate=false;renderResults()");
+  assert.equal(h.e("availability-heading").textContent, "Historical no-bike risk");
+  assert.equal((h.e("station-rows").innerHTML.match(/<td(?: [^>]*)?>/g) || []).length, 5);
+  assert.doesNotMatch(
+    h.e("station-rows").innerHTML,
+    /Matching dates|records|rides<|past-count|<small>min|2026-06-01|zero in archive/,
+  );
+  assert.match(h.e("station-rows").innerHTML, /Unknown/);
+});
+
+test("historical risk requires sufficient valid observations and respects band boundaries", () => {
+  const h = harness();
+  for (const value of [
+    undefined,
+    {},
+    { observations: 19, zero: 0 },
+    { observations: 20 },
+    { observations: 20, zero: -1 },
+    { observations: 20, zero: 21 },
+    { observations: 20.5, zero: 0 },
+  ]) {
+    h.context.availability = value;
+    assert.equal(h.run("historicalRisk(availability).label"), "Unknown");
+  }
+  for (const [zero, expected] of [
+    [0, "Low"],
+    [4, "Low"],
+    [5, "Moderate"],
+    [19, "Moderate"],
+    [20, "High"],
+    [100, "High"],
+  ]) {
+    h.context.availability = { observations: 100, zero };
+    assert.equal(h.run("historicalRisk(availability).label"), expected);
+  }
+  assert.equal(h.run("historicalRisk({observations:20,zero:0}).label"), "Low");
+});
+
+test("live emptiness, stale counts and comparison context do not rewrite historical risk", () => {
+  const h = harness();
+  h.station.availability = {
+    observations: 60,
+    zero: 12,
+  };
+  h.station.bikes = 0;
+  h.run("renderResults()");
+  assert.match(h.e("station-rows").innerHTML, /stat bikes empty/);
+  assert.match(h.e("station-rows").innerHTML, /risk-high/);
+  h.advance(121000);
+  h.run(
+    "state.plan.immediate=false;state.plan.day_group='Weekends';state.plan.hour=8;state.plan.return_station={id:2};renderResults()",
+  );
+  assert.doesNotMatch(h.e("station-rows").innerHTML, /Stale report/);
+  assert.match(h.e("station-rows").innerHTML, /risk-high/);
+  h.station.availability = { observations: 26, zero: 0 };
+  h.run("renderResults()");
+  assert.match(h.e("station-rows").innerHTML, /risk-low/);
+  h.run(
+    "state.plan.history={};fixture.station.availability=undefined;renderResults()",
+  );
+});
+
+test("GPS is one-shot, handles denied access and ignores a late fix after manual selection", () => {
+  const h = harness();
+  let callbacks;
+  h.context.navigator = {
+    geolocation: {
+      getCurrentPosition(success, error, options) {
+        callbacks = { success, error, options };
+      },
+    },
+  };
+  h.run("useCurrentLocation()");
+  assert.equal(callbacks.options.enableHighAccuracy, true);
+  assert.equal(callbacks.options.timeout, 15000);
+  callbacks.error({ code: 1 });
+  assert.match(h.e("location-status").textContent, /denied/);
+  assert.equal(h.e("use-location").disabled, false);
+  h.run(
+    'useCurrentLocation();setPoint("origin",{lat:37.55,lng:127.02},"Manual place")',
+  );
+  callbacks.success({
+    coords: { latitude: 37.6, longitude: 127.1, accuracy: 20 },
+  });
+  assert.equal(h.run("state.origin.lat"), 37.55);
+  assert.equal(h.e("origin-label").textContent, "Manual place");
+});
+
+test("GPS success changes only the origin without extra text; timeout keeps the journey", () => {
+  const h = harness();
+  let callbacks;
+  h.context.navigator = {
+    geolocation: {
+      getCurrentPosition(success, error) {
+        callbacks = { success, error };
+      },
+    },
+  };
+  h.run("state.destination={lat:37.53,lng:127.08};useCurrentLocation()");
+  callbacks.success({
+    coords: { latitude: 37.54, longitude: 127.04, accuracy: 25 },
+  });
+  assert.equal(h.run("state.origin.lat"), 37.54);
+  assert.equal(h.run("state.destination.lat"), 37.53);
+  assert.equal(h.e("location-status").textContent, "");
+  h.run("useCurrentLocation()");
+  callbacks.error({ code: 3 });
+  assert.match(h.e("location-status").textContent, /too long/);
+  assert.equal(h.run("state.origin.lat"), 37.54);
+  h.run("useCurrentLocation()");
+  callbacks.success({ coords: { latitude: 51, longitude: 0, accuracy: 10 } });
+  assert.match(h.e("location-status").textContent, /outside the Seoul/);
+  assert.equal(h.run("state.origin.lat"), 37.54);
+});
+
+test("late street lookup cannot rename a newer map point; fallback uses station name", async () => {
+  const h = harness();
+  let resolveFirst;
+  h.context.fetch = () =>
+    new Promise((resolve) => {
+      resolveFirst = resolve;
+    });
+  const first = h.run('lookupPointLabel("origin",{lat:37.5,lng:127},0)');
+  h.context.fetch = async () => ({
+    ok: true,
+    json: async () => ({ label: "New street", distance_m: 5 }),
+  });
+  h.run("state.labelRequests.origin=1");
+  await h.run('lookupPointLabel("origin",{lat:37.6,lng:127},1)');
+  resolveFirst({
+    ok: true,
+    json: async () => ({ label: "Old street", distance_m: 10 }),
+  });
+  await first;
+  assert.equal(h.e("origin-label").textContent, "New street");
+  h.context.fetch = async () => {
+    throw new Error("offline");
+  };
+  h.run('setPoint("origin",{lat:37.5,lng:127})');
+  assert.equal(h.e("origin-label").textContent, "Near First station");
+});
+
+test("only an explicit query opens results; returning to map survives in-flight refresh", async () => {
+  const h = harness();
+  h.run(
+    "state.origin={lat:37.5,lng:127};state.destination={lat:37.51,lng:127.01}",
+  );
+  h.context.result = h.run("state.plan");
+  h.context.fetch = async () => ({
+    ok: true,
+    json: async () => h.context.result,
+  });
+  await h.run("compare()");
+  assert.equal(
+    h.run("state.view"),
+    "map",
+    "background comparison keeps the map visible",
+  );
+  await h.run("compare({preventDefault(){}})");
+  assert.equal(h.e("journey-map").hidden, true);
+  assert.equal(h.e("results").hidden, false);
+  assert.equal(h.document.activeElement, h.e("back-to-map"));
+  let finish;
+  h.context.fetch = () =>
+    new Promise((resolve) => {
+      finish = resolve;
+    });
+  const pending = h.run("compare({preventDefault(){}})");
+  h.context.invalidations = 0;
+  h.run(
+    "map={invalidateSize(){invalidations++}};showView('map');map=undefined",
+  );
+  finish({ ok: true, json: async () => h.context.result });
+  await pending;
+  assert.equal(h.e("journey-map").hidden, false);
+  assert.equal(h.e("results").hidden, true);
+  assert.equal(h.context.invalidations, 1);
+  assert.equal(h.e("workspace").classes.has("show-results"), false);
+  assert.equal(h.run("state.destination.lng"), 127.01);
+});
+
+test("the straight line follows both endpoints and never accumulates old lines", () => {
+  const h = harness();
+  const lines = [],
+    layers = [];
+  h.context.L = {
+    polyline(points, options) {
+      const line = {
+        points,
+        options,
+        addTo() {
+          lines.push(this);
+          return this;
+        },
+      };
+      return line;
+    },
+    marker() {
+      return { on() {} };
+    },
+    divIcon(options) {
+      return options;
+    },
+  };
+  h.context.endpointLayer = {
+    clearLayers() {
+      lines.length = 0;
+      layers.length = 0;
+    },
+    addLayer(marker) {
+      layers.push(marker);
+    },
+  };
+  h.run(
+    "map={};endpointMarkers=endpointLayer;state.origin={lat:37.5,lng:127};state.destination={lat:37.51,lng:127.01};renderEndpoints()",
+  );
+  assert.equal(lines.length, 1);
+  assert.equal(layers.length, 2);
+  assert.equal(JSON.stringify(lines[0].points), "[[37.5,127],[37.51,127.01]]");
+  assert.equal(lines[0].options.interactive, false);
+  h.run("state.destination={lat:37.52,lng:127.02};renderEndpoints()");
+  assert.equal(lines.length, 1);
+  assert.equal(JSON.stringify(lines[0].points), "[[37.5,127],[37.52,127.02]]");
+  h.run("state.destination=null;renderEndpoints()");
+  assert.equal(lines.length, 0);
+});
+
+test("loading, choosing pins and editing pickup never request a comparison or live collection", async () => {
+  const h = harness(),
+    requests = [];
+  const result = h.run("state.plan");
+  let intervals = 0;
+  h.context.setInterval = () => {
+    intervals++;
+  };
+  h.context.fetch = async (path) => {
+    requests.push(path);
+    return {
+      ok: true,
+      json: async () =>
+        path.startsWith("/api/plan")
+          ? result
+          : {
+              stations: [h.station, { ...h.station, id: 2, number: "4796" }],
+              history: h.history,
+              live: { refreshing: false },
+            },
+    };
+  };
+  await h.run("start()");
+  assert.equal(h.run("state.origin"), null);
+  assert.equal(h.run("state.destination"), null);
+  assert.equal(h.e("compare-button").disabled, true);
+  assert.equal(h.e("fit-map").disabled, true);
+  h.run('setPoint("origin",{lat:37.55,lng:127.03})');
+  assert.equal(h.e("compare-button").disabled, true);
+  h.run(
+    'setPoint("origin",{lat:37.55,lng:127.03});setPoint("destination",{lat:37.56,lng:127.04})',
+  );
+  assert.equal(h.e("compare-button").disabled, false);
+  assert.equal(h.e("fit-map").disabled, false);
+  h.e("pickup").value = "2026-09-30T10:00";
+  h.e("pickup").onchange();
+  h.e("now-button").onclick();
+  assert.equal(intervals, 0);
+  assert.equal(
+    requests.some(
+      (p) => p.startsWith("/api/plan") || p.startsWith("/api/live"),
+    ),
+    false,
+  );
+  assert.equal(h.run("state.plan"), null);
+  await h.e("planner-form").onsubmit({ preventDefault() {} });
+  assert.equal(requests.filter((p) => p.startsWith("/api/plan")).length, 1);
+  assert.equal(h.run("state.view"), "results");
+});
+
+test("metadata recovery preserves a single chosen pin and never fills the other endpoint", async () => {
+  const h = harness();
+  h.run('state.history=null;state.plan=null;state.origin={lat:37.56,lng:127.02}');
+  h.context.fetch = async () => ({
+    ok: true,
+    json: async () => ({stations:[h.station],history:h.history,live:{refreshing:false}}),
+  });
+  await h.run("loadBootstrap()");
+  assert.equal(h.run("state.origin.lng"), 127.02);
+  assert.equal(h.run("state.destination"), null);
+  assert.equal(h.e("compare-button").disabled, true);
+  let requests = 0;
+  h.context.fetch = async () => { requests++; throw new Error("unexpected request"); };
+  await h.run("compare({preventDefault(){}})");
+  assert.equal(requests, 0);
+  assert.equal(h.run("state.view"), "map");
+  assert.equal(h.run("state.mode"), "destination");
+});
+
+test("manual bike refresh updates counts without rerunning history; completion polling only reads a snapshot", async () => {
+  const h = harness(),
+    requests = [];
+  h.context.fetch = async (path) => {
+    requests.push(path);
+    return {
+      ok: true,
+      json: async () => ({
+        stations: [{ ...h.station, bikes: 7 }],
+        live: { refreshing: false },
+      }),
+    };
+  };
+  h.run("fixture.station.walking_route={minutes:3.2};fixture.station.cycling_route={minutes:7.8}");
+  await h.run("refreshLive()");
+  assert.equal(h.run("state.plan.departures[0].bikes"), 7);
+  assert.equal(h.run("state.plan.departures[0].walking_route.minutes"), 3.2);
+  assert.equal(h.run("state.plan.departures[0].cycling_route.minutes"), 7.8);
+  assert.equal(h.run("state.awaitingLive"), false);
+  await h.run("refreshLive(false)");
+  assert.deepEqual(requests, ["/api/live", "/api/live?refresh=0"]);
+});
+
+test("fresh counts use red for zero, yellow for one or two, with no row timestamps", () => {
+  const h = harness();
+  for (const [bikes, expected] of [
+    [0, "empty"],
+    [1, "few"],
+    [2, "few"],
+    [3, ""],
+    [20, ""],
+  ]) {
+    h.station.bikes = bikes;
+    h.run("renderRows()");
+    assert.ok(
+      h.e("station-rows").innerHTML.includes(`class="stat bikes ${expected}"`),
+    );
+    assert.doesNotMatch(h.e("station-rows").innerHTML, /Fetched|None reported/);
+  }
+  h.advance(121000);
+  h.run("renderRows()");
+  assert.doesNotMatch(h.e("station-rows").innerHTML, /class="stat bikes/);
+  assert.doesNotMatch(h.e("station-rows").innerHTML, /Stale report/);
+});
+
+test("immediate availability overrides historical risk, while future and stale reports stay distinct", () => {
+  const h = harness();
+  h.station.availability = { observations: 60, zero: 0 };
+  for (const [bikes, label] of [
+    [0, "Empty now"],
+    [1, "Few bikes"],
+    [2, "Few bikes"],
+    [3, "Available now"],
+  ]) {
+    h.station.bikes = bikes;
+    assert.equal(
+      h.run("stationAvailability(fixture.station,state.plan).label"),
+      label,
+    );
+  }
+  h.station.bikes = 0;
+  h.advance(121000);
+  assert.equal(
+    h.run("stationAvailability(fixture.station,state.plan).label"),
+    "Unknown",
+  );
+  h.run("state.plan.immediate=false");
+  assert.equal(
+    h.run("stationAvailability(fixture.station,state.plan).label"),
+    "Low",
+  );
+});
+
+test("time shortcuts are relative to the click time and do not query", () => {
+  const h = harness();
+  h.run("setPickupOffset(30)");
+  assert.equal(h.run("state.pickup"), "2026-09-30T09:30");
+  h.advance(600000);
+  h.run("setPickupOffset(60)");
+  assert.equal(h.run("state.pickup"), "2026-09-30T10:10");
+  h.run("setPickupOffset(0)");
+  assert.equal(h.run("state.pickup"), "now");
+  assert.equal(h.e("pickup").value, "2026-09-30T09:10");
+  assert.equal(h.run("state.plan"), null);
+});
+
+
+test("each station shows its own rounded local cycling time and handles missing routes", () => {
+  const h = harness();
+  h.run('fixture.station.cycling_route={minutes:7.8};state.plan.departures.push({...fixture.station,id:2,cycling_route:{minutes:12.3}});renderResults()');
+  assert.match(h.e("station-rows").innerHTML, />8 min<.*>12 min</s);
+  h.run('fixture.station.cycling_route={error:"Local cycling route unavailable"};renderResults()');
+  assert.match(h.e("station-rows").innerHTML, /title="Local cycling route unavailable">—/);
+  assert.match(h.e("station-rows").innerHTML, />12 min</);
+});
+
+test("walk times are independent of cycling and handle zero and missing routes", () => {
+  const h = harness();
+  h.run('fixture.station.walking_route={minutes:2.6};fixture.station.cycling_route={minutes:7.8};renderResults()');
+  assert.match(h.e("station-rows").innerHTML, /Estimated walk from your starting point at 5.1 km\/h">3 min/);
+  assert.match(h.e("station-rows").innerHTML, />8 min</);
+  h.run('fixture.station.walking_route={minutes:0};renderResults()');
+  assert.match(h.e("station-rows").innerHTML, /5.1 km\/h">0 min/);
+  h.run('fixture.station.walking_route={minutes:.2};renderResults()');
+  assert.match(h.e("station-rows").innerHTML, /5.1 km\/h">1 min/);
+  h.run('fixture.station.walking_route={error:"Local walking route unavailable"};renderResults()');
+  assert.match(h.e("station-rows").innerHTML, /Local walking route unavailable">—/);
+  assert.match(h.e("station-rows").innerHTML, />8 min</);
+});
+
+test("popup station choices move the corresponding pin and update its street label without comparing", async () => {
+  const h = harness(), buttons = {}, requests = [];
+  h.document.createElement = () => ({
+    innerHTML: "",
+    querySelector: selector => buttons[selector] ||= {},
+  });
+  h.context.fetch = async path => {
+    requests.push(path);
+    return {ok:true,json:async()=>({label:path.includes('lat=37.5&') ? 'Departure road' : 'Return road',distance_m:5})};
+  };
+  h.run('map={closePopup(){},invalidateSize(){}};renderEndpoints=()=>{};renderMapStations=()=>{};state.origin={lat:37.51,lng:127.01};state.destination={lat:37.52,lng:127.02};stationPopup(fixture.station)');
+  buttons['[data-role=departure]'].onclick();
+  await new Promise(setImmediate);
+  assert.equal(h.run('state.origin.lat'), h.station.lat);
+  assert.equal(h.run('state.origin.lng'), h.station.lng);
+  assert.equal(h.run('state.departureId'), h.station.id);
+  assert.equal(h.run('state.selectedId'), h.station.id);
+  assert.equal(h.e('origin-label').textContent,'Departure road');
+  h.run('stationPopup({...fixture.station,id:2,lat:37.6,lng:127.1,name:"Return station"})');
+  buttons['[data-role=return]'].onclick();
+  await new Promise(setImmediate);
+  assert.equal(h.run('state.destination.lat'),37.6);
+  assert.equal(h.run('state.destination.lng'),127.1);
+  assert.equal(h.run('state.returnId'),2);
+  assert.equal(h.e('destination-label').textContent,'Return road');
+  assert.equal(h.e('origin-label').textContent,'Departure road');
+  assert.equal(h.run('state.plan'),null);
+  assert.ok(requests.every(path=>path.startsWith('/api/place-label?')));
+});
+
+
+test("a hanging local comparison times out and restores the compare control", async () => {
+  const h = harness();
+  h.run("state.origin={lat:37.5,lng:127};state.destination={lat:37.51,lng:127.01}");
+  h.context.fetch = (_path, {signal}) => new Promise((_resolve, reject) => {
+    signal.addEventListener('abort', () => reject(new Error('aborted')));
+  });
+  const pending = h.run("compare({preventDefault(){}})");
+  const timeout = [...h.timers.values()].find(timer => timer.delay === 30000);
+  assert.ok(timeout);
+  timeout.fn();
+  await pending;
+  assert.match(h.e('error').textContent, /took too long/);
+  assert.equal(h.e('compare-button').disabled, false);
+  assert.equal(h.e('results').attributes['aria-busy'], 'false');
+  assert.equal(h.run('state.awaitingLive'), false);
+});
