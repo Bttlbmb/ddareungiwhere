@@ -75,6 +75,7 @@ test('official HTTPS website source sums bike categories without reading or send
   const result=await fetchInventory(env,async(url,options)=>{
     assert.equal(url,'https://www.bikeseoul.com/app/station/getStationRealtimeStatus.do');
     assert.equal(options.method,'POST');assert.equal(options.body,'stationGrpSeq=ALL');assert.equal(options.redirect,'error');
+    assert.equal(options.mode,'cors');assert.equal(options.credentials,'omit');
     const data=websitePayload();data.realtimeList[1].parkingQRBikeCnt='';
     data.realtimeList[2].parkingQRBikeCnt='0';data.realtimeList[2].parkingELECBikeCnt='0';
     return Response.json(data);
@@ -102,4 +103,23 @@ test('failed website refresh retains old counts and timestamps, exposing only a 
     assert.deepEqual(result.stations,old.stations);assert.equal(result.live.fetched_at,'original');
     assert.equal(result.live.failure,'website-http-error');assert.equal(result.live.source,'seoul-website');
   } finally {globalThis.fetch=originalFetch;}
+});
+
+test('direct browser source fetches only on request, shares refreshes and keeps old timestamps on failure',async()=>{
+  const service=new StaticService(new URL('https://bttlbmb.github.io/ddareungiwhere/'),{liveSource:'seoul-website'});
+  service.loaded=Promise.resolve();service.stations=stations.map(s=>({...s}));service.history=history;service.popular=[];
+  service.routes={estimate(){throw new Error('Refresh must not reroute');}};
+  const originalFetch=globalThis.fetch,originalNow=Date.now;let clock=now,calls=0;
+  try {
+    Date.now=()=>clock;
+    globalThis.fetch=async()=>{calls++;if(calls>1)throw new Error('Failed');return Response.json(websitePayload());};
+    await service.request('/api/bootstrap');assert.equal(calls,0);
+    const first=service.refresh(),second=service.refresh();assert.equal(first,second);await first;
+    assert.equal(calls,1);assert.equal(service.stations[0].bikes,20);assert.equal(service.stations.length,2500);
+    const stamp=service.stations[0].fetched_at;
+    await service.refresh();assert.equal(calls,1);
+    clock+=61000;await service.refresh();assert.equal(calls,2);
+    assert.equal(service.stations[0].bikes,20);assert.equal(service.stations[0].fetched_at,stamp);
+    assert.match(service.live.error,/unavailable/);assert.equal(service.live.refreshing,false);
+  } finally {globalThis.fetch=originalFetch;Date.now=originalNow;}
 });

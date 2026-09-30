@@ -158,7 +158,7 @@ def build(sdk, output, live_url='', graph_url='', months=6, history_db=None):
                 shutil.copyfile(source / name, target / name)
             shutil.copytree(source / 'tiles', target / 'tiles')
             graph_url = f'./routing/{current["release"]}/manifest.json'
-        write_json(staging / 'config.json', {'schema': 1, 'liveUrl': live_url or None, 'manifestUrl': graph_url})
+        write_json(staging / 'config.json', {'schema': 1, 'liveSource': 'proxy' if live_url else 'seoul-website', 'liveUrl': live_url or None, 'manifestUrl': graph_url})
         # Optional gzip siblings for servers that support content negotiation.
         for path in list(staging.rglob('*')):
             if path.is_file() and path.suffix in ('.json', '.js', '.mjs', '.css', '.wasm', '.html', '.gph'):

@@ -1,6 +1,7 @@
 import {StaticPlanner} from './planner.mjs';
 import {StreetLabels} from './streets.mjs';
 import {BrowserRoutes} from './routes.mjs';
+import {fetchWebsiteInventory} from './live.mjs';
 
 export async function fetchJSON(url,signal) {
   const response=await fetch(url,{signal});
@@ -11,7 +12,7 @@ export async function fetchJSON(url,signal) {
 export class StaticService {
   constructor(base,config) {
     this.base=base;this.config=config;this.loaded=null;this.stations=[];
-    this.live={refreshing:false,error:null,fetched_at:null};this.pendingLive=null;
+    this.live={refreshing:false,error:null,fetched_at:null};this.pendingLive=null;this.lastLiveAttempt=0;
     this.streets=new StreetLabels(base,fetchJSON);this.routes=new BrowserRoutes(config,base);
   }
   async load(signal) {
@@ -21,10 +22,13 @@ export class StaticService {
     return this.loaded;
   }
   refresh() {
-    if(this.pendingLive)return;
-    if(!this.config.liveUrl){this.live={...this.live,refreshing:false,error:'Live bike counts have not been connected.'};return;}
+    if(this.pendingLive)return this.pendingLive;
+    if(this.config.liveSource==='seoul-website'&&Date.now()-this.lastLiveAttempt<60000)return;
+    if(this.config.liveSource!=='seoul-website'&&!this.config.liveUrl){this.live={...this.live,refreshing:false,error:'Live bike counts have not been connected.'};return;}
+    this.lastLiveAttempt=Date.now();
     this.live={...this.live,refreshing:true,error:null};
-    this.pendingLive=fetchJSON(this.config.liveUrl,AbortSignal.timeout(25000)).then(response=>{
+    const request=this.config.liveSource==='seoul-website'?fetchWebsiteInventory():fetchJSON(this.config.liveUrl,AbortSignal.timeout(25000));
+    this.pendingLive=request.then(response=>{
       const byId=new Map((response.stations||[]).map(s=>[s.id,s]));
       for(const station of this.stations){const value=byId.get(station.id);station.bikes=Number.isInteger(value?.bikes)&&value.bikes>=0?value.bikes:null;station.fetched_at=value?.fetched_at||null;}
       for(const value of byId.values()) {
@@ -36,6 +40,7 @@ export class StaticService {
       this.live={...response.live,refreshing:false};
     }).catch(()=>{this.live={...this.live,refreshing:false,error:'Live bike counts are unavailable. Try refreshing shortly.'};})
       .finally(()=>{this.pendingLive=null;});
+    return this.pendingLive;
   }
   snapshot(){return {stations:this.stations.map(s=>({...s})),live:{...this.live}};}
   async request(path,{signal}={}) {
