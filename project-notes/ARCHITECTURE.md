@@ -115,3 +115,5 @@ Refresh admission is serialized, attempts are at least 60 seconds apart, and a p
 `scripts/import_availability.py` accepts explicit availability archives independently of trips, rejects conflicting duplicate station/date/hour counts and atomically publishes a dedicated database plus monthly sufficient statistics. Static export defaults to six calendar months ending in the latest archived month; only actually downloaded months contribute. See [STATIC_SETUP.md](STATIC_SETUP.md) for the account/deployment walkthrough and current blockers.
 
 Publication generates a repository-root Wrangler configuration from `worker/wrangler.jsonc`, changing only the relative entry-point path. Dashboard builds work with either the repository root or the Worker directory as their working directory, without independent configuration copies to keep in sync.
+
+Static publication versions the entry script, its module imports, shared app/style and configuration URL using a content hash of code/configuration. This prevents returning Pages visitors from mixing an older proxy configuration or service with a new deployment. Graph release paths remain immutable.

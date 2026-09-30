@@ -8,6 +8,7 @@ import gzip
 import hashlib
 import json
 import math
+import re
 import shutil
 import sqlite3
 import tempfile
@@ -159,6 +160,15 @@ def build(sdk, output, live_url='', graph_url='', months=6, history_db=None):
             shutil.copytree(source / 'tiles', target / 'tiles')
             graph_url = f'./routing/{current["release"]}/manifest.json'
         write_json(staging / 'config.json', {'schema': 1, 'liveSource': 'proxy' if live_url else 'seoul-website', 'liveUrl': live_url or None, 'manifestUrl': graph_url})
+        # Keep code and configuration coherent for returning Pages visitors.
+        # Graph releases already have immutable paths; version the small UI files.
+        module_paths = sorted((staging / 'static').glob('*.mjs'))
+        revision = hashlib.sha256(b''.join(path.read_bytes() for path in [staging / 'config.json', staging / 'app.js', staging / 'style.css', *module_paths])).hexdigest()[:16]
+        for path in module_paths:
+            text = re.sub(r"(['\"])(\.\.?/[^'\"]+\.(?:mjs|js))\1", lambda match: f'{match[1]}{match[2]}?v={revision}{match[1]}', path.read_text())
+            path.write_text(text)
+        html = (staging / 'index.html').read_text().replace('./static/start.mjs', f'./static/start.mjs?v={revision}').replace('./style.css', f'./style.css?v={revision}')
+        (staging / 'index.html').write_text(html)
         # Optional gzip siblings for servers that support content negotiation.
         for path in list(staging.rglob('*')):
             if path.is_file() and path.suffix in ('.json', '.js', '.mjs', '.css', '.wasm', '.html', '.gph'):

@@ -1,7 +1,7 @@
-import {StaticPlanner} from './planner.mjs';
-import {StreetLabels} from './streets.mjs';
-import {BrowserRoutes} from './routes.mjs';
-import {fetchWebsiteInventory} from './live.mjs';
+import {StaticPlanner} from './planner.mjs?v=1f4d7b6151209262';
+import {StreetLabels} from './streets.mjs?v=1f4d7b6151209262';
+import {BrowserRoutes} from './routes.mjs?v=1f4d7b6151209262';
+import {fetchWebsiteInventory} from './live.mjs?v=1f4d7b6151209262';
 
 export async function fetchJSON(url,signal) {
   const response=await fetch(url,{signal});

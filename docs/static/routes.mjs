@@ -28,7 +28,7 @@ export class BrowserRoutes {
   constructor(config, base) {this.config=config;this.base=base;this.router=null;this.cache=new Map();this.samples=[];}
   async getRouter() {
     if(!this.router) {
-      const {Router}=await import('../vendor/valhalla/index.js');
+      const {Router}=await import('../vendor/valhalla/index.js?v=1f4d7b6151209262');
       this.router=new Router({manifestUrl:new URL(this.config.manifestUrl,this.base).href,transport:'individual-tiles',
         memoryBudgetBytes:96*1024*1024,wasmMemory:{initialMiB:64,maximumMiB:512},timeoutMs:15000,retries:1});
     }
