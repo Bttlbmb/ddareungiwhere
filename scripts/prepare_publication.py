@@ -32,7 +32,7 @@ def prepare(checkout):
     if checkout==ROOT or checkout in ROOT.parents or not (checkout/'.git').exists():
         raise ValueError('Choose a separate existing Git publication checkout.')
     remote=subprocess.check_output(['git','-C',str(checkout),'remote','get-url','origin'],text=True).strip()
-    if remote!='https://github.com/Bttlbmb/ddareungiwhere.git':raise ValueError('Unexpected publication remote.')
+    if remote not in ('https://github.com/Bttlbmb/ddareungiwhere.git','git@github.com:Bttlbmb/ddareungiwhere.git'):raise ValueError('Unexpected publication remote.')
     for name in FILES:
         if (ROOT/name).is_file():shutil.copyfile(ROOT/name,checkout/name)
     for name in ['web','scripts','worker','tests']:

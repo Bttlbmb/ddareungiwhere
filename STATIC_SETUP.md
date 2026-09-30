@@ -42,7 +42,7 @@ The browser graph is separate from the existing native graph. To reproduce it, i
 .venv/bin/python -B scripts/build_browser_graph.py --native-lib /path/to/separate/site-packages
 ```
 
-It checks the SDK-pinned revision, reads the saved PBF and generates an immutable release with hashes. It excludes vehicle-only edges while retaining walking/bicycle access and hierarchy. Do not remove all OSM `highway` tags: that tag also describes streets, cycleways and footpaths. Graph files are complete native tiles fetched on demand; short routes can still load a large tile. The optional `--flat` trial produces `flat.json`, leaving `current.json` unchanged.
+It checks the SDK-pinned revision, reads the saved PBF and generates an immutable release with hashes. It excludes vehicle-only edges while retaining walking/bicycle access and hierarchy. Do not remove all OSM `highway` tags: that tag also describes streets, cycleways and footpaths. Graph files are complete native tiles fetched on demand as explicit `.gph.gz` assets. The wrapper decompresses them with bounded reads and verifies original decoded size, SHA-256 and GraphId. Short routes can still load a large tile. Custom graph hosting must retain the gzip siblings. The optional `--flat` trial produces `flat.json`, leaving `current.json` unchanged.
 
 ## Expanding history
 
@@ -61,6 +61,10 @@ The public summary contains a station index and just 48 `[observations, zero]` p
 
 ## Verification and limits
 
-Run the existing Python and frontend suites plus `node --test tests/test_static.mjs`. See [REVIEW.md](project-notes/REVIEW.md) for dated measurements. The prototype has been exercised in the desktop browser; physical iPhone/Android routing performance is still unverified. First-use routing downloads and memory are the main static-hosting tradeoff. GitHub Pages does not promise to serve precompressed `.gz` siblings through content negotiation; do not use local-preview timings as internet download measurements.
+Run the existing Python and frontend suites plus `node --test tests/test_static.mjs`. See [REVIEW.md](project-notes/REVIEW.md) for dated measurements. The prototype has been exercised in the desktop browser; physical iPhone/Android routing performance is still unverified. First-use routing downloads and memory are the main static-hosting tradeoff. Graph gzip assets are requested directly, so their compression does not depend on Pages content negotiation. Other `.gz` siblings remain optional server-negotiated assets. Do not use local-preview timings as internet download measurements.
 
 Public data attribution is retained: Seoul Open Data Plaza for station/count/archive information; © OpenStreetMap contributors, [ODbL](https://www.openstreetmap.org/copyright) for the routing graph and street geometry. Native graph tiles and street shards are distributed as derived OSM data. Third-party runtime notices are bundled. Raw rental records, local SQLite, provider extracts and credentials are excluded.
+
+## Publication maintenance
+
+The prepared Git checkout is `dist/publication`, separate from this source workspace. Run `scripts/prepare_publication.py dist/publication` after rebuilding and updating owning documents, inspect its changes, then commit and push there. It verifies the intended HTTPS/SSH remote and scans all candidate public bytes for the locally configured Seoul credential. `docs/` is generated; `project-notes/` contains the maintained source documents.

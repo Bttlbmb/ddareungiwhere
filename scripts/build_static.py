@@ -93,6 +93,7 @@ def install_sdk(sdk, destination):
     # bounded decoded length + SHA-256 + native GraphId checks remain mandatory.
     # Range transport retains every upstream validator/encoding check.
     replacements = {
+        'o=await fetch(e,{headers:r?{Range:i}:{},...p,signal:n})': 'o=await fetch(!r&&e.endsWith(`.gph`)?e+`.gz`:e,{headers:r?{Range:i}:{},...p,signal:n})',
         'o.headers.get(`ETag`)!==t.etag&&m(': 'r&&o.headers.get(`ETag`)!==t.etag&&m(',
         'e&&e!==`identity`&&m(`DATASET`,`Encoded graph responses are unsupported.`)': 'r&&e&&e!==`identity`&&m(`DATASET`,`Encoded graph responses are unsupported.`)',
         'i!==null&&i!==String(t.length)&&m(`DATASET`,`Content-Length mismatch.`)': 'r&&i!==null&&i!==String(t.length)&&m(`DATASET`,`Content-Length mismatch.`)',
@@ -101,6 +102,11 @@ def install_sdk(sdk, destination):
         if text.count(old) != 1:
             raise ValueError('SDK full-tile delivery patch no longer matches; inspect before upgrading.')
         text = text.replace(old, new)
+    old = 'bytes:await a(o,t.length,n),headers:Object.fromEntries'
+    new = 'bytes:!r&&e.endsWith(`.gph`)?await(async()=>{const b=await a(o,t.length+65536,n,{exact:false});return b[0]===31&&b[1]===139?await a(new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream(`gzip`))),t.length,n):b})():await a(o,t.length,n),headers:Object.fromEntries'
+    if text.count(old) != 1:
+        raise ValueError('SDK compressed-tile patch no longer matches.')
+    text = text.replace(old, new)
     worker.write_text('// Local correlation/full-tile delivery patches: see scripts/build_static.py; SDK licenses retained.\n' + text)
 
 
