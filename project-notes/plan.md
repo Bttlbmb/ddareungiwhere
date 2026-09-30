@@ -60,7 +60,7 @@ Put requirements in SPEC, design in DESIGN, implementation in ARCHITECTURE, rati
 
 ## Static deployment remaining work — 2026-10-01
 
-- Publish and verify the prepared `Bttlbmb/ddareungiwhere` Pages build, including relative subdirectory paths and static-host tile transport.
+- GitHub Pages publication and actual hosted five-station comparison verified on 2026-10-01, including relative subdirectory paths and compressed tile transport. Continue physical-phone testing below.
 - Finish Cloudflare account authorization, deploy the prepared proxy/coordinator and configure the secret only after verifying supported HTTPS provider transport. Confirm the actual account quota before revising the protective request budget.
 - Test actual iPhone/Android download time and memory. Complete native tiles remain large; graph filtering saved little. Retain hierarchy unless further comparisons justify changing it.
 - Acquire explicit additional archive months for a genuine six-month summary, then verify coverage and station continuity; the current export still has three observed months.
