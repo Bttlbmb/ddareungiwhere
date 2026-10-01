@@ -21,12 +21,11 @@ export class StaticService {
   /** Initial map data is small; historical counts and WASM remain lazy. */
   async load(signal) {
     if (!this.loaded) {
-      this.loaded = Promise.all(['stations', 'history', 'popular_routes'].map(name =>
+      this.loaded = Promise.all(['stations', 'history'].map(name =>
         fetchJSON(this.assetURL(`data/${name}.json${name === 'stations' ? '.gz' : ''}`), signal)
-      )).then(([stations, history, popular]) => {
+      )).then(([stations, history]) => {
         this.stations = stations.map(station => ({...station, bikes: null, fetched_at: null}));
         this.history = history;
-        this.popular = popular;
       }).catch(error => {this.loaded = null; throw error;});
     }
     return this.loaded;
@@ -87,7 +86,7 @@ export class StaticService {
     const url = new URL(path, 'https://local.invalid');
     switch (url.pathname) {
       case '/api/bootstrap':
-        return {...this.snapshot(), history: this.history, popular_routes: this.popular,
+        return {...this.snapshot(), history: this.history,
           now: new Date().toISOString()};
       case '/api/place-label':
         return this.streets.lookup(Number(url.searchParams.get('lat')), Number(url.searchParams.get('lng')), signal);

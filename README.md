@@ -8,7 +8,7 @@ The page runs entirely in the browser. GitHub Pages serves the assets; Valhalla 
 
 ## Use
 
-1. Select points on the map, choose a Popular route or use Current location for a one-time origin fix.
+1. Select points on the map or use Current location for a one-time origin fix.
 2. Choose bike pickup time in Seoul time, now through seven days ahead. Walking does not shift pickup.
 3. Press **Compare stations**. All five departures share the same destination station; **Your destination.** shows its walk to your destination.
 4. **Back to map** edits the journey; **Refresh bikes** updates counts without rerouting.

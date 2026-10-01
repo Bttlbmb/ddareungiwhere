@@ -11,10 +11,10 @@ Compare current bikes, local walking/cycling estimates, and a distinct historica
 ## Inputs and manual queries
 
 - Start with both points unset, no A/B pins, and Compare stations / Fit journey disabled until both are chosen. Metadata recovery preserves partial selections.
-- Place/drag map pins, select a Popular route, or use Current location for the origin. GPS is one permission-controlled fix, not continuous tracking. Denied/failed/out-of-area access preserves the journey; manual edits supersede late fixes.
+- Place/drag map pins or use Current location for the origin. GPS is one permission-controlled fix, not continuous tracking. Denied/failed/out-of-area access preserves the journey; manual edits supersede late fixes.
 - Show approximate street names without house numbers. Local lookup searches within 250 m, prefers English where available, and adds “Near” beyond 35 m. Missing roads fall back to meaningful station/landmark text. Ignore late lookups for older selections. Labels are visually limited to two lines, with full text retained.
 - Pickup means **collecting the bike at the station**, in Asia/Seoul (KST), now through seven days ahead. Minute-precision input has a one-minute past tolerance in the browser. Walking time does not shift pickup or enforce the abandoned ten-minute budget.
-- Now / In 30min / In 1h set the draft relative to click time. Editing points, GPS, time, shortcuts or map station choices invalidates the old comparison, but does not query history/routes or start live collection.
+- Now / In 30min / In 1h set the draft relative to click time. Editing points, GPS, time or map station choices invalidates the old comparison, but does not query history/routes or start live collection.
 - **Compare stations** explicitly queries the draft. **Refresh bikes** updates inventory only, preserving historical and route estimates. No periodic/tab-visibility collection; short polling only finishes a user-initiated refresh. Browser operations time out after 30 seconds and release controls for retry.
 
 ## Nearby stations and navigation
@@ -58,10 +58,6 @@ Current archive: **2025-10-01 to 2025-12-31**. Exact hourly sampling/aggregation
 Valhalla 3.8.3 uses a saved OpenStreetMap graph on the device; estimates are independent of pickup time and require no Kakao request/key. Outside-map endpoints, same-station cycling, missing graph/runtime, and route failures show a dash. Failure in one mode does not hide the other.
 
 Graph bounds: south 37.395, west 126.735, north 37.745, east 127.245; all 2,735 saved stations were covered in the September 30 check. OSM connectivity and endpoint matching can produce incorrect detours. Approximate short pedestrian access gaps are added; gaps over 100 m are rejected. The partial Oksu fix and remaining exact-pier origin case are recorded in [plan.md](plan.md).
-
-## Popular routes
-
-Five retained precomputed directional pairs from April–June 2026 rental data, descending deduplicated count, minimum 2 km straight-line station separation. The static build reads these seeds without a rental database. Exclude loops/unknown stations and greedily skip any reused endpoint. This is a filtered popularity list, not the unfiltered top five or evidence that routes are pleasant/safe. A shortcut sets both pins but never queries.
 
 ## Acceptance criteria
 

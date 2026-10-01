@@ -176,7 +176,8 @@
       ],
       "scope": "Five deduplicated directional shortcuts, minimum 2 km, no reused endpoint; no detailed rentals retained in project.",
       "bytes": 361,
-      "sha256": "bb63ba0e203e811a4bce1872efadcd6b94efef02036fb79e1ad7dc6bb8a6f73f"
+      "sha256": "bb63ba0e203e811a4bce1872efadcd6b94efef02036fb79e1ad7dc6bb8a6f73f",
+      "status": "Retired 2026-10-01: shortcut feature and seed file removed; source provenance retained."
     }
   ]
 }

@@ -37,7 +37,7 @@ Risk badges use quieter tints than inventory boxes. Unknown stays neutral. Color
 - The location crosshair is an SVG centered beside its text rather than a font glyph.
 - Street names instead of “Near #4847.” Long labels get at most two lines with ellipsis and full text retained.
 - Pickup input, then Now / In 30min / In 1h; space above the charcoal Compare stations button and light arrow accent.
-- Five Popular routes below; deduplicated popularity, no repeated station endpoints, minimum 2 km straight-line separation to avoid apartment-block trips.
+- The planner ends with Compare stations. Popular-route shortcuts were removed at the user’s request on 2026-10-01.
 - Bike stations on the map use the existing mint fill with a dark green outline: 5.5 px radius, 1.5 px outline, full opacity. Unselected numbered candidate markers use mint too; the selected candidate stays slate. Destination station uses the same colors at a larger radius. Legend matches these colors. Selected 2026-10-01.
 - Map/results share a panel. A manual comparison opens results; Back to map restores the same journey. The dashed A–B guide is not routed geometry.
 - Map station popups show **#number · station name**, followed by Use as departure / Use as destination. Omit all inventory counts and unavailable-count messages, whether quantities have been fetched or not. Selected 2026-10-01.

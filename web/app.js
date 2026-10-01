@@ -408,34 +408,6 @@ function setPickupOffset(minutes) {
   }
   invalidateComparison();
 }
-function renderPopularRoutes(routes) {
-  const usable = routes.filter(route =>
-    state.stations.some(s => s.id === route.origin) &&
-    state.stations.some(s => s.id === route.destination));
-  $("popular-journeys").hidden = !usable.length;
-  $("popular-route-buttons").innerHTML = usable.map((route, index) => {
-    const a = state.stations.find(s => s.id === route.origin);
-    const b = state.stations.find(s => s.id === route.destination);
-    return `<button type="button" data-popular="${index}" title="${route.rides.toLocaleString('en-GB')} historical rides"><span>${esc(a.name)} → ${esc(b.name)}</span></button>`;
-  }).join("");
-  document.querySelectorAll("[data-popular]").forEach(button => {
-    button.onclick = () => choosePopularRoute(usable[Number(button.dataset.popular)]);
-  });
-}
-function choosePopularRoute(route) {
-  const a = state.stations.find(s => s.id === route.origin);
-  const b = state.stations.find(s => s.id === route.destination);
-  if (!a || !b) return;
-  state.departureId = null;
-  state.returnId = null;
-  state.selectedId = null;
-  setPoint("origin", a, a.name);
-  setPoint("destination", b, b.name);
-  state.departureId = a.id;
-  state.returnId = b.id;
-  setMode("origin");
-  fitMap();
-}
 function invalidateComparison() {
   state.request++;
   state.plan = null;
@@ -670,7 +642,6 @@ async function loadBootstrap() {
       const data = await api("/api/bootstrap");
       state.stations = data.stations;
       state.history = data.history;
-      renderPopularRoutes(data.popular_routes || []);
       showError("");
       renderLive(data.live);
       invalidateComparison();

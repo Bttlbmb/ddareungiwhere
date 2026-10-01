@@ -16,7 +16,7 @@ In the source workspace, preview a generated build with `--directory dist/site`.
 
 Required files (not downloaded by these commands):
 
-- `data/inputs/stations.json`, `popular_routes.json`, `routing-coverage.json`: small public seeds included in source.
+- `data/inputs/stations.json`, `routing-coverage.json`: small public seeds included in source.
 - `data/processed/availability.sqlite3`: availability-only database.
 - `data/processed/seoul_streets.json.gz`: named-road extract.
 - `data/processed/browser-routing/current.json` and its release folder: pinned graph.

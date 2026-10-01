@@ -22,8 +22,8 @@ These descriptive bands are not calibrated forecasts. Exact hourly sampling/aggr
 
 Named street extract: Overpass response timestamp 2026-09-30T00:15:05Z; query in `scripts/seoul_streets.overpass`, fingerprints in the manifest. Prefer English names when available. Nearest-road labels are approximate, without house numbers, not verified postal addresses. Background map tiles come from the ordinary OSM interactive service, separately from routing geometry.
 
-## Popular-route seeds
+## Retired rental-derived shortcuts
 
-`data/inputs/popular_routes.json` retains five derived directional shortcuts from the previous deduplicated April–June 2026 public rental import. Filtering used at least 2 km straight-line separation and non-reused endpoints. They are convenient precompiled seeds, not a continually updated popularity ranking or proof of pleasant/safe routes. The detailed rental dataset/import pipeline was removed because it does not serve the static app. Do not reinterpret rental duration as travel time.
+Popular-route shortcuts and their seed file were removed on 2026-10-01 at the user’s request. The previous five directional pairs came from deduplicated April–June 2026 public rentals, filtered for at least 2 km straight-line separation and non-reused endpoints. Their original source fingerprints remain in `data/manifest.json` as retired provenance; they are no longer build inputs or browser assets. Rental duration is not travel time.
 
 Public runtime data contains station/location/count aggregates and roads, no rider or bicycle identifiers. Legacy rental research/raw files are outside the project and publication. No credentials belong in public assets or provenance.

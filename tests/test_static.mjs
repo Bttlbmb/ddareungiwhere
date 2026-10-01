@@ -31,7 +31,7 @@ test('five departures share one return; missing archive is distinct from zero; d
 });
 test('bootstrap does not fetch live data; refresh does not reroute or requery history',async()=>{
   const service=new StaticService(new URL('http://localhost/'),{});
-  service.loaded=Promise.resolve();service.stations=stations;service.history=history;service.popular=[];
+  service.loaded=Promise.resolve();service.stations=stations;service.history=history;
   service.planner={plan(){throw new Error('Unexpected plan');}};service.routes={estimate(){throw new Error('Unexpected routing');}};
   let refreshes=0;service.refresh=()=>refreshes++;
   await service.request('/api/bootstrap');assert.equal(refreshes,0);
@@ -78,7 +78,7 @@ test('website source rejects partial, duplicated, invalid and failed citywide re
 
 test('direct browser source fetches only on request, shares refreshes and keeps old timestamps on failure',async()=>{
   const service=new StaticService(new URL('https://bttlbmb.github.io/ddareungiwhere/'),{liveSource:'seoul-website'});
-  service.loaded=Promise.resolve();service.stations=stations.map(s=>({...s}));service.history=history;service.popular=[];
+  service.loaded=Promise.resolve();service.stations=stations.map(s=>({...s}));service.history=history;
   service.routes={estimate(){throw new Error('Refresh must not reroute');}};
   const originalFetch=globalThis.fetch,originalNow=Date.now;let clock=now,calls=0;
   try {
@@ -129,14 +129,13 @@ test('bootstrap versions compressed seed data and leaves history cells lazy',asy
     const name=new URL(url).pathname.split('/').at(-1);
     if(name==='stations.json.gz')return new Response(gzipSync(JSON.stringify(stations)));
     if(name==='history.json')return Response.json(metadata);
-    if(name==='popular_routes.json')return Response.json([]);
     throw new Error('Bootstrap requested unexpected data.');
   };
   try {
     const service=new StaticService(new URL('https://example.test/app/?v=revision'),{});
     const result=await service.request('/api/bootstrap');
     assert.equal(result.stations.length,stations.length);
-    assert.equal(calls.length,3);
+    assert.equal(calls.length,2);
     assert.ok(calls.every(url=>new URL(url).search==='?v=revision'));
     assert.equal(service.historyReady,null);
     assert.equal(service.routes.routerPromise,null);

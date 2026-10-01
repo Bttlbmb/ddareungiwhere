@@ -49,7 +49,6 @@ def build(sdk, output, graph_url='', months=6, history_db=None):
         stations_file = staging / 'data/stations.json'
         stations_file.with_suffix('.json.gz').write_bytes(gzip.compress(stations_file.read_bytes(), mtime=0))
         stations_file.unlink()
-        write_json(staging / 'data/popular_routes.json', json.loads((ROOT / 'data/inputs/popular_routes.json').read_text()))
         history = export_history(history_db or ROOT / 'data/processed/availability.sqlite3', staging / 'data', months)
         shards = export_streets(staging / 'data')
         install_sdk(sdk, staging / 'vendor/valhalla')

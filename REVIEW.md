@@ -80,3 +80,9 @@ Adjusted header left padding so the drawn logo aligns with **From** in the plann
 Map station popups now show **#number · station name** and the departure/destination selection buttons, with no quantities or live-count status. Removed the unused popup-count updater; comparison inventory is retained.
 
 All 6 Python and 38 Node checks passed. Local headless Chromium at 1440×900, 390×844 and 320×568 opened station #3426 through the map canvas and verified the prefixed number and absence of inventory for both unknown and synthetic known counts. Both selection buttons remained available; keyboard activation of Use as departure set only the origin and did not compare. Screenshots were visually inspected without horizontal overflow. Phone-sized checks are desktop emulation; this build has not been published.
+
+## Popular-route removal — 2026-10-01
+
+Removed the Popular routes section, shortcut handlers/styles, bootstrap dataset request, and seed export/input at the user’s request. The planner now ends with Compare stations. Retired rental-source fingerprints remain in the manifest for provenance; current documentation no longer describes shortcuts as an active feature.
+
+All 6 Python checks passed with Python 3.14 (the system `python3` is older than the required 3.11); all 38 Node checks passed, including the updated bootstrap check that now requests only station data and history metadata. The local static build completed and contains no popular-route asset or runtime references. Desktop browser checks at 1440×900, 390×844 and 320×568 showed the shortened planner without horizontal overflow. The 320-pixel form retained internal scrolling to pickup/Compare stations, and keyboard navigation reached In 1h with visible focus. Screenshots were visually inspected. These are desktop browser viewport checks, not physical-phone evidence. This build has not been published.
