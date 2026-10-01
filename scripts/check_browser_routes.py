@@ -34,15 +34,15 @@ def main(native_lib):
         if a not in by_number or b not in by_number:
             continue
         origin, destination = by_number[a], by_number[b]
-        for mode in ['pedestrian', 'bicycle']:
+        for mode, station_at_origin in [('pedestrian', False), ('bicycle', False), ('pedestrian', True)]:
             locations = [dict(lat=point['lat'], lon=point['lng']) for point in (origin, destination)]
             if mode == 'pedestrian':
-                locations[0].update(radius=30, rank_candidates=False, search_cutoff=100)
-                locations[1].update(radius=50, rank_candidates=True, search_cutoff=100,
+                locations[int(station_at_origin)].update(radius=30, rank_candidates=False, search_cutoff=100)
+                locations[int(not station_at_origin)].update(radius=50, rank_candidates=True, search_cutoff=100,
                                     search_filter={'exclude_bridge': True})
             options = {'walking_speed': 5.1} if mode == 'pedestrian' else {'bicycle_type': 'hybrid', 'cycling_speed': 15}
             result = actor.route(dict(locations=locations, costing=mode, costing_options={mode: options}))
-            fixtures.append(dict(origin=origin, destination=destination, mode=mode, expected=result['trip']['summary']))
+            fixtures.append(dict(origin=origin, destination=destination, mode=mode, stationAtOrigin=station_at_origin, expected=result['trip']['summary']))
     if not fixtures:
         raise ValueError('No route fixtures match this station catalogue.')
     html = '''<!doctype html><meta charset="utf-8"><title>Browser routing verification</title>
@@ -54,7 +54,7 @@ const engine=new BrowserRoutes(config,new URL('./',location.href)),results=[];
 const output=document.querySelector('#output');
 for(const fixture of FIXTURES){
   const started=performance.now();
-  const estimate=await engine.estimate(fixture.origin,fixture.destination,fixture.mode);
+  const estimate=await engine.estimate(fixture.origin,fixture.destination,fixture.mode,undefined,{stationAtOrigin:fixture.stationAtOrigin});
   const access=estimate.access_distance_m||0;
   const pass=!estimate.error&&Math.abs(estimate.minutes-fixture.expected.time/60-access/85)<0.0061
     &&Math.abs(estimate.distance_m-fixture.expected.length*1000-access)<=1;

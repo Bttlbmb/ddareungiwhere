@@ -111,6 +111,9 @@ export class StaticService {
       station.cycling_route = await this.routes.estimate(station, plan.return_station, 'bicycle', signal);
       station.walking_route = await this.routes.estimate(plan.origin, station, 'pedestrian', signal);
     }
+    signal?.throwIfAborted();
+    plan.destination_walking_route = await this.routes.estimate(
+      plan.return_station, plan.destination, 'pedestrian', signal, {stationAtOrigin: true});
     const byId = new Map(this.stations.map(station => [station.id, station]));
     for (const station of plan.departures) {
       const fresh = byId.get(station.id);

@@ -30,13 +30,19 @@ def install_sdk(sdk, destination):
         if client_text.count(old_url) != 1:
             raise ValueError('SDK runtime URL patch no longer matches.')
         client_text = client_text.replace(old_url, new_url)
+    # Carry only the app's boolean station role through request normalization.
+    old = 'locations: r.map(({ lat: e, lon: t }) => ({\n\t\t\tlat: e,\n\t\t\tlon: t,'
+    new = 'locations: r.map(({ lat: e, lon: t, station }) => ({\n\t\t\tlat: e,\n\t\t\tlon: t,\n\t\t\t...(typeof station === "boolean" ? {station} : {}),'
+    if client_text.count(old) != 1:
+        raise ValueError('SDK station role patch no longer matches.')
+    client_text = client_text.replace(old, new)
     client.write_text(client_text)
     # Upstream fixes correlation for every profile. Preserve this app's existing
     # pedestrian origin/station matching instead. Native WASM is unchanged.
     worker = destination / 'worker.js'
     text = worker.read_text()
     old = 'r.map(({lat:e,lon:t})=>({lat:e,lon:t,radius:30,minimum_reachability:0}))'
-    new = 'r.map(({lat:e,lon:n},i)=>({lat:e,lon:n,...(t===`pedestrian`?{radius:i?50:30,rank_candidates:!!i,search_cutoff:100,...(i?{search_filter:{exclude_bridge:true}}:{})}:{})}))'
+    new = 'r.map(({lat:e,lon:n,station},i)=>{const s=typeof station===`boolean`?station:!!i;return {lat:e,lon:n,...(t===`pedestrian`?{radius:s?50:30,rank_candidates:s,search_cutoff:100,...(s?{search_filter:{exclude_bridge:true}}:{})}:{})}})'
     if text.count(old) != 1:
         raise ValueError('SDK correlation patch no longer matches; inspect before upgrading.')
     text = text.replace(old, new)
@@ -72,5 +78,4 @@ def install_sdk(sdk, destination):
         raise ValueError('SDK compressed-WASM patch no longer matches.')
     text = text.replace(old, new)
     worker.write_text('// Local correlation/gzip tile/WASM delivery patches: see scripts/lib/sdk.py; SDK licenses retained.\n' + text)
-
 

@@ -101,8 +101,9 @@ a {
   color: var(--action-ink);
 }
 
-.section-title h2 {
+.section-title h2, .results-heading h2, #return-heading {
   font-size: 16px;
+  font-weight: 700;
   letter-spacing: -0.4px;
   margin: 0;
 }
@@ -132,13 +133,13 @@ a {
 }
 
 .start-dot {
-  background: var(--dark);
-  color: #fff;
+  background: var(--bike-good-soft);
+  color: var(--bike-good);
 }
 
 .end-dot {
-  background: var(--dark);
-  color: #fff;
+  background: var(--bike-good-soft);
+  color: var(--bike-good);
 }
 
 .crosshair {
@@ -571,10 +572,6 @@ tbody tr.chosen td:first-child {
     padding: 8px;
   }
 
-  .results-footer {
-    align-items: flex-start;
-  }
-
   .results-footer .muted {
     font-size: 9px;
   }
@@ -806,18 +803,15 @@ body {
   overflow: hidden;
 }
 
-.results-heading > div {
-  grid-column: 1 / -1;
-  grid-row: 2;
-}
-
 .results-heading .eyebrow {
   margin-bottom: 5px;
   display: none;
 }
 
 #back-to-map {
-  justify-self: start;
+  justify-self: end;
+  padding: 0 0 0 10px;
+  min-height: 24px;
 }
 
 .site-footer {
@@ -908,7 +902,7 @@ body {
     display: none;
   }
 
-  .section-title h2 {
+  .section-title h2, .results-heading h2, #return-heading {
     font-size: 14px;
   }
 
@@ -964,15 +958,8 @@ body {
   margin: 0;
   border-bottom: 0;
   flex: 0 0 auto;
-  padding: 10px 14px;
+  padding: 18px 18px 12px;
   gap: 6px;
-}
-
-.results-heading h2 {
-  letter-spacing: -0.8px;
-  font-weight: 550;
-  margin: 0;
-  font-size: 23px;
 }
 
 .results-heading p.muted {
@@ -1005,13 +992,8 @@ td {
 }
 
 .results-footer {
-  display: flex;
-  align-items: center;
-  margin-top: 12px;
-  gap: 15px;
   padding: 8px 0;
   margin: 0;
-  justify-content: flex-end;
   text-align: right;
 }
 
@@ -1019,6 +1001,17 @@ td {
   max-width: none;
   width: 100%;
   text-align: right;
+}
+
+.footer-refresh {
+  white-space: nowrap;
+}
+
+.results-footer #refresh-live {
+  font: inherit;
+  color: var(--ink);
+  padding: 4px 0;
+  min-height: 32px;
 }
 @media (max-width: 700px) {
 
@@ -1178,8 +1171,10 @@ main {
 }
 
 .location-icon {
-  font-size: 18px;
-  line-height: 1;
+  display: block;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
 }
 @media (max-width: 450px) {
 
@@ -1198,6 +1193,10 @@ main {
   }
 }
 @media (max-width: 700px) {
+
+  .results-heading {
+    padding: 10px 10px 12px;
+  }
 
   .location-button {
     gap: 7px;
@@ -1265,5 +1264,76 @@ main {
 
   .station-name, .secondary-button {
     min-height: 32px;
+  }
+}
+
+/* The return row shares the departure name, number, marker and duration styles. */
+#return-heading {
+  padding: 18px 6px 12px;
+}
+.return-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+.return-station, .return-walk {
+  padding: 0 12px;
+  min-width: 0;
+}
+.return-station-info {
+  min-width: 0;
+}
+#return-name {
+  display: block;
+}
+#return-name:hover {
+  text-decoration: none;
+}
+.return-rank {
+  flex: 0 0 25px;
+  outline: 1px solid var(--line);
+  outline-offset: -1px;
+}
+.return-rank svg {
+  width: 16px;
+  height: 16px;
+}
+.return-walk {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.destination-arrow {
+  color: var(--muted);
+}
+#return-destination {
+  padding: 5px 10px;
+  border-radius: 5px;
+  background: var(--bike-good-soft);
+  color: var(--bike-good);
+  font-size: 14px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 700px) {
+  .return-row {
+    gap: 9px 14px;
+    padding: 14px 4px;
+  }
+  .return-station {
+    grid-column: 1 / -1;
+    padding: 0 0 5px;
+  }
+  #return-name {
+    display: flex;
+    align-items: center;
+  }
+  .return-walk {
+    grid-column: 2;
+    padding: 0;
+    flex-wrap: wrap;
+    gap: 4px 8px;
   }
 }

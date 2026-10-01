@@ -27,13 +27,17 @@ Manual comparison replaces the map with results. Back to map restores the journe
 
 | Column | Meaning |
 | --- | --- |
-| Departure station | Official name, “Station #…” number, straight-line distance, neutral selection/rank box, compact Nearest/current-bike tags where applicable |
-| Bikes now | Fresh inventory: mint 3+, amber 1–2, coral 0. Missing/expired reports are a neutral dash. |
-| Est. walk time | Valhalla pedestrian estimate from A to that departure at 5.1 km/h. Exact same coordinates → 0 min; positive results round to at least 1 min. |
-| Est. ride time | Valhalla city-bicycle estimate from that departure to the common return, configured at 15 km/h. Whole minutes, minimum 1 for positive routes. |
+| Station | Departure station's official name, “Station #…” number, straight-line distance, neutral selection/rank box, compact Nearest/current-bike tags where applicable |
+| Bikes | Fresh inventory: mint 3+, amber 1–2, coral 0. Missing/expired reports are a neutral dash. |
+| Walk time | Valhalla pedestrian estimate from A to that departure at 5.1 km/h. Exact same coordinates → 0 min; positive results round to at least 1 min. |
+| Ride time | Valhalla city-bicycle estimate from that departure to the common return, configured at 15 km/h. Whole minutes, minimum 1 for positive routes. |
 | Availability now OR Historical no-bike risk | Current availability for immediate pickup; separate archived signal for later pickup, defined below. |
 
 Selection updates the rank and numbered map marker consistently; button focus survives redraws. Phone metrics reflow beneath each station in two columns, without sideways table scrolling. One right-aligned refresh completion time and Valhalla / OpenStreetMap credit. No per-row timestamps, return dropdown, rental-history card/columns, archive captions/counts, slogans, or visible methodology block. See [DESIGN.md](DESIGN.md).
+
+**Return your bike.** beneath the departure rows shows the common return station name/number and one forward pedestrian estimate from that station to the selected destination B, at 5.1 km/h. Its station name and duration share the departure typography; desktop duration aligns with the Walk time column. The duration is followed by an arrow and the applied destination label, emphasized in a mint tag. Exact coordinates give 0 min; unavailable routes give a dash without suppressing departure results. Refresh bikes preserves this final walking estimate. This section was added at the user's request on 2026-10-01.
+
+Walking/cycling estimates retain whole-minute rounding. Rounded values above 60 minutes display hours and remaining minutes, e.g. **1h 12min**, or **2h** for exact hours. Values up to 60 minutes retain the minute format. Refresh bikes follows the completion time and routing credit in the same footer, separated by a dot; on narrow screens this footer wraps within the scrolling results body.
 
 ## Live inventory and immediate pickup
 

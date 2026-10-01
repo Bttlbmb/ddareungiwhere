@@ -1,8 +1,8 @@
-import {StaticPlanner} from './planner.mjs?v=9487ab71380abb6a';
-import {StreetLabels} from './streets.mjs?v=9487ab71380abb6a';
-import {BrowserRoutes} from './routes.mjs?v=9487ab71380abb6a';
-import {fetchWebsiteInventory} from './live.mjs?v=9487ab71380abb6a';
-import {fetchJSON, loadHistory} from './data.mjs?v=9487ab71380abb6a';
+import {StaticPlanner} from './planner.mjs?v=28af33f1087c839c';
+import {StreetLabels} from './streets.mjs?v=28af33f1087c839c';
+import {BrowserRoutes} from './routes.mjs?v=28af33f1087c839c';
+import {fetchWebsiteInventory} from './live.mjs?v=28af33f1087c839c';
+import {fetchJSON, loadHistory} from './data.mjs?v=28af33f1087c839c';
 
 /** Browser-only coordinator. Command paths are internal, never HTTP endpoints. */
 export class StaticService {
@@ -111,6 +111,9 @@ export class StaticService {
       station.cycling_route = await this.routes.estimate(station, plan.return_station, 'bicycle', signal);
       station.walking_route = await this.routes.estimate(plan.origin, station, 'pedestrian', signal);
     }
+    signal?.throwIfAborted();
+    plan.destination_walking_route = await this.routes.estimate(
+      plan.return_station, plan.destination, 'pedestrian', signal, {stationAtOrigin: true});
     const byId = new Map(this.stations.map(station => [station.id, station]));
     for (const station of plan.departures) {
       const fresh = byId.get(station.id);

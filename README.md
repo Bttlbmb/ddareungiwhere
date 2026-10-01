@@ -10,7 +10,7 @@ The page runs entirely in the browser. GitHub Pages serves the assets; Valhalla 
 
 1. Select points on the map, choose a Popular route or use Current location for a one-time origin fix.
 2. Choose bike pickup time in Seoul time, now through seven days ahead. Walking does not shift pickup.
-3. Press **Compare stations**. All five departures share the same return station.
+3. Press **Compare stations**. All five departures share the same return station; **Return your bike.** shows its walk to your destination.
 4. **Back to map** edits the journey; **Refresh bikes** updates counts without rerouting.
 
 Draft edits never compare automatically. Reports expire after two minutes; unknown is not zero. Later pickup uses archived hourly zeros, not a forecast that an empty station will refill. The dashed A–B line is a straight guide. Historical coverage is currently **October–December 2025**, despite a six-month export window. See [SPEC.md](SPEC.md) for exact rules.

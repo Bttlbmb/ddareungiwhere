@@ -5,7 +5,7 @@
       <path d="M25 51a25 25 0 1 0 30 12"/>
       <path d="M103 51a25 25 0 1 1-30 12"/>
     </g>
-    <g stroke="#577778" stroke-width="6">
+    <g stroke="#c4e3d4" stroke-width="6">
       <path d="M23 25q10 3 24 2m-15 0 4 12"/>
       <path d="m83 39-2-8q-2-6 5-6l12-1q4 0 6-3l4-4"/>
     </g>

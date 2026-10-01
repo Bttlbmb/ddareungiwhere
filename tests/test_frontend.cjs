@@ -616,11 +616,13 @@ test("manual bike refresh updates counts without rerunning history; completion p
       }),
     };
   };
-  h.run("fixture.station.walking_route={minutes:3.2};fixture.station.cycling_route={minutes:7.8}");
+  h.run("fixture.station.walking_route={minutes:3.2};fixture.station.cycling_route={minutes:7.8};state.plan.destination_walking_route={minutes:4.4};state.plan.destination_label='Applied road'");
   await h.run("refreshLive()");
   assert.equal(h.run("state.plan.departures[0].bikes"), 7);
   assert.equal(h.run("state.plan.departures[0].walking_route.minutes"), 3.2);
   assert.equal(h.run("state.plan.departures[0].cycling_route.minutes"), 7.8);
+  assert.equal(h.run("state.plan.destination_walking_route.minutes"),4.4);
+  assert.equal(h.e("return-destination").textContent,"Applied road");
   assert.equal(h.run("state.awaitingLive"), false);
   await h.run("refreshLive(false)");
   assert.deepEqual(requests, ["/api/live", "/api/live?refresh=0"]);
@@ -694,6 +696,8 @@ test("each station shows its own rounded local cycling time and handles missing 
   const h = harness();
   h.run('fixture.station.cycling_route={minutes:7.8};state.plan.departures.push({...fixture.station,id:2,cycling_route:{minutes:12.3}});renderResults()');
   assert.match(h.e("station-rows").innerHTML, />8 min<.*>12 min</s);
+  h.run('fixture.station.cycling_route={minutes:120.2};renderResults()');
+  assert.match(h.e("station-rows").innerHTML, />2h</);
   h.run('fixture.station.cycling_route={error:"Local cycling route unavailable"};renderResults()');
   assert.match(h.e("station-rows").innerHTML, /title="Local cycling route unavailable">—/);
   assert.match(h.e("station-rows").innerHTML, />12 min</);
@@ -708,6 +712,11 @@ test("walk times are independent of cycling and handle zero and missing routes",
   assert.match(h.e("station-rows").innerHTML, /5.1 km\/h">0 min/);
   h.run('fixture.station.walking_route={minutes:.2};renderResults()');
   assert.match(h.e("station-rows").innerHTML, /5.1 km\/h">1 min/);
+  for (const [minutes, label] of [[60, "60 min"], [60.6, "1h 1min"], [72.4, "1h 12min"]]) {
+    h.station.walking_route = {minutes};
+    h.run('renderResults()');
+    assert.ok(h.e("station-rows").innerHTML.includes(`5.1 km/h">${label}<`));
+  }
   h.run('fixture.station.walking_route={error:"Local walking route unavailable"};renderResults()');
   assert.match(h.e("station-rows").innerHTML, /Local walking route unavailable">—/);
   assert.match(h.e("station-rows").innerHTML, />8 min</);
@@ -759,4 +768,35 @@ test("a hanging browser comparison times out and restores the compare control", 
   assert.equal(h.e('compare-button').disabled, false);
   assert.equal(h.e('results').attributes['aria-busy'], 'false');
   assert.equal(h.run('state.awaitingLive'), false);
+});
+
+test("return station and final walk share duration rules and hide when the journey changes", () => {
+  const h=harness();
+  h.run('state.plan.return_station={id:2,name:"Return <station>",number:"200"};state.plan.destination_label="Road <B>";state.plan.destination_walking_route={minutes:3.6};renderResults()');
+  assert.equal(h.e('return-name').textContent,'Return <station>');
+  assert.equal(h.e('return-number').textContent,'Station #200');
+  assert.equal(h.e('return-destination').textContent,'Road <B>');
+  assert.equal(h.e('return-section').hidden,false);
+  for(const [minutes,label] of [[3.6,'4 min'],[0,'0 min'],[.2,'1 min'],[72.4,'1h 12min'],[120,'2h'],[-1,'—'],[NaN,'—']]) {
+    h.context.finalMinutes=minutes;
+    h.run('state.plan.destination_walking_route={minutes:finalMinutes};renderResults()');
+    assert.equal(h.e('return-walk-time').textContent,label);
+  }
+  h.run('state.plan.destination_walking_route={error:"Walking estimate unavailable."};renderResults()');
+  assert.equal(h.e('return-walk-time').textContent,'—');
+  assert.equal(h.e('return-walk-time').title,'Walking estimate unavailable.');
+  h.run('invalidateComparison()');
+  assert.equal(h.e('return-section').hidden,true);
+});
+
+test("a late destination street label updates only the matching applied destination", async () => {
+  const h=harness();
+  h.context.fetch=async()=>({ok:true,json:async()=>({label:'Final road',distance_m:5})});
+  h.run('state.plan.destination={lat:37.5,lng:127};state.plan.destination_label="Near station";state.labelRequests.destination=1');
+  await h.run('lookupPointLabel("destination",{lat:37.5,lng:127},1)');
+  assert.equal(h.run('state.plan.destination_label'),'Final road');
+  assert.equal(h.e('return-destination').textContent,'Final road');
+  h.run('state.plan.destination_label="Applied road";state.plan.destination={lat:37.6,lng:127};state.labelRequests.destination=2');
+  await h.run('lookupPointLabel("destination",{lat:37.5,lng:127},2)');
+  assert.equal(h.run('state.plan.destination_label'),'Applied road');
 });

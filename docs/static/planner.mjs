@@ -69,7 +69,7 @@ export class StaticPlanner {
     const immediate = pickup.stamp-now <= 900000;
     const eligible = departures.find(s => s.fresh && s.bikes > 0 && s.id !== returnStation.id);
     return {departures, return_station: {...returnStation, distance_m: Math.round(distance(destination,returnStation))},
-      origin, pickup: new Date(pickup.stamp).toISOString(), hour: pickup.hour,
+      origin, destination, pickup: new Date(pickup.stamp).toISOString(), hour: pickup.hour,
       day_group: pickup.weekday ? 'Weekdays' : 'Weekends', immediate, suggested_id: immediate ? eligible?.id ?? null : null, live};
   }
 }

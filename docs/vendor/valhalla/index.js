@@ -43,9 +43,10 @@ function c(e) {
 	if (!Array.isArray(r) || r.length !== 2) return s("Exactly two locations are required.");
 	for (let e of r) if (!o(e) || typeof e.lat != "number" || !Number.isFinite(e.lat) || Math.abs(e.lat) > 90 || typeof e.lon != "number" || !Number.isFinite(e.lon) || Math.abs(e.lon) > 180) return s("Coordinates must be finite latitude/longitude values.");
 	let c = {
-		locations: r.map(({ lat: e, lon: t }) => ({
+		locations: r.map(({ lat: e, lon: t, station }) => ({
 			lat: e,
 			lon: t,
+			...(typeof station === "boolean" ? {station} : {}),
 			radius: 30,
 			minimum_reachability: 0
 		})),

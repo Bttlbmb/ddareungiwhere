@@ -67,14 +67,14 @@ export class BrowserRoutes {
     return this.routerPromise;
   }
 
-  async estimate(origin, destination, mode, signal) {
+  async estimate(origin, destination, mode, signal, {stationAtOrigin = false} = {}) {
     if (mode === 'pedestrian' && origin.lat === destination.lat && origin.lng === destination.lng) {
       return {provider: 'Valhalla', minutes: 0, distance_m: 0};
     }
     if (mode === 'bicycle' && origin.id === destination.id) {
       return {provider: 'Valhalla', error: 'Choose different departure and return stations.'};
     }
-    const key = JSON.stringify([mode, origin.lat, origin.lng, destination.lat, destination.lng]);
+    const key = JSON.stringify([mode, origin.lat, origin.lng, destination.lat, destination.lng, stationAtOrigin]);
     if (this.cache.has(key)) {
       const value = this.cache.get(key);
       this.cache.delete(key); this.cache.set(key, value);
@@ -84,7 +84,8 @@ export class BrowserRoutes {
       signal?.throwIfAborted();
       const router = await this.getRouter();
       const result = await router.route({
-        locations: [{lat: origin.lat, lon: origin.lng}, {lat: destination.lat, lon: destination.lng}],
+        locations: [origin, destination].map((point, index) => ({lat: point.lat, lon: point.lng,
+          ...(mode === 'pedestrian' ? {station: stationAtOrigin ? index === 0 : index === 1} : {})})),
         costing: mode, costing_options: mode === 'bicycle'
           ? {bicycle: {bicycle_type: 'hybrid', cycling_speed: 15}}
           : {pedestrian: {walking_speed: 5.1}}

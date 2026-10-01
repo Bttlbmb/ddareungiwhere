@@ -151,6 +151,10 @@ async function lookupPointLabel(type, point, request) {
       result.distance_m > 35 ? `Near ${result.label}` : result.label;
     $(`${type}-label`).textContent = label;
     $(`${type}-label`).title = `${label} · nearest named street, approximate`;
+    if (type === "destination" && state.plan?.destination?.lat === point.lat && state.plan.destination.lng === point.lng) {
+      state.plan.destination_label = label;
+      $("return-destination").textContent = label;
+    }
   } catch (_) {
     // Keep the descriptive station/landmark label if the local lookup fails.
   }
@@ -437,6 +441,7 @@ function choosePopularRoute(route) {
 function invalidateComparison() {
   state.request++;
   state.plan = null;
+  $("return-section").hidden = true;
   state.awaitingLive = false;
   clearTimeout(pollTimer);
   const incomplete = !state.origin || !state.destination;
@@ -462,6 +467,7 @@ async function compare(event) {
   state.awaitingLive = true;
   const request = ++state.request;
   $("results").setAttribute("aria-busy", "true");
+  $("return-section").hidden = true;
   $("compare-button").disabled = true;
   showError("");
   const query = new URLSearchParams({
@@ -478,6 +484,7 @@ async function compare(event) {
     const result = await api(`/api/plan?${query}`);
     if (request !== state.request) return;
     state.plan = result;
+    result.destination_label = $("destination-label").textContent;
     if (!result.departures.some((s) => s.id === state.selectedId))
       state.selectedId = result.suggested_id ?? result.departures[0]?.id;
     renderResults();
@@ -592,6 +599,13 @@ function stationAvailability(station, plan) {
   if (station.bikes <= 2) return { level: "moderate", label: "Few bikes" };
   return { level: "low", label: "Available now" };
 }
+function formatDuration(minutes) {
+  const rounded = minutes === 0 ? 0 : Math.max(1, Math.round(minutes));
+  if (rounded <= 60) return `${rounded} min`;
+  const hours = Math.floor(rounded / 60);
+  const remainder = rounded % 60;
+  return `${hours}h${remainder ? ` ${remainder}min` : ""}`;
+}
 function renderRows() {
   const data = state.plan;
   if (!data) return;
@@ -602,18 +616,18 @@ function renderRows() {
         fresh = isFresh(station);
       const route = station.cycling_route;
       const rideTime = Number.isFinite(route?.minutes) && route.minutes > 0
-        ? `${Math.max(1, Math.round(route.minutes))} min`
+        ? formatDuration(route.minutes)
         : "—";
       const walk = station.walking_route;
       const walkTime = Number.isFinite(walk?.minutes) && walk.minutes >= 0
-        ? `${walk.minutes === 0 ? 0 : Math.max(1, Math.round(walk.minutes))} min`
+        ? formatDuration(walk.minutes)
         : "—";
       const selected = station.id === state.selectedId;
       return `<tr class="${selected ? "chosen" : ""}" data-station="${station.id}">
       <td><div class="station-cell"><span class="station-rank">${index + 1}</span><div><button class="station-name" type="button" data-select="${station.id}" aria-pressed="${selected}">${esc(station.name)}</button><span class="station-sub">Station #${esc(station.number)} · ${metres(station.distance_m)} away${index === 0 ? '<span class="small-tag">Nearest</span>' : ""}${fresh && station.bikes > 0 && data.suggested_id === station.id ? '<span class="small-tag">Bikes now</span>' : ""}</span></div></div></td>
-      <td data-heading="Bikes now">${fresh ? `<span class="stat bikes ${station.bikes === 0 ? "empty" : station.bikes <= 2 ? "few" : ""}">${station.bikes}</span>` : `<span class="stat unknown" title="Live count unavailable">—</span>`}</td>
-      <td data-heading="Est. walk time" class="ride-duration" title="${esc(walk?.error || "Estimated walk from your starting point at 5.1 km/h")}">${walkTime}</td>
-      <td data-heading="Est. ride time" class="ride-duration" title="${esc(route?.error || "Estimated cycling time to the return station")}">${rideTime}</td>
+      <td data-heading="Bikes">${fresh ? `<span class="stat bikes ${station.bikes === 0 ? "empty" : station.bikes <= 2 ? "few" : ""}">${station.bikes}</span>` : `<span class="stat unknown" title="Live count unavailable">—</span>`}</td>
+      <td data-heading="Walk time" class="ride-duration" title="${esc(walk?.error || "Estimated walk from your starting point at 5.1 km/h")}">${walkTime}</td>
+      <td data-heading="Ride time" class="ride-duration" title="${esc(route?.error || "Estimated cycling time to the return station")}">${rideTime}</td>
       <td data-heading="${data.immediate ? "Availability now" : "Historical no-bike risk"}"><span class="risk-badge risk-${risk.level}">${risk.label}</span></td>
       </tr>`;
     })
@@ -639,6 +653,14 @@ function renderResults() {
     ? `Live refresh completed ${clockTime(data.live.fetched_at)} KST`
     : "Live counts unavailable · History remains usable";
   renderRows();
+  const station = data.return_station, walk = data.destination_walking_route;
+  $("return-name").textContent = station.name;
+  $("return-number").textContent = `Station #${station.number}`;
+  $("return-walk-time").textContent = Number.isFinite(walk?.minutes) && walk.minutes >= 0
+    ? formatDuration(walk.minutes) : "—";
+  $("return-walk-time").title = walk?.error || "Estimated walk from the return station to your destination at 5.1 km/h";
+  $("return-destination").textContent = data.destination_label || "Chosen point";
+  $("return-section").hidden = false;
 }
 // Expire displayed reports even when the next network request fails or hangs.
 function scheduleExpiry() {

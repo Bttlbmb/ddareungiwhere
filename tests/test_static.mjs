@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {StaticPlanner,pickupTime,distance} from '../web/static/planner.mjs';
-import {routeEstimate} from '../web/static/routes.mjs';
+import {BrowserRoutes,routeEstimate} from '../web/static/routes.mjs';
 import {StaticService} from '../web/static/service.mjs';
 import {fetchWebsiteInventory,normalized} from '../web/static/live.mjs';
 import {loadHistory} from '../web/static/data.mjs';
@@ -21,6 +21,7 @@ test('Seoul pickup interpretation and limits are independent of device timezone'
 test('five departures share one return; missing archive is distinct from zero; destination leaves history unchanged',()=>{
   const planner=new StaticPlanner(stations,history),q=query(),a=planner.plan(q,{},now);
   assert.equal(a.departures.length,5);assert.equal(a.return_station.id,7);
+  assert.deepEqual(a.destination,{lat:37.556,lng:126.97});
   assert.deepEqual(a.departures[0].availability,{observations:30,zero:6});
   q.set('destination_lat','37.55');const b=planner.plan(q,{},now);
   assert.deepEqual(a.departures.map(s=>s.availability),b.departures.map(s=>s.availability));
@@ -141,4 +142,43 @@ test('bootstrap versions compressed seed data and leaves history cells lazy',asy
     assert.equal(service.routes.routerPromise,null);
     assert.ok(result.stations.every(station=>station.bikes===null));
   } finally {globalThis.fetch=original;}
+});
+
+test('comparison calculates one forward return-to-destination walk and retains independent route failures',async()=>{
+  const service=new StaticService(new URL('http://localhost/'),{}),calls=[];
+  service.stations=stations;service.planner=new StaticPlanner(stations,history);
+  service.refresh=()=>{};
+  service.routes={estimate:async(origin,destination,mode,signal,options)=>{
+    calls.push({origin,destination,mode,options});
+    return mode==='bicycle' ? {error:'Cycling estimate unavailable.'} : {minutes:4.2};
+  }};
+  const q=query();q.delete('pickup');q.set('destination_lat','37.5563');
+  const plan=await service.compare(q);
+  assert.equal(calls.length,11);
+  assert.equal(calls.filter(c=>c.mode==='bicycle').length,5);
+  const last=calls.at(-1);
+  assert.equal(last.origin,plan.return_station);assert.equal(last.destination,plan.destination);
+  assert.equal(last.mode,'pedestrian');assert.deepEqual(last.options,{stationAtOrigin:true});
+  assert.equal(plan.destination_walking_route.minutes,4.2);
+  assert.ok(plan.departures.every(s=>s.cycling_route.error&&s.walking_route.minutes===4.2));
+  const aborted=new AbortController();aborted.abort();
+  await assert.rejects(service.compare(q,aborted.signal),{name:'AbortError'});
+  assert.equal(calls.length,11);
+});
+
+test('walking endpoint roles reach the router and use separate cache entries',async()=>{
+  const engine=new BrowserRoutes({},new URL('http://localhost/')),calls=[];
+  const a={lat:37.55,lng:126.97},b={lat:37.56,lng:126.98};
+  engine.getRouter=async()=>({route:async request=>{
+    calls.push(request);
+    return {native:{trip:{summary:{time:600,length:1},legs:[{shape:'_zzrfA_hsdqF_pR_pR'}]}}};
+  }});
+  await engine.estimate(a,b,'pedestrian');
+  await engine.estimate(a,b,'pedestrian',undefined,{stationAtOrigin:true});
+  await engine.estimate(a,b,'pedestrian',undefined,{stationAtOrigin:true});
+  assert.equal(calls.length,2);
+  assert.deepEqual(calls[0].locations.map(p=>p.station),[false,true]);
+  assert.deepEqual(calls[1].locations.map(p=>p.station),[true,false]);
+  assert.deepEqual(calls[1].locations.map(p=>[p.lat,p.lon]),[[a.lat,a.lng],[b.lat,b.lng]]);
+  assert.equal((await engine.estimate(a,a,'pedestrian',undefined,{stationAtOrigin:true})).minutes,0);
 });

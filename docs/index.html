@@ -7,9 +7,9 @@
     <title>따릉이 Where?</title>
     <link rel="icon" type="image/svg+xml" href="./assets/looking-wheels.svg" />
     <link rel="stylesheet" href="./vendor/leaflet.css" />
-    <link rel="stylesheet" href="./style.css?v=9487ab71380abb6a" />
+    <link rel="stylesheet" href="./style.css?v=28af33f1087c839c" />
     <script src="./vendor/leaflet.js" defer></script>
-    <script type="module" src="./static/start.mjs?v=9487ab71380abb6a"></script>
+    <script type="module" src="./static/start.mjs?v=28af33f1087c839c"></script>
   </head>
   <body>
     <header class="site-header">
@@ -23,14 +23,17 @@
       <section id="workspace" class="planner-grid" aria-label="Plan a ride">
         <form id="planner-form" class="planner-card">
           <div class="section-title">
-            <h2>Where are you headed?</h2>
+            <h2>From, to, and when?</h2>
           </div>
           <div class="location-fields">
             <div class="origin-field">
               <div class="location-heading">
                 <label class="location-label" for="set-origin">Starting point</label>
                 <button id="use-location" class="text-button location-action" type="button">
-                  <span class="location-icon" aria-hidden="true">⌖</span>
+                  <svg class="location-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false">
+                    <circle cx="12" cy="12" r="6.5" />
+                    <path d="M12 2v20M2 12h20" />
+                  </svg>
                   <span id="current-location-label">Current location</span>
                 </button>
               </div>
@@ -121,6 +124,7 @@
           </div>
           <section id="results" class="results-section" aria-busy="true" hidden>
             <div class="results-heading">
+              <h2>Choose your departure.</h2>
               <button
                 id="back-to-map"
                 class="secondary-button"
@@ -129,22 +133,16 @@
               >
                 ← Back to map
               </button>
-              <div>
-                <h2>Choose your departure.</h2>
-              </div>
-              <button id="refresh-live" class="secondary-button" type="button">
-                ↻ Refresh bikes
-              </button>
             </div>
             <div class="results-body">
               <div class="table-wrap">
                 <table id="station-table">
                   <thead>
                     <tr>
-                      <th scope="col">Departure station</th>
-                      <th scope="col">Bikes now</th>
-                      <th scope="col">Est. walk time</th>
-                      <th scope="col">Est. ride time</th>
+                      <th scope="col">Station</th>
+                      <th scope="col">Bikes</th>
+                      <th scope="col">Walk time</th>
+                      <th scope="col">Ride time</th>
                       <th id="availability-heading" scope="col">
                         Historical no-bike risk
                       </th>
@@ -159,9 +157,20 @@
                   </tbody>
                 </table>
               </div>
+              <section id="return-section" hidden aria-labelledby="return-heading">
+                <h2 id="return-heading">Return your bike.</h2>
+                <div class="return-row">
+                  <div class="return-station"><div class="station-cell">
+                    <span class="station-rank return-rank" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4v10a3 3 0 0 0 3 3h11m-5-5 5 5-5 5"/></svg></span>
+                    <div class="return-station-info"><span id="return-name" class="station-name"></span><span id="return-number" class="station-sub"></span></div>
+                  </div></div>
+                  <div class="return-walk"><span id="return-walk-time" class="ride-duration"></span><span class="destination-arrow" aria-hidden="true">→</span><span id="return-destination"></span></div>
+                </div>
+              </section>
               <div class="results-footer">
                 <span class="muted"
-                  ><span id="fetch-time"></span> · time estimates via Valhalla / OpenStreetMap</span
+                  ><span id="fetch-time"></span> · time estimates via Valhalla / OpenStreetMap
+                  <span class="footer-refresh">· <button id="refresh-live" class="text-button" type="button">↻ Refresh bikes</button></span></span
                 >
               </div>
             </div>
