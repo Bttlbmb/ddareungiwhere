@@ -2,7 +2,9 @@ export class StreetLabels {
   constructor(base, fetchJSON) { this.base=base; this.fetchJSON=fetchJSON; this.cache=new Map(); }
   shard(key, signal) {
     if (!this.cache.has(key)) {
-      const task=this.fetchJSON(new URL(`data/streets/${key}.json`,this.base),signal).catch(error=>{this.cache.delete(key);throw error;});
+      const url = new URL(`data/streets/${key}.json.gz`,this.base);
+      url.search = this.base.search;
+      const task=this.fetchJSON(url,signal).catch(error=>{this.cache.delete(key);throw error;});
       this.cache.set(key,task);
       if(this.cache.size>32) this.cache.delete(this.cache.keys().next().value);
     }

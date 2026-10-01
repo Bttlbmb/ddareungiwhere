@@ -1,5 +1,7 @@
-import {StaticService,fetchJSON} from './service.mjs';
+import {StaticService} from './service.mjs';
+import {fetchJSON} from './data.mjs';
 const base=new URL('../',import.meta.url);
+base.search=new URL(import.meta.url).search;
 try {
   const configUrl=new URL('config.json',base);
   configUrl.search=new URL(import.meta.url).search;

@@ -1,6 +1,6 @@
 import math
 import unittest
-from streets import StreetNames, segment_distance
+from scripts.lib.street_index import StreetNames, segment_distance
 
 
 class StreetTests(unittest.TestCase):

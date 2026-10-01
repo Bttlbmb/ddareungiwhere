@@ -1,0 +1,37 @@
+{
+  "bounds": [
+    37.395,
+    126.735,
+    37.745,
+    127.245
+  ],
+  "source": "OpenStreetMap contributors",
+  "attribution_url": "https://www.openstreetmap.org/copyright",
+  "retrieved": "2026-09-30",
+  "valhalla_version": "3.9.0",
+  "pbf_sha256": "b4358b81ec99709f270fb005a7f7822d15ed6588d2c0c28dee2cd1e1b3e727f2",
+  "queries": [
+    "[out:xml][timeout:90];(way[\"highway\"](37.47184,126.85368,37.578855,127.001765);relation[\"type\"=\"restriction\"](37.47184,126.85368,37.578855,127.001765););(._;>;);out meta;",
+    "[out:xml][timeout:60];way[\"highway\"](37.47184,127.001765,37.525348,127.14985)->.roads;( .roads;rel(bw.roads)[\"type\"=\"restriction\"];);(._;>;);out meta;",
+    "[out:xml][timeout:60];way[\"highway\"](37.525348,127.001765,37.578855,127.14985)->.roads;( .roads;rel(bw.roads)[\"type\"=\"restriction\"];);(._;>;);out meta;",
+    "[out:xml][timeout:60];way[\"highway\"](37.578855,126.85368,37.632362,127.001765)->.roads;( .roads;rel(bw.roads)[\"type\"=\"restriction\"];);(._;>;);out meta;",
+    "[out:xml][timeout:60];way[\"highway\"](37.632362,126.85368,37.68587,127.001765)->.roads;( .roads;rel(bw.roads)[\"type\"=\"restriction\"];);(._;>;);out meta;",
+    "[out:xml][timeout:60];way[\"highway\"](37.578855,127.001765,37.632362,127.14985)->.roads;( .roads;rel(bw.roads)[\"type\"=\"restriction\"];);(._;>;);out meta;",
+    "[out:xml][timeout:60];way[\"highway\"](37.632362,127.001765,37.68587,127.14985)->.roads;( .roads;rel(bw.roads)[\"type\"=\"restriction\"];);(._;>;);out meta;",
+    "[out:xml][timeout:90];way[\"highway\"](37.395,126.735,37.47184,126.905)->.roads;( .roads;rel(bw.roads)[\"type\"=\"restriction\"];);(._;>;);out meta;",
+    "[out:xml][timeout:90];way[\"highway\"](37.395,126.905,37.47184,127.075)->.roads;( .roads;rel(bw.roads)[\"type\"=\"restriction\"];);(._;>;);out meta;",
+    "[out:xml][timeout:90];way[\"highway\"](37.395,127.075,37.47184,127.245)->.roads;( .roads;rel(bw.roads)[\"type\"=\"restriction\"];);(._;>;);out meta;",
+    "[out:xml][timeout:90];way[\"highway\"](37.68587,126.735,37.745,126.905)->.roads;( .roads;rel(bw.roads)[\"type\"=\"restriction\"];);(._;>;);out meta;",
+    "[out:xml][timeout:90];way[\"highway\"](37.68587,126.905,37.745,127.075)->.roads;( .roads;rel(bw.roads)[\"type\"=\"restriction\"];);(._;>;);out meta;",
+    "[out:xml][timeout:90];way[\"highway\"](37.68587,127.075,37.745,127.245)->.roads;( .roads;rel(bw.roads)[\"type\"=\"restriction\"];);(._;>;);out meta;",
+    "[out:xml][timeout:90];way[\"highway\"](37.47184,126.735,37.578855,126.85368)->.roads;( .roads;rel(bw.roads)[\"type\"=\"restriction\"];);(._;>;);out meta;",
+    "[out:xml][timeout:90];way[\"highway\"](37.578855,126.735,37.68587,126.85368)->.roads;( .roads;rel(bw.roads)[\"type\"=\"restriction\"];);(._;>;);out meta;",
+    "[out:xml][timeout:90];way[\"highway\"](37.47184,127.14985,37.578855,127.245)->.roads;( .roads;rel(bw.roads)[\"type\"=\"restriction\"];);(._;>;);out meta;",
+    "[out:xml][timeout:90];way[\"highway\"](37.578855,127.14985,37.68587,127.245)->.roads;( .roads;rel(bw.roads)[\"type\"=\"restriction\"];);(._;>;);out meta;"
+  ],
+  "source_urls": [
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter"
+  ]
+}

@@ -76,15 +76,11 @@ async function api(path) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30000);
   try {
-    if (window.BikeStatic) return await window.BikeStatic.request(path, { signal: controller.signal });
-    const response = await fetch(path, { signal: controller.signal });
-    const data = await response.json();
-    if (!response.ok)
-      throw new Error(data.error || "Something went wrong. Please try again.");
-    return data;
+    // Local browser commands; these paths are never HTTP API requests.
+    return await window.BikeStatic.request(path, { signal: controller.signal });
   } catch (error) {
     if (controller.signal.aborted)
-      throw new Error(window.BikeStatic ? "The comparison took too long. Try again." : "The local service took too long. Try again.");
+      throw new Error("The comparison took too long. Try again.");
     throw error;
   } finally {
     clearTimeout(timeout);

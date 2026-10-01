@@ -1,0 +1,2 @@
+# Optional offline graph rebuild/native parity checks; not a website dependency.
+pyvalhalla==3.8.3

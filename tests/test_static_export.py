@@ -1,4 +1,7 @@
 import json
+import gzip
+import hashlib
+import struct
 import sqlite3
 import tempfile
 import unittest
@@ -21,6 +24,11 @@ class StaticExportTests(unittest.TestCase):
             self.assertEqual(output['counts'][24+8],[2,1])
             self.assertEqual(output['counts'][48+8],[1,1])
             self.assertEqual(output['counts'][8],[0,0])
+            metadata=json.loads((root/'public/history.json').read_text())
+            self.assertNotIn('counts',metadata)
+            packed=gzip.decompress((root/'public'/metadata['counts_url']).read_bytes())
+            self.assertEqual(hashlib.sha256(packed).hexdigest(),metadata['counts_sha256'])
+            self.assertEqual(list(struct.iter_unpack('<HH',packed)),[tuple(pair) for pair in output['counts']])
 
     def test_availability_only_import_rejects_conflicts_and_preserves_published_database(self):
         with tempfile.TemporaryDirectory() as directory:

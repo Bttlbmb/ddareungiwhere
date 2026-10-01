@@ -1,15 +1,51 @@
 # 따릉이 Where?
 
-Static Seoul public-bike station comparison prototype. The browser compares five nearby departures, calculates walking/cycling estimates using Valhalla WebAssembly, and reads compact historical availability counts.
+A static Seoul public-bike station comparison page: choose a starting point, destination and pickup time, then compare five nearby departures by bikes now, walking/cycling estimates and a separate historical no-bike signal.
 
-Site: https://bttlbmb.github.io/ddareungiwhere/
+**[Open the app](https://bttlbmb.github.io/ddareungiwhere/)** · Source: [Bttlbmb/ddareungiwhere](https://github.com/Bttlbmb/ddareungiwhere).
 
-Enable **Settings → Pages → Deploy from a branch → main → /docs**. The generated site is in `docs/`; source is in `web/`, `worker/` and `scripts/`. Do not edit generated files to maintain application behavior: rebuild from source.
+The page runs entirely in the browser. GitHub Pages serves the assets; Valhalla calculates routes on the device. Live counts come directly from the official bike website’s HTTPS feed without a key. There is no Python application server, Cloudflare dependency, account system or runtime database.
 
-The browser fetches live counts directly from the official bike website’s HTTPS citywide feed without a key. Its cross-origin response permits browser access. Cloudflare is optional; manual refresh throttling and count expiry are retained. See [the account and deployment walkthrough](STATIC_SETUP.md).
+## Use
 
-History currently covers October–December 2025. The builder supports six calendar months when those source months are supplied. Historical bands are descriptive, not refill forecasts.
+1. Select points on the map, choose a Popular route or use Current location for a one-time origin fix.
+2. Choose bike pickup time in Seoul time, now through seven days ahead. Walking does not shift pickup.
+3. Press **Compare stations**. All five departures share the same return station.
+4. **Back to map** edits the journey; **Refresh bikes** updates counts without rerouting.
 
-The publication includes an OSM-derived routing graph and street geometry, with contributor attribution and ODbL reference, and retained SDK/dependency licenses. It excludes credentials, raw station/count extracts, raw rental records and local SQLite. The existing Python app and build scripts require separately obtained local data/environment; this checkout does not automatically download them. Maintainer context and measurements are in [project notes](project-notes/README.md).
+Draft edits never compare automatically. Reports expire after two minutes; unknown is not zero. Later pickup uses archived hourly zeros, not a forecast that an empty station will refill. The dashed A–B line is a straight guide. Historical coverage is currently **October–December 2025**, despite a six-month export window. See [SPEC.md](SPEC.md) for exact rules.
 
-Verification: 37 Python checks and 34 Node checks passed in the source workspace; ten browser routes matched native Valhalla 3.8.3. See [dated validation](project-notes/REVIEW.md). The known Oksu pier walking detour and physical-phone performance remain open.
+## Preview and maintain
+
+A Git clone already includes the published page in `docs/`. With Python 3.11+:
+
+```sh
+python3 scripts/preview_static.py --directory docs --port 63463
+```
+
+Open the printed HTTP URL. To preview a new local build, use `--directory dist/site`. Do not open `web/index.html` as a file: the build supplies modules, compressed data and routing assets.
+
+Source lives in `web/`; standard-library Python scripts prepare public data offline. Building requires separately retained map, street and availability inputs plus the pinned browser SDK. They are ignored local assets, not automatically downloaded by a checkout. [STATIC_SETUP.md](STATIC_SETUP.md) documents build, data update and publication commands.
+
+```sh
+python3 -B -m unittest discover -s tests -v
+node --test tests/test_frontend.cjs tests/test_static.mjs
+```
+
+Node is required only for checks. `requirements-routing.txt` is needed only when rebuilding the routing graph or checking native/browser parity. Ordinary preview and availability/street exports require no Python packages.
+
+## Documentation
+
+| Document | Owns |
+| --- | --- |
+| [AGENTS.md](AGENTS.md) | Project guidance and protected behavior |
+| [SPEC.md](SPEC.md) | Product rules and acceptance criteria |
+| [DESIGN.md](DESIGN.md) | Approved appearance, branding and copy |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Modules, formats, caches and boundaries |
+| [STATIC_SETUP.md](STATIC_SETUP.md) | Rebuild, preview and publication |
+| [DATA_SOURCES.md](DATA_SOURCES.md) | Provenance, coverage and measurement limits |
+| [DECISIONS.md](DECISIONS.md) | Rationale and superseded choices |
+| [plan.md](plan.md) | Remaining work, not implementation instructions |
+| [REVIEW.md](REVIEW.md) | Dated verification and measurements |
+
+Bike data: [Seoul Bike](https://www.bikeseoul.com/) / [Seoul Open Data Plaza](https://data.seoul.go.kr/). Maps: [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), [Leaflet](https://leafletjs.com/). Routing: [Valhalla](https://github.com/valhalla/valhalla), [valhalla-browser](https://github.com/tobilg/valhalla-wasm). Retain bundled licenses and attribution. Background tiles are ordinary interactive requests under the [OSM tile policy](https://operations.osmfoundation.org/policies/tiles/).

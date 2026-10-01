@@ -1,5 +1,5 @@
 //#region \0runtime-assets
-var e = new URL("worker.js", import.meta.url).href, t = new URL("valhalla-browser.wasm", import.meta.url).href, n = class extends Error {
+var e = new URL("worker.js" + new URL(import.meta.url).search, import.meta.url).href, t = new URL("valhalla-browser.wasm" + new URL(import.meta.url).search, import.meta.url).href, n = class extends Error {
 	code;
 	retryable;
 	nativeCode;

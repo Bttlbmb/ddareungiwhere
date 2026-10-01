@@ -1,6 +1,6 @@
 """Build a separate, immutable Valhalla 3.8.3 dataset for browser routing.
 
-Uses the saved PBF, never downloads a map or touches the existing native graph.
+Uses the saved PBF, never downloads a map.
 Install pyvalhalla==3.8.3 in a separate directory/environment first.
 """
 import argparse
@@ -30,7 +30,7 @@ def encoded(value):
     return (json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')) + '\n').encode()
 
 
-def build(native_lib=None, flat=False):
+def build(native_lib=None):
     if native_lib:
         sys.path.insert(0, str(Path(native_lib).resolve()))
     import valhalla
@@ -44,7 +44,7 @@ def build(native_lib=None, flat=False):
     tiles.mkdir()
     config = valhalla.get_config(tile_dir=str(tiles), tile_extract='', verbose=False)
     config['mjolnir'].update(concurrency=2, include_driving=False, include_bicycle=True,
-        include_pedestrian=True, hierarchy=not flat, shortcuts=not flat)
+        include_pedestrian=True, hierarchy=True, shortcuts=True)
     config['mjolnir'].pop('tile_extract', None)
     native_config = work / 'native-config.json'
     native_config.write_bytes(encoded(config))
@@ -75,17 +75,17 @@ def build(native_lib=None, flat=False):
     for section in ['mjolnir', 'loki', 'thor', 'odin']:
         runtime[section]['logging'] = {'type': '', 'color': False}
     (work / 'config.json').write_bytes(encoded(runtime))
-    coverage = json.loads((ROOT / 'data/processed/valhalla/coverage.json').read_text())
+    coverage = json.loads((ROOT / 'data/inputs/routing-coverage.json').read_text())
     south, west, north, east = coverage['bounds']
     archive_hash = digest(work / 'graph.tar')
-    release = f"seoul-bike-walk-{'flat' if flat else 'hierarchy'}-{archive_hash[:16]}"
+    release = f"seoul-bike-walk-hierarchy-{archive_hash[:16]}"
     with (work / 'graph.tar').open('rb') as stream:
         header_hash = hashlib.sha256(stream.read(512)).hexdigest()
     manifest = dict(schema=1, release=release, valhallaRevision=REVISION, valhallaVersion='3.8.3',
         costings=['bicycle', 'pedestrian'], coverage=[west, south, east, north],
         source={'kind': 'openstreetmap', 'sha256': digest(pbf), 'attribution': '© OpenStreetMap contributors, ODbL 1.0',
                 'licenseUrl': 'https://www.openstreetmap.org/copyright'},
-        build={'includedModes': ['bicycle', 'pedestrian'], 'nativePackage': 'pyvalhalla==3.8.3', 'hierarchy': not flat},
+        build={'includedModes': ['bicycle', 'pedestrian'], 'nativePackage': 'pyvalhalla==3.8.3', 'hierarchy': True},
         config={'url': 'config.json', 'sha256': digest(work / 'config.json')},
         archive={'url': 'graph.tar', 'size': str((work / 'graph.tar').stat().st_size), 'etag': f'"{archive_hash}"',
                  'headerSha256': header_hash, 'indexSize': str(len(index)), 'indexSha256': hashlib.sha256(index).hexdigest()},
@@ -93,7 +93,7 @@ def build(native_lib=None, flat=False):
     (work / 'manifest.json').write_bytes(encoded(manifest))
     (work / 'coverage.json').write_bytes(encoded(coverage))
     sizes = [int(t['size']) for t in entries.values()]
-    report = dict(release=release, tiles=len(sizes), bytes=sum(sizes), largestTileBytes=max(sizes), hierarchy=not flat)
+    report = dict(release=release, tiles=len(sizes), bytes=sum(sizes), largestTileBytes=max(sizes), hierarchy=True)
     (work / 'build-report.json').write_bytes(encoded(report))
     destination = output / release
     if destination.exists():
@@ -103,7 +103,7 @@ def build(native_lib=None, flat=False):
         shutil.rmtree(work)
     else:
         work.rename(destination)
-    (output / ('flat.json' if flat else 'current.json')).write_bytes(encoded({'release': release}))
+    (output / 'current.json').write_bytes(encoded({'release': release}))
     print(json.dumps(report, indent=2), flush=True)
     return destination
 
@@ -111,6 +111,5 @@ def build(native_lib=None, flat=False):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--native-lib', type=Path)
-    parser.add_argument('--flat', action='store_true')
     args = parser.parse_args()
-    build(args.native_lib, args.flat)
+    build(args.native_lib)

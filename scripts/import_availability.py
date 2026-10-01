@@ -1,7 +1,8 @@
-"""Import explicit availability ZIP/CSV sources without rebuilding rental history.
+"""Import explicit availability ZIP/CSV sources into a dedicated offline database.
 
-Accepts multiple quarters/months, preserves station/date/hour uniqueness and
-rejects conflicting duplicate observations. No network access or trip queries.
+Multiple quarters/months are accepted. Station/date/hour observations deduplicate
+exactly; conflicting quantities abort without replacing the published database.
+No network access or rental data is needed.
 """
 import argparse
 import csv
@@ -17,14 +18,16 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from scripts.import_data import fingerprint
+from scripts.lib.files import fingerprint
 
 
 def source_rows(path):
+    """Stream the original CP949 archive rather than expanding it on disk."""
     if path.suffix == '.zip':
         with zipfile.ZipFile(path) as archive:
             for name in sorted(archive.namelist()):
-                if not name.lower().endswith('.csv'):continue
+                if not name.lower().endswith('.csv'):
+                    continue
                 with archive.open(name) as binary:
                     yield from csv.DictReader(io.TextIOWrapper(binary, encoding='cp949', newline=''))
     else:
@@ -34,15 +37,17 @@ def source_rows(path):
 
 
 def build(sources, output):
-    sources = [p.resolve(strict=True) for p in sources]
-    if len(set(sources)) != len(sources):raise ValueError('List each archive only once.')
-    inputs = [dict(fingerprint(p), kind='availability') for p in sources]
+    sources = [path.resolve(strict=True) for path in sources]
+    if len(set(sources)) != len(sources):
+        raise ValueError('List each archive only once.')
+    inputs = [dict(fingerprint(path), kind='availability') for path in sources]
     output.parent.mkdir(parents=True, exist_ok=True)
-    temp = output.with_suffix('.build.sqlite3')
-    if temp.exists():temp.unlink()
+    temporary = output.with_suffix('.build.sqlite3')
+    if temporary.exists():
+        temporary.unlink()
     try:
-        with closing(sqlite3.connect(temp)) as con:
-            con.executescript('''
+        with closing(sqlite3.connect(temporary)) as connection:
+            connection.executescript('''
                 PRAGMA journal_mode=OFF;
                 CREATE TABLE availability(number TEXT,day TEXT,hour INTEGER,weekday INTEGER,bikes INTEGER,
                   PRIMARY KEY(number,day,hour)) WITHOUT ROWID;
@@ -51,38 +56,44 @@ def build(sources, output):
                 WHEN EXISTS(SELECT 1 FROM availability WHERE number=NEW.number AND day=NEW.day AND hour=NEW.hour AND bikes<>NEW.bikes)
                 BEGIN SELECT RAISE(ABORT,'Conflicting station/date/hour quantities in source archives'); END;
             ''')
-            read=excluded=0
+            read = excluded = 0
             for source in sources:
-                batch=[]
+                batch = []
                 for row in source_rows(source):
-                    read+=1
+                    read += 1
                     try:
-                        date=datetime.fromisoformat(row['일시'][:10]);day=date.date().isoformat()
-                        number=str(int(row['대여소번호']));hour=int(row['시간대']);bikes=int(row['거치대수량'])
-                        if not 0<=hour<24 or bikes<0:raise ValueError()
-                    except (KeyError,TypeError,ValueError):excluded+=1;continue
-                    batch.append((number,day,hour,int(date.weekday()<5),bikes))
-                    if len(batch)>=50000:
-                        con.executemany('INSERT OR IGNORE INTO availability VALUES(?,?,?,?,?)',batch);batch.clear()
-                con.executemany('INSERT OR IGNORE INTO availability VALUES(?,?,?,?,?)',batch)
-                print('Imported availability:',source.name,flush=True)
-            start,end,records=con.execute('SELECT MIN(day),MAX(day),COUNT(*) FROM availability').fetchone()
-            if not records:raise ValueError('No valid availability observations.')
-            meta={'inputs':inputs,'availability_start':start,'availability_end':end,'importer_version':1,
-                  'rows_read':read,'excluded':excluded,'records':records}
-            con.execute('INSERT INTO meta VALUES(?,?)',('dataset',json.dumps(meta)));con.commit()
-            monthly = con.execute('''SELECT number,substr(day,1,7),hour,weekday,COUNT(*),SUM(bikes=0)
-                FROM availability GROUP BY number,substr(day,1,7),hour,weekday''').fetchall()
-        temp.replace(output)
-        output.with_suffix('.monthly.json').write_text(json.dumps({'sources':inputs,'columns':['station','month','hour','weekday','observations','zero'],'counts':monthly},separators=(',',':'))+'\n')
-        return meta
+                        date = datetime.fromisoformat(row['일시'][:10])
+                        number = str(int(row['대여소번호']))
+                        hour = int(row['시간대'])
+                        bikes = int(row['거치대수량'])
+                        if not 0 <= hour < 24 or bikes < 0:
+                            raise ValueError()
+                    except (KeyError, TypeError, ValueError):
+                        excluded += 1
+                        continue
+                    batch.append((number, date.date().isoformat(), hour, int(date.weekday() < 5), bikes))
+                    if len(batch) >= 50000:
+                        connection.executemany('INSERT OR IGNORE INTO availability VALUES(?,?,?,?,?)', batch)
+                        batch.clear()
+                connection.executemany('INSERT OR IGNORE INTO availability VALUES(?,?,?,?,?)', batch)
+                print('Imported availability:', source.name, flush=True)
+            start, end, records = connection.execute('SELECT MIN(day),MAX(day),COUNT(*) FROM availability').fetchone()
+            if not records:
+                raise ValueError('No valid availability observations.')
+            metadata = {'inputs': inputs, 'availability_start': start, 'availability_end': end,
+                        'importer_version': 1, 'rows_read': read, 'excluded': excluded, 'records': records}
+            connection.execute('INSERT INTO meta VALUES(?,?)', ('dataset', json.dumps(metadata)))
+            connection.commit()
+        temporary.replace(output)
+        return metadata
     finally:
-        if temp.exists():temp.unlink()
+        if temporary.exists():
+            temporary.unlink()
 
 
 if __name__ == '__main__':
-    parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--archive',type=Path,action='append',required=True)
-    parser.add_argument('--output',type=Path,default=ROOT/'data/processed/availability.sqlite3')
-    args=parser.parse_args()
-    print(json.dumps(build(args.archive,args.output),indent=2))
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--archive', type=Path, action='append', required=True)
+    parser.add_argument('--output', type=Path, default=ROOT / 'data/processed/availability.sqlite3')
+    args = parser.parse_args()
+    print(json.dumps(build(args.archive, args.output), indent=2))

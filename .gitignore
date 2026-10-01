@@ -1,23 +1,16 @@
-# Local API credentials
+# Never publish credentials, downloaded archives or local databases.
 .env
 .env.*
-!.env.example
-
-# Downloaded public data and local analysis caches
+.dev.vars
+.dev.vars.*
 data/raw/
 data/processed/
 
-# Python runtime caches
+# Local tooling and generated publication staging.
+.venv/
+.cache/
+.browser-native/
 __pycache__/
 *.pyc
-
-# Local Python routing runtime
-.venv/
-
-# Generated public build, separate native browser builder and Worker tooling
-dist/
-.browser-native/
 node_modules/
-.wrangler/
-.dev.vars
-.dev.vars.*
+dist/

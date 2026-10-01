@@ -31,23 +31,37 @@ export class StaticPlanner {
     const origin = point('origin'), destination = point('destination');
     const pickup = pickupTime(query.get('pickup'), now);
     if (!this.stations.length) throw new Error('Station locations are unavailable.');
-    const stations = this.stations.map(s => ({...s}));
-    const departures = [...stations].sort((a,b) => distance(origin,a)-distance(origin,b)).slice(0,5);
-    let returnStation = stations.reduce((a,b) => distance(destination,a)<=distance(destination,b)?a:b);
+    // Bounded, stable shortlist: one distance calculation per station/point.
+    const nearest = [];
+    let returnStation, returnDistance = Infinity;
+    for (const station of this.stations) {
+      const metres = distance(origin, station);
+      let index = 0;
+      while (index < nearest.length && nearest[index].metres <= metres) index++;
+      if (index < 5) {
+        nearest.splice(index, 0, {station, metres});
+        if (nearest.length > 5) nearest.pop();
+      }
+      const toDestination = distance(destination, station);
+      if (toDestination < returnDistance) {returnStation = station; returnDistance = toDestination;}
+    }
+    const departures = nearest.map(({station, metres}) => ({...station, distance_m: Math.round(metres)}));
     for (const key of ['return', 'departure']) {
       if (!query.get(key)) continue;
-      const selected = stations.find(s => s.id === Number(query.get(key)));
+      const selected = this.stations.find(s => s.id === Number(query.get(key)));
       if (!selected) throw new Error('That station is unavailable. Choose another station.');
       if (key === 'return') returnStation = selected;
       else if (!departures.some(s => s.id === selected.id)) {
-        departures[departures.length-1] = selected;
+        departures[departures.length-1] = {...selected};
         departures.sort((a,b) => distance(origin,a)-distance(origin,b));
       }
     }
     for (const station of departures) {
       station.distance_m = Math.round(distance(origin,station));
       const index = this.historyIndex.get(station.number);
-      const [observations, zero] = index === undefined ? [0,0] : this.history.counts[index*48+Number(pickup.weekday)*24+pickup.hour];
+      const offset = (index * 48 + Number(pickup.weekday) * 24 + pickup.hour) * 2;
+      const observations = index === undefined ? 0 : this.history.counts[offset];
+      const zero = index === undefined ? 0 : this.history.counts[offset + 1];
       station.availability = {observations, zero};
       const age = now - Date.parse(station.fetched_at);
       station.fresh = station.bikes !== null && Number.isFinite(age) && age >= -60000 && age <= 120000;

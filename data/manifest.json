@@ -1,0 +1,182 @@
+{
+  "audit_date": "2026-09-30",
+  "timezone": "Asia/Seoul",
+  "files": [
+    {
+      "path": "data/raw/availability_2025_q4.zip",
+      "bytes": 99598295,
+      "sha256": "0a9f457f0d5e3833d944b6f6e406c694f22f4944a431d12f814fca4e1937c3e6",
+      "saved_at": "2026-09-30T06:32:37.870775+09:00",
+      "dataset": "OA-22382",
+      "url": "https://datafile.seoul.go.kr/bigfile/iot/inf/nio_download.do?useCache=false&infId=OA-22382&seqNo=&infSeq=1&seq=16",
+      "original_filename": "서울특별시_대여소별 공공자전거 대여가능 수량(1시간 단위)_2025년도_4분기.zip",
+      "scope": "Complete ZIP; 6152132 rows across three monthly CSV files scanned",
+      "encoding": "cp949"
+    },
+    {
+      "path": "data/raw/seoul_streets_osm.json.gz",
+      "bytes": 7306942,
+      "sha256": "146750fbce558f9b4e71e1c29059cedea8ac08ac566fd59424dc21398ea32aa1",
+      "source": "OpenStreetMap contributors",
+      "url": "https://overpass-api.de/api/interpreter",
+      "license": "ODbL 1.0",
+      "source_timestamp": "2026-09-30T00:15:05Z",
+      "query_file": "scripts/seoul_streets.overpass",
+      "scope": "Named streets in the Seoul bounding box; nearest-street labels, not verified postal addresses",
+      "compression": "gzip",
+      "uncompressed": {
+        "path": "data/raw/seoul_streets_osm.json",
+        "bytes": 50600119,
+        "sha256": "9b45bda29153e9989538aa1bea033f9cb8ae3385a4746a1ee04d393907d7dd8e"
+      }
+    },
+    {
+      "path": "data/processed/seoul_streets.json.gz",
+      "bytes": 3945137,
+      "sha256": "f9e06928ca686c8e536d0b2afbb2df1e4ebbd6359e1e71e73a91b88da6c0db30",
+      "source": "OpenStreetMap contributors",
+      "url": "https://overpass-api.de/api/interpreter",
+      "license": "ODbL 1.0",
+      "source_timestamp": "2026-09-30T00:15:05Z",
+      "query_file": "scripts/seoul_streets.overpass",
+      "scope": "Named streets in the Seoul bounding box; nearest-street labels, not verified postal addresses"
+    },
+    {
+      "path": "data/raw/seoul-routing.osm.pbf",
+      "bytes": 14944279,
+      "sha256": "b4358b81ec99709f270fb005a7f7822d15ed6588d2c0c28dee2cd1e1b3e727f2",
+      "source": "OpenStreetMap contributors",
+      "license": "ODbL 1.0",
+      "retrieved": "2026-09-30",
+      "provenance_file": "data/inputs/routing-coverage.json"
+    }
+  ],
+  "privacy": "Public station aggregates and roads only. Credentials and raw/processed local inputs are not published.",
+  "limitations": [
+    "Archive hourly sampling/aggregation semantics remain unconfirmed.",
+    "Receipt times do not establish provider observation freshness.",
+    "Weekday groups mean Monday–Friday, including holidays.",
+    "Station-number continuity remains unverified.",
+    "Exact-origin Oksu pier walking detour remains unresolved."
+  ],
+  "derived_inputs": [
+    {
+      "path": "data/inputs/stations.json",
+      "sources": [
+        {
+          "path": "data/raw/live_1_20260930.json",
+          "bytes": 207859,
+          "sha256": "2d9e55d52116b413f1fd4387eeceafe7efd102361aec5b773a96c41346c28517",
+          "saved_at": "2026-09-30T06:37:48.824094+09:00",
+          "dataset": "OA-15493",
+          "endpoint_without_credential": "bikeList/1/1000/",
+          "host": "openapi.seoul.go.kr:8088",
+          "transport": "http",
+          "fetched_at": "2026-09-30T06:37:48.824609+09:00",
+          "scope": "1000 rows; partial station extract"
+        },
+        {
+          "path": "data/raw/live_2_20260930.json",
+          "bytes": 209705,
+          "sha256": "6daf5a819675db7c540b21e197947ebe1727a2715a68dcc5dadf9add3d0f5ed6",
+          "saved_at": "2026-09-30T06:37:48.992873+09:00",
+          "dataset": "OA-15493",
+          "endpoint_without_credential": "bikeList/1001/2000/",
+          "host": "openapi.seoul.go.kr:8088",
+          "transport": "http",
+          "fetched_at": "2026-09-30T06:37:48.994080+09:00",
+          "scope": "1000 rows; partial station extract"
+        },
+        {
+          "path": "data/raw/live_3_20260930.json",
+          "bytes": 153924,
+          "sha256": "024ed46c1da35eb4f3b29266569a3c33b4b1345c3c7f99b836614c94a4543d01",
+          "saved_at": "2026-09-30T06:46:59.885632+09:00",
+          "dataset": "OA-15493",
+          "endpoint_without_credential": "bikeList/2001/3000/",
+          "host": "openapi.seoul.go.kr:8088",
+          "transport": "http",
+          "scope": "735 station rows; fetched 2026-09-30T06:46:59+09:00"
+        }
+      ],
+      "scope": "Normalized station IDs/numbers/names/coordinates; archived quantities discarded.",
+      "bytes": 274525,
+      "sha256": "82f2feafe1af91e305633021663ca3fd4942c9015ff09bf1851aef602b0e7c84"
+    },
+    {
+      "path": "data/inputs/popular_routes.json",
+      "sources": [
+        {
+          "path": "data/raw/trips_202606.csv.gz",
+          "bytes": 194761393,
+          "sha256": "4828cf26d77a3c6e8dd4fae9c62b95b3f068a31e3767f41c661598ac4d0860a8",
+          "saved_at": "2026-09-30T06:44:53.289518+09:00",
+          "dataset": "OA-15182",
+          "url": "https://datafile.seoul.go.kr/bigfile/iot/inf/nio_download.do?useCache=false&infId=OA-15182&seqNo=&infSeq=1&seq=150",
+          "original_filename": "서울특별시 공공자전거 대여이력 정보_2606.csv",
+          "scope": "Complete monthly CSV; 4182797 rows scanned for candidate station pairs",
+          "encoding": "cp949",
+          "compression": "gzip",
+          "uncompressed": {
+            "path": "data/raw/trips_202606.csv",
+            "bytes": 733525370,
+            "sha256": "0743a5b520f3ad1a0bc9f3182c5eb081af8e39189e16ed636361e8d2bc5ea9dd"
+          }
+        },
+        {
+          "path": "data/raw/trips_202604.csv.gz",
+          "bytes": 182894389,
+          "sha256": "8c68ddda42f653174223ccc265bb72f006c3eeb2e977fe31e53dbce0548a53bf",
+          "saved_at": "2026-09-30T07:12:26.887548+09:00",
+          "dataset": "OA-15182",
+          "url": "https://datafile.seoul.go.kr/bigfile/iot/inf/nio_download.do?useCache=false&infId=OA-15182&seqNo=&infSeq=1&seq=148",
+          "encoding": "cp949",
+          "scope": {
+            "month": "202604",
+            "all_source_rows": 3937822,
+            "source_min": "2026-04-01 00:00:00",
+            "source_max": "2026-04-30 23:59:59",
+            "selected_rows": 838,
+            "duplicate_rows": 0,
+            "excluded_rows": 0,
+            "zero_distance_rows": 0
+          },
+          "compression": "gzip",
+          "uncompressed": {
+            "path": "data/raw/trips_202604.csv",
+            "bytes": 690141935,
+            "sha256": "342ad77e7c3632a42911a1118e1eeda22e0f1eccb2683ff19d2864d82daa8feb"
+          }
+        },
+        {
+          "path": "data/raw/trips_202605.csv.gz",
+          "bytes": 186312527,
+          "sha256": "d738bf54b14dc5b79d9850166595fa26b2d85e484e50f53dc5455552d181cbdb",
+          "saved_at": "2026-09-30T07:12:23.576464+09:00",
+          "dataset": "OA-15182",
+          "url": "https://datafile.seoul.go.kr/bigfile/iot/inf/nio_download.do?useCache=false&infId=OA-15182&seqNo=&infSeq=1&seq=149",
+          "encoding": "cp949",
+          "scope": {
+            "month": "202605",
+            "all_source_rows": 4029272,
+            "source_min": "2026-05-01 00:00:00",
+            "source_max": "2026-05-31 23:59:55",
+            "selected_rows": 956,
+            "duplicate_rows": 0,
+            "excluded_rows": 1,
+            "zero_distance_rows": 0
+          },
+          "compression": "gzip",
+          "uncompressed": {
+            "path": "data/raw/trips_202605.csv",
+            "bytes": 706488210,
+            "sha256": "725caf7a7690db421d411fa431b4f9fbae5d29a5ad0ee5de81a3ddc3edae8c76"
+          }
+        }
+      ],
+      "scope": "Five deduplicated directional shortcuts, minimum 2 km, no reused endpoint; no detailed rentals retained in project.",
+      "bytes": 361,
+      "sha256": "bb63ba0e203e811a4bce1872efadcd6b94efef02036fb79e1ad7dc6bb8a6f73f"
+    }
+  ]
+}

@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def handler(directory):
     directory = directory.resolve()
     class Handler(SimpleHTTPRequestHandler):
+        etags = {}
         def __init__(self, *args, **kwargs):
             super().__init__(*args, directory=str(directory), **kwargs)
         def send_head(self):
@@ -30,7 +31,15 @@ def handler(directory):
             self.send_response(200)
             self.send_header('Content-Type', content_type)
             self.send_header('Content-Length', str(served.stat().st_size))
-            self.send_header('ETag', '"' + hashlib.sha256(path.read_bytes()).hexdigest() + '"')
+            stat = path.stat()
+            signature = (stat.st_mtime_ns, stat.st_size)
+            cached = self.etags.get(path)
+            if not cached or cached[0] != signature:
+                with path.open('rb') as stream:
+                    digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+                cached = (signature, '"' + digest + '"')
+                self.etags[path] = cached
+            self.send_header('ETag', cached[1])
             self.send_header('Cache-Control', 'no-cache')
             self.send_header('X-Content-Type-Options', 'nosniff')
             if use_gzip:

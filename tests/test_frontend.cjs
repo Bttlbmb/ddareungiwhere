@@ -151,6 +151,14 @@ function harness() {
   const source = fs
     .readFileSync(require("node:path").join(__dirname, "../web/app.js"), "utf8")
     .replace(/start\(\);\s*$/, "");
+  // UI fixtures supply command results through the browser coordinator. The
+  // response-shaped stubs below are test data, never a production HTTP API.
+  context.window.BikeStatic = {request: async (path, options) => {
+    const response = await context.fetch(path, options);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'offline');
+    return data;
+  }};
   vm.runInContext(source, context);
   const run = (code) => vm.runInContext(code, context);
   const station = {
@@ -736,12 +744,12 @@ test("popup station choices move the corresponding pin and update its street lab
 });
 
 
-test("a hanging local comparison times out and restores the compare control", async () => {
+test("a hanging browser comparison times out and restores the compare control", async () => {
   const h = harness();
   h.run("state.origin={lat:37.5,lng:127};state.destination={lat:37.51,lng:127.01}");
-  h.context.fetch = (_path, {signal}) => new Promise((_resolve, reject) => {
+  h.context.window.BikeStatic = {request: (_path, {signal}) => new Promise((_resolve, reject) => {
     signal.addEventListener('abort', () => reject(new Error('aborted')));
-  });
+  })};
   const pending = h.run("compare({preventDefault(){}})");
   const timeout = [...h.timers.values()].find(timer => timer.delay === 30000);
   assert.ok(timeout);

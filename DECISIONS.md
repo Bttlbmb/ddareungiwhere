@@ -1,0 +1,13 @@
+# Decisions
+
+Current rationale, 2026-10-01.
+
+- **Static-only, user-approved.** GitHub Pages serves plain JavaScript/Leaflet and browser Valhalla. Python and SQLite remain offline build tools. The legacy application server, rental imports/analysis, Cloudflare Worker and their tests/docs are removed. Existing product behavior and approved design remain.
+- **Direct official HTTPS inventory.** The official ALL-station website feed currently accepts CORS without a key; the browser sends no credentials/cookies. This supersedes the planned secret-hiding Worker. The website endpoint has no published versioned contract; breakage must produce unknown counts and retryable errors. Per-tab throttling replaces shared proxy caching.
+- **Sufficient statistics, not detailed history.** Station × weekday/weekend × hour observation/zero counts reproduce the current historical bands exactly. Compressed little-endian counts reduce transfer/object allocation without approximating evidence. Six-month aggregation needs additional complete sources; it cannot invent history from the three supplied months.
+- **Keep routing connectivity.** Pinned walking/bicycle graph excludes driving-only access but preserves hierarchy/shortcuts. Removing every highway would remove walkable/cyclable OSM roads too. Raw tile/WASM copies, unused compressed siblings and alternative flat-graph tooling are removed from publication; requested compressed tiles keep existing integrity checks. First-use WASM/tile costs remain material.
+- **Manual action, separate meanings.** Draft edits do not query. Refresh changes inventory only. Pickup is collection time, not origin departure. Immediate availability follows fresh live quantities; future historical bands are descriptive, not calibrated probabilities or refill forecasts.
+- **Valhalla estimates rather than rental durations.** Rentals include stops and detours. Five existing popular-route seeds remain as derived shortcuts; no rental database is required to use/build the page. Kakao routing, rental summary cards, pooled medians and walking-budget filters are superseded.
+- **Small existing UI.** Route Ribbon / Slate & Teal, Looking Wheels logo, five candidates, shared return, compact desktop/phone results. No framework, slogans, extra methodology UI, accounts or background collection added.
+
+Known correctness/performance limits belong in [plan.md](plan.md), source limits in [DATA_SOURCES.md](DATA_SOURCES.md), dated measurements in [REVIEW.md](REVIEW.md).
