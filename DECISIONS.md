@@ -1,6 +1,6 @@
 # Decisions
 
-Current rationale, 2026-10-01.
+Current rationale, updated 2026-10-02.
 
 - **Static-only, user-approved.** GitHub Pages serves plain JavaScript/Leaflet and browser Valhalla. Python and SQLite remain offline build tools. The legacy application server, rental imports/analysis, Cloudflare Worker and their tests/docs are removed. Existing product behavior and approved design remain.
 - **Direct official HTTPS inventory.** The official ALL-station website feed currently accepts CORS without a key; the browser sends no credentials/cookies. This supersedes the planned secret-hiding Worker. The website endpoint has no published versioned contract; breakage must produce unknown counts and retryable errors. Per-tab throttling replaces shared proxy caching.
@@ -9,6 +9,6 @@ Current rationale, 2026-10-01.
 - **Manual action, separate meanings.** Draft edits do not query. Refresh changes inventory only. Pickup is collection time, not origin departure. Immediate availability follows the retained live-count snapshot; future historical bands are descriptive, not calibrated probabilities or refill forecasts.
 - **Valhalla estimates rather than rental durations.** Rentals include stops and detours. Popular-route shortcuts and their seeds were removed at the user’s request on 2026-10-01; no rental data is required to use/build the page. Kakao routing, rental summary cards, pooled medians and walking-budget filters are superseded.
 - **Stable snapshots, user-approved 2026-10-01.** Displayed counts and immediate availability stay unchanged until manual comparison/refresh replaces them. This supersedes the earlier two-minute display expiry; the refresh time and unknown/zero distinction remain. Automatic station suggestion still uses recent reports.
-- **Small existing UI.** Route Ribbon / Slate & Teal, Looking Wheels logo, five candidates, shared destination station, compact desktop/phone results. No framework, slogans, extra methodology UI, accounts or background collection added.
+- **Small existing UI.** Route Ribbon / Slate & Teal, City basket logo (selected 2026-10-02, superseding Looking Wheels), five candidates, shared destination station, compact desktop/phone results. No framework, slogans, extra methodology UI, accounts or background collection added.
 
 Known correctness/performance limits belong in [plan.md](plan.md), source limits in [DATA_SOURCES.md](DATA_SOURCES.md), dated measurements in [REVIEW.md](REVIEW.md).

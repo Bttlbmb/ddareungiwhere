@@ -1,8 +1,8 @@
-import {StaticPlanner} from './planner.mjs?v=c51969cfe8f03472';
-import {StreetLabels} from './streets.mjs?v=c51969cfe8f03472';
-import {BrowserRoutes} from './routes.mjs?v=c51969cfe8f03472';
-import {fetchWebsiteInventory} from './live.mjs?v=c51969cfe8f03472';
-import {fetchJSON, loadHistory} from './data.mjs?v=c51969cfe8f03472';
+import {StaticPlanner} from './planner.mjs?v=2aa1fb2d5e4c8f2a';
+import {StreetLabels} from './streets.mjs?v=2aa1fb2d5e4c8f2a';
+import {BrowserRoutes} from './routes.mjs?v=2aa1fb2d5e4c8f2a';
+import {fetchWebsiteInventory} from './live.mjs?v=2aa1fb2d5e4c8f2a';
+import {fetchJSON, loadHistory} from './data.mjs?v=2aa1fb2d5e4c8f2a';
 
 /** Browser-only coordinator. Command paths are internal, never HTTP endpoints. */
 export class StaticService {

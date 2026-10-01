@@ -1,12 +1,12 @@
 # Design: 따릉이 Where?
 
-Approved appearance retained in the static-only page, 2026-10-01. This records the user's approved design and preferences. Behavior lives in [SPEC.md](SPEC.md).
+Approved appearance retained in the static-only page, updated 2026-10-02. This records the user's approved design and preferences. Behavior lives in [SPEC.md](SPEC.md).
 
 ## Identity
 
 The selected name is **따릉이 Where?**: retain the public-bike program's Korean name with a lightly playful English question. The user wanted simple, elegant, cool, possibly funny, without a corny slogan.
 
-The approved **Looking Wheels** logo has two eye/wheel rings with pupil/hub dots, a bicycle saddle above the left wheel, and a handlebar above the right. Use [looking-wheels.svg](web/assets/looking-wheels.svg) in the header/favicon, with readable text for the wordmark. Do not restore the earlier arrow-only eye concept or substitute a generic bicycle.
+The approved **City basket** logo, selected 2026-10-02, is a compact bicycle with a visible low frame, slate wheel outlines without hub dots, and a mint saddle and front basket. Use [city-basket.svg](web/assets/city-basket.svg) in the header/favicon, with readable text for the wordmark. It supersedes Looking Wheels after the user flagged its unintended resemblance; the user chose City basket over the subsequent question-mark/bicycle proposals. Preserve this selected silhouette rather than restoring the paired eye/wheel mark or adding a question mark.
 
 ## Approved appearance
 
@@ -20,7 +20,7 @@ The selected layout is **Route Ribbon**, with the **Slate & Teal** refinement: t
 | Light teal-gray | `#b6c7c7` | Primary-button arrow, subdued map accents |
 | Dividers / header | `#dce0e1` / `#e9edee` | Quiet rules / table header fill |
 | Secondary text | `#626e72` | Supporting labels and attribution |
-| Bikes 3+ | `#c4e3d4` / `#24553f` | Mint box / dark number; mint A/B form badges and logo saddle/handlebar |
+| Bikes 3+ | `#c4e3d4` / `#24553f` | Mint box / dark number; mint A/B form badges and logo saddle/basket |
 | Bikes 1–2 | `#f5d689` / `#704c10` | Amber box / dark number |
 | Bikes 0 | `#efbbb5` / `#8b302a` | Coral box / dark number |
 
@@ -32,7 +32,7 @@ Risk badges use quieter tints than inventory boxes. Unknown stays neutral. Color
 - Header description checked 2026-10-01 in desktop browser emulation at 1440 × 900, 1024 × 768, 390 × 844 and 320 × 568: copy fits, no horizontal page overflow, and results focus/internal scrolling remain usable. This is browser emulation, not physical-phone evidence. All 6 Python and 38 JavaScript checks passed.
 - Planner heading: **From, to, and when?**, selected 2026-10-01.
 - Starting point and Destination labels outside their controls, matching Bike pickup time.
-- Mint A/B form badges with dark green letters, connected by a thin neutral vertical line. Logo saddle/handlebar use the same mint as the available-bike box fill; wheels and wordmark stay slate. This minimal color treatment was selected 2026-10-01, then the logo was lightened from dark green to mint at the user's request. Point controls have a bottom rule, not a large colored box; active choice gets a subtle underline.
+- Mint A/B form badges with dark green letters, connected by a thin neutral vertical line. The City basket logo uses the same mint as the available-bike box fill for its saddle/basket; frame, wheels, handlebar and wordmark stay slate (selected 2026-10-02). The earlier logo's mint accents were selected 2026-10-01. Point controls have a bottom rule, not a large colored box; active choice gets a subtle underline.
 - **⌖ Current location** sits beside Starting point, right-aligned, and only applies to origin.
 - The location crosshair is an SVG centered beside its text rather than a font glyph.
 - Street names instead of “Near #4847.” Long labels get at most two lines with ellipsis and full text retained.

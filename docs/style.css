@@ -69,7 +69,7 @@ a {
   border-bottom: 1px solid var(--line);
   width: 100%;
   margin: 0 auto;
-  /* The drawn wheel begins about 1px inside the SVG; align it with the heading. */
+  /* The drawn bike begins about 1px inside the SVG; align it with the heading. */
   padding: 9px 24px 9px 41px;
   flex: 0 0 auto;
 }
