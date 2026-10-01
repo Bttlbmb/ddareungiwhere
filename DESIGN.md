@@ -28,7 +28,8 @@ Risk badges use quieter tints than inventory boxes. Unknown stays neutral. Color
 
 ## Left planner and results
 
-- Compact brand header, no hero/slogan.
+- Compact brand header, with the user-selected description **Plan your trip with Seoul’s public bikes.** and **Right aligned** placement (2026-10-01). Small secondary text sits at the right of the desktop header; on phones it sits below the wordmark, aligned to its text and wrapping naturally. No hero panel. The logo's visible left edge aligns with the planner heading (**From**) on desktop and phones, accounting for the SVG's small internal inset.
+- Header description checked 2026-10-01 in desktop browser emulation at 1440 × 900, 1024 × 768, 390 × 844 and 320 × 568: copy fits, no horizontal page overflow, and results focus/internal scrolling remain usable. This is browser emulation, not physical-phone evidence. All 6 Python and 38 JavaScript checks passed.
 - Planner heading: **From, to, and when?**, selected 2026-10-01.
 - Starting point and Destination labels outside their controls, matching Bike pickup time.
 - Mint A/B form badges with dark green letters, connected by a thin neutral vertical line. Logo saddle/handlebar use the same mint as the available-bike box fill; wheels and wordmark stay slate. This minimal color treatment was selected 2026-10-01, then the logo was lightened from dark green to mint at the user's request. Point controls have a bottom rule, not a large colored box; active choice gets a subtle underline.
@@ -39,6 +40,7 @@ Risk badges use quieter tints than inventory boxes. Unknown stays neutral. Color
 - Five Popular routes below; deduplicated popularity, no repeated station endpoints, minimum 2 km straight-line separation to avoid apartment-block trips.
 - Bike stations on the map use the existing mint fill with a dark green outline: 5.5 px radius, 1.5 px outline, full opacity. Unselected numbered candidate markers use mint too; the selected candidate stays slate. Destination station uses the same colors at a larger radius. Legend matches these colors. Selected 2026-10-01.
 - Map/results share a panel. A manual comparison opens results; Back to map restores the same journey. The dashed A–B guide is not routed geometry.
+- Map station popups show **#number · station name**, followed by Use as departure / Use as destination. Omit all inventory counts and unavailable-count messages, whether quantities have been fetched or not. Selected 2026-10-01.
 - Desktop table has horizontal rules, no large outer results box or green selected-row fill. Rank boxes stay neutral, including the first/selected station. Station numbers read “Station #…”, with headings “Station”, “Bikes”, “Walk time” and “Ride time”. No Nearest/Bikes now row indicators. Bike counts are the strongest accents; walk/ride times stay plain. Rounded durations above 60 minutes use hours/minutes (e.g. **1h 12min**, or **2h** for exact hours); shorter durations retain **12 min**.
 - **Your destination.** follows the table on the same background, with no enclosing box. The down/right arrow sits in a neutral 25 px marker with subtle lines. Destination station names/numbers reuse the departure styles and left edge; the final duration reuses the departure duration style and aligns with Walk time on desktop (the second metric column on phones). A right arrow and destination name follow it; no extra labels or B circle. The destination uses the selected **Mint tag** treatment: 14 px bold dark green text, existing mint fill, 5 px corner radius and 5 px / 10 px padding. The tag is a destination label, with no button behavior. Selected 2026-10-01.
 - No gray divider above the station table. One right-aligned footer below the destination section shows live-refresh completion time, credits Valhalla / OpenStreetMap, then **↻ Refresh bikes**, separated with dots. The refresh link inherits the footer text size. On phones the footer wraps naturally, keeping the last dot and refresh link together; it scrolls with the results body.
@@ -50,7 +52,7 @@ Risk badges use quieter tints than inventory boxes. Unknown stays neutral. Color
 
 The user repeatedly simplified the page. Do not reintroduce without a new request/reason:
 
-- Slogans, LOCAL EDITION/live connection text, RIDE HISTORY stamp, hero title, or “01 / PLAN.”
+- Additional slogans beyond the selected header description, LOCAL EDITION/live connection text, RIDE HISTORY stamp, hero title, or “01 / PLAN.”
 - Routine location permission/success/accuracy prose. Keep actionable failures and the actual browser permission prompt.
 - Pickup helper line such as “Now · Seoul time (KST). Plan up to 7 days ahead.” Validation remains.
 - History/Past zero counts, rental mean/median/record columns, or a rental-time summary card.

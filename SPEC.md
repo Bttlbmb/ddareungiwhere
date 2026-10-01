@@ -21,6 +21,8 @@ Compare current bikes, local walking/cycling estimates, and a distinct historica
 
 The browser requests five nearest departures by straight-line origin proximity. No walking-time radius/filter or list expansion. Compare all five to the same destination station: nearest by straight-line destination proximity unless explicitly selected through a map popup. Use as departure / Use as destination moves the corresponding pin and updates the road label; queries remain manual.
 
+Station popups show **#number · station name** and the two point-selection actions. They never display bike quantities or live-count status messages; inventory remains in comparison results.
+
 Manual comparison replaces the map with results. Back to map restores the journey; late replies must not switch views. Desktop keeps the planner visible, phones hide it in results. Outer page fits the viewport, with internal scrolling if needed. The dashed A–B line updates with both pins and is a **straight guide, not a cycling route**.
 
 ## Results
@@ -68,7 +70,7 @@ Five retained precomputed directional pairs from April–June 2026 rental data, 
 3. Map station choices update pin and road label; stale GPS/label/query replies cannot overwrite newer choices/views.
 4. Seoul time, seven-day validation and click-relative shortcuts work independently of computer timezone.
 5. Current zero overrides history for immediate pickup; future signals remain separate. Unknown is neither zero nor Low.
-6. Displayed counts and popup quantities remain stable through elapsed time and failed/hanging refreshes; manual refresh updates snapshots. Automatic station suggestion still requires a report within 120 seconds.
+6. Displayed counts remain stable through elapsed time and failed/hanging refreshes; manual refresh updates snapshots. Automatic station suggestion still requires a report within 120 seconds. Station popups omit all inventory information.
 7. Zero walking, missing routes and same-station cycling are distinct; caching respects direction, coordinates and mode.
 8. All phone metrics/controls remain accessible, long names fit, and station focus/selection survives redraws.
 9. Secrets/raw datasets are absent from browser assets/static routes and credential-bearing logs/errors.

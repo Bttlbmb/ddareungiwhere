@@ -300,8 +300,7 @@ function initializeMap() {
 }
 function stationPopup(station) {
   const box = document.createElement("div");
-  const known = hasBikeCount(station);
-  box.innerHTML = `<div class="popup-title">${esc(station.number)} · ${esc(station.name)}</div><div data-live-station="${station.id}">${known ? `${station.bikes} bikes` : "Live count unavailable"}</div><div class="popup-buttons"><button type="button" data-role="departure">Use as departure</button><button type="button" data-role="return">Use as destination</button></div>`;
+  box.innerHTML = `<div class="popup-title">#${esc(station.number)} · ${esc(station.name)}</div><div class="popup-buttons"><button type="button" data-role="departure">Use as departure</button><button type="button" data-role="return">Use as destination</button></div>`;
   box.querySelector("[data-role=departure]").onclick = () => {
     setPoint("origin", station, station.name);
     state.departureId = station.id;
@@ -368,7 +367,7 @@ function renderMapStations() {
     const selected = station.id === state.selectedId;
     const marker = L.marker([station.lat, station.lng], {
       zIndexOffset: selected ? 300 : 100,
-      title: `${station.number}. ${station.name}`,
+      title: `#${station.number} · ${station.name}`,
       icon: L.divIcon({
         className: "",
         html: `<div class="number-pin ${selected ? "selected" : ""}">${index + 1}</div>`,
@@ -663,14 +662,6 @@ function renderResults() {
 function updateLiveDisplay() {
   renderRows();
   renderLive(state.live);
-  document.querySelectorAll("[data-live-station]").forEach((node) => {
-    const id = Number(node.dataset.liveStation);
-    const station = state.stations.find((s) => s.id === id);
-    node.textContent =
-      hasBikeCount(station)
-        ? `${station.bikes} bikes`
-        : "Live count unavailable";
-  });
 }
 async function loadBootstrap() {
   if (bootstrapRequest) return bootstrapRequest;

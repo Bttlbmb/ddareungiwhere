@@ -63,10 +63,13 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 24px;
   border-bottom: 1px solid var(--line);
   width: 100%;
   margin: 0 auto;
-  padding: 9px 24px;
+  /* The drawn wheel begins about 1px inside the SVG; align it with the heading. */
+  padding: 9px 24px 9px 41px;
   flex: 0 0 auto;
 }
 
@@ -91,6 +94,13 @@ a {
 
 .brand-wordmark {
   white-space: nowrap;
+}
+
+.site-description {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 .eyebrow {
@@ -827,7 +837,14 @@ body {
 @media (max-width: 700px) {
 
   .site-header {
-    padding: 9px 12px;
+    padding: 9px 12px 9px 21px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .site-description {
+    margin-left: 51px;
   }
 
   .planner-grid {

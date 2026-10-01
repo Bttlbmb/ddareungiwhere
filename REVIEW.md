@@ -70,3 +70,13 @@ At the user's request, removed automatic display expiry. Valid bike quantities a
 Removed Nearest/Bikes now row indicators, changed the section to **Your destination.** and popup action to **Use as destination**, and updated cycling/walking error/help text to use destination terminology. The bottom source-credit footer is right-aligned with the map-issue link removed; Seoul Bike/OpenStreetMap credits remain. Map station dots use shared mint/dark-green CSS colors, 5.5 px radius, 1.5 px outline and full opacity. Unselected numbered candidates and the larger destination marker share that palette; selected candidates stay slate.
 
 All **6 Python** and **38 Node** checks passed, including simulated 24-hour retention during a hanging/failed refresh, stable popup values, valid zero versus missing quantities, and manual refresh preservation of route/history data. All **15 native/browser route fixtures** passed. Actual local browser checks at 1440×900 and 320×568 confirmed the new copy, no row indicators, no horizontal overflow, accessible internal scrolling, aligned destination walk time, right-aligned source credits, visible mint stations and retained keyboard focus after station selection. These phone-sized checks are desktop emulation, not physical-phone evidence.
+
+## Brand left-edge alignment — 2026-10-01
+
+Adjusted header left padding so the drawn logo aligns with **From** in the planner heading, including the roughly 1 px inset within the SVG. Local browser measurements at 1440×900 showed both at x=42 px; 390×844 and 320×568 showed both at x=22 px. Screenshots were visually inspected; no horizontal overflow occurred, brand keyboard focus remained accessible, and the phone-sized planner still scrolled internally. All 6 Python and 38 Node checks passed. This local build is not a new publication; phone-sized checks are desktop emulation.
+
+## Station popup simplification — 2026-10-01
+
+Map station popups now show **#number · station name** and the departure/destination selection buttons, with no quantities or live-count status. Removed the unused popup-count updater; comparison inventory is retained.
+
+All 6 Python and 38 Node checks passed. Local headless Chromium at 1440×900, 390×844 and 320×568 opened station #3426 through the map canvas and verified the prefixed number and absence of inventory for both unknown and synthetic known counts. Both selection buttons remained available; keyboard activation of Use as departure set only the origin and did not compare. Screenshots were visually inspected without horizontal overflow. Phone-sized checks are desktop emulation; this build has not been published.

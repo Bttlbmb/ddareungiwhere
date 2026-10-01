@@ -111,14 +111,11 @@ function harness() {
   document.querySelectorAll = (selector) =>
     selector === "[data-select]"
       ? document.getElementById("station-rows").children
-      : selector === "[data-live-station]"
-        ? [document.getElementById("popup-count")]
-        : [];
+      : [];
   document.querySelector = (selector) =>
     document
       .querySelectorAll("[data-select]")
       .find((e) => selector === `[data-select="${e.dataset.select}"]`);
-  document.getElementById("popup-count").dataset.liveStation = "1";
   class Clock extends Date {
     constructor(...args) {
       super(...(args.length ? args : [now]));
@@ -198,10 +195,9 @@ function harness() {
   };
 }
 
-test("counts, availability and open popup keep the last snapshot despite elapsed time and failed refresh", async () => {
+test("counts and availability keep the last snapshot despite elapsed time and failed refresh", async () => {
   const h = harness();
   h.run("renderResults();renderLive(state.plan.live);updateLiveDisplay()");
-  assert.equal(h.e("popup-count").textContent,"4 bikes");
   assert.ok(![...h.timers.values()].some(t => t.delay === 120001));
   await h.run("refreshLive()");
   let failRequest;
@@ -212,11 +208,9 @@ test("counts, availability and open popup keep the last snapshot despite elapsed
   assert.match(h.e("station-rows").innerHTML,/class="stat bikes ">4</);
   assert.match(h.e("station-rows").innerHTML,/Available now/);
   assert.doesNotMatch(h.e("station-rows").innerHTML,/Nearest|Bikes now|small-tag/);
-  assert.equal(h.e("popup-count").textContent,"4 bikes");
   failRequest(new Error("offline"));
   await pending;
   assert.match(h.e("station-rows").innerHTML,/class="stat bikes ">4</);
-  assert.equal(h.e("popup-count").textContent,"4 bikes");
 });
 
 test("marker selection changes styling without panning or replacing popup layers", () => {
@@ -724,7 +718,7 @@ test("walk times are independent of cycling and handle zero and missing routes",
   assert.match(h.e("station-rows").innerHTML, />8 min</);
 });
 
-test("popup station choices move the corresponding pin and update its street label without comparing", async () => {
+test("station popup shows a prefixed number without inventory; choices update pins without comparing", async () => {
   const h = harness(), buttons = {}, requests = [];
   h.document.createElement = () => ({
     innerHTML: "",
@@ -734,7 +728,11 @@ test("popup station choices move the corresponding pin and update its street lab
     requests.push(path);
     return {ok:true,json:async()=>({label:path.includes('lat=37.5&') ? 'Departure road' : 'Return road',distance_m:5})};
   };
-  h.run('map={closePopup(){},invalidateSize(){}};renderEndpoints=()=>{};renderMapStations=()=>{};state.origin={lat:37.51,lng:127.01};state.destination={lat:37.52,lng:127.02};stationPopup(fixture.station)');
+  const popup = h.run('map={closePopup(){},invalidateSize(){}};renderEndpoints=()=>{};renderMapStations=()=>{};state.origin={lat:37.51,lng:127.01};state.destination={lat:37.52,lng:127.02};stationPopup(fixture.station)');
+  assert.ok(popup.innerHTML.includes(`>#${h.station.number} · `));
+  assert.doesNotMatch(popup.innerHTML, /data-live-station|Live count|\d+ bikes/);
+  h.run('fixture.station.bikes=null');
+  assert.doesNotMatch(h.run('stationPopup(fixture.station)').innerHTML, /data-live-station|Live count|\d+ bikes/);
   buttons['[data-role=departure]'].onclick();
   await new Promise(setImmediate);
   assert.equal(h.run('state.origin.lat'), h.station.lat);
