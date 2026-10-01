@@ -58,7 +58,7 @@ export class BrowserRoutes {
   async getRouter() {
     if (!this.routerPromise) {
       this.routerPromise = (async () => {
-        const {Router} = await import('../vendor/valhalla/index.js?v=28af33f1087c839c');
+        const {Router} = await import('../vendor/valhalla/index.js?v=baa26a99b15cc88a');
         return new Router({manifestUrl: new URL(this.config.manifestUrl, this.base).href,
           transport: 'individual-tiles', memoryBudgetBytes: 96 * 1024 * 1024,
           wasmMemory: {initialMiB: 64, maximumMiB: 512}, timeoutMs: 15000, retries: 1});
@@ -72,7 +72,7 @@ export class BrowserRoutes {
       return {provider: 'Valhalla', minutes: 0, distance_m: 0};
     }
     if (mode === 'bicycle' && origin.id === destination.id) {
-      return {provider: 'Valhalla', error: 'Choose different departure and return stations.'};
+      return {provider: 'Valhalla', error: 'Choose different departure and destination stations.'};
     }
     const key = JSON.stringify([mode, origin.lat, origin.lng, destination.lat, destination.lng, stationAtOrigin]);
     if (this.cache.has(key)) {

@@ -70,7 +70,7 @@ export class StaticService {
       }
       this.live = {...response.live, refreshing: false};
     }).catch(() => {
-      // Preserve receipt timestamps on failure; the UI enforces expiry.
+      // Preserve the last count snapshot and its receipt time on failure.
       this.live = {...this.live, refreshing: false,
         error: 'Live bike counts are unavailable. Try refreshing shortly.'};
     }).finally(() => {this.pendingLive = null;});

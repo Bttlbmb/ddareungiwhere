@@ -1,8 +1,8 @@
-import {StaticPlanner} from './planner.mjs?v=28af33f1087c839c';
-import {StreetLabels} from './streets.mjs?v=28af33f1087c839c';
-import {BrowserRoutes} from './routes.mjs?v=28af33f1087c839c';
-import {fetchWebsiteInventory} from './live.mjs?v=28af33f1087c839c';
-import {fetchJSON, loadHistory} from './data.mjs?v=28af33f1087c839c';
+import {StaticPlanner} from './planner.mjs?v=baa26a99b15cc88a';
+import {StreetLabels} from './streets.mjs?v=baa26a99b15cc88a';
+import {BrowserRoutes} from './routes.mjs?v=baa26a99b15cc88a';
+import {fetchWebsiteInventory} from './live.mjs?v=baa26a99b15cc88a';
+import {fetchJSON, loadHistory} from './data.mjs?v=baa26a99b15cc88a';
 
 /** Browser-only coordinator. Command paths are internal, never HTTP endpoints. */
 export class StaticService {
@@ -70,7 +70,7 @@ export class StaticService {
       }
       this.live = {...response.live, refreshing: false};
     }).catch(() => {
-      // Preserve receipt timestamps on failure; the UI enforces expiry.
+      // Preserve the last count snapshot and its receipt time on failure.
       this.live = {...this.live, refreshing: false,
         error: 'Live bike counts are unavailable. Try refreshing shortly.'};
     }).finally(() => {this.pendingLive = null;});

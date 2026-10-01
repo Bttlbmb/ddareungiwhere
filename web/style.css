@@ -263,11 +263,13 @@ input[type="datetime-local"] {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #8c9a9c;
+  background: var(--bike-good-soft);
+  border: 1px solid var(--bike-good);
 }
 
 .legend-dot.selected {
   background: var(--dark);
+  border-color: var(--dark);
 }
 
 .map-error {
@@ -305,8 +307,8 @@ input[type="datetime-local"] {
 .number-pin {
   display: grid;
   place-items: center;
-  background: #fff;
-  border: 2px solid var(--action-ink);
+  background: var(--bike-good-soft);
+  border: 2px solid var(--bike-good);
   border-radius: 50%;
   width: 28px;
   height: 28px;
@@ -452,16 +454,6 @@ tbody tr.chosen td:first-child {
   color: var(--muted);
   display: block;
   margin-top: 4px;
-}
-
-.small-tag {
-  font-size: 9px;
-  padding: 2px 5px;
-  border-radius: 4px;
-  background: var(--accent-soft);
-  color: var(--action-ink);
-  margin-left: 5px;
-  white-space: nowrap;
 }
 
 .stat {
@@ -816,7 +808,8 @@ body {
 
 .site-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
+  text-align: right;
   gap: 12px;
   color: var(--muted);
   padding: 10px 0;
@@ -919,6 +912,7 @@ body {
 
   .site-footer {
     flex-direction: column;
+    align-items: flex-end;
     gap: 7px;
     padding: 7px 0;
   }

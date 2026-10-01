@@ -72,7 +72,7 @@ export class BrowserRoutes {
       return {provider: 'Valhalla', minutes: 0, distance_m: 0};
     }
     if (mode === 'bicycle' && origin.id === destination.id) {
-      return {provider: 'Valhalla', error: 'Choose different departure and return stations.'};
+      return {provider: 'Valhalla', error: 'Choose different departure and destination stations.'};
     }
     const key = JSON.stringify([mode, origin.lat, origin.lng, destination.lat, destination.lng, stationAtOrigin]);
     if (this.cache.has(key)) {

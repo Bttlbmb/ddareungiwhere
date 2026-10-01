@@ -11,7 +11,7 @@ Source workspace and publication checkout can be separate. Here `dist/publicatio
 ## Preserve behavior
 
 - Start without points. Map/GPS/shortcut/time edits only change the draft. Compare stations requests a comparison; Refresh bikes updates inventory without rerouting.
-- Compare five nearby departures to the same return. Unknown/expired counts are not zero. Historical Low never promises refill soon.
+- Compare five nearby departures to the same destination station. Known count snapshots remain stable until an explicit update; unknown counts are not zero. Historical Low never promises refill soon.
 - Pickup means collection at the station in Seoul time, now through seven days ahead. Walking does not shift pickup or impose a budget.
 - Keep the compact Route Ribbon / Slate & Teal appearance. No slogans, hero panels, automatic queries, list expansion, rental summaries or large methodology blocks without a new request.
 - Keep plain JavaScript, Leaflet and on-device Valhalla. Python/SQLite are offline build tools only. The fixed HTTPS live endpoint needs no credential; do not reintroduce secrets into browser assets.

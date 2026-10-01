@@ -19,10 +19,10 @@ No backend, proxy, secret, rental table or database download is needed at runtim
 
 | Source | Responsibility |
 | --- | --- |
-| `web/app.js` | Draft vs applied journey, map/results, validation feedback, expiry and asynchronous response guards |
+| `web/app.js` | Draft vs applied journey, map/results, validation feedback, stable count snapshots and asynchronous response guards |
 | `web/static/start.mjs` | Versioned configuration and browser coordinator startup |
 | `service.mjs` | Lazy datasets, manual operations, live merge and serial route orchestration |
-| `planner.mjs` | KST validation, stable five-station shortlist, shared return, historical cell lookup |
+| `planner.mjs` | KST validation, stable five-station shortlist, shared destination station, historical cell lookup |
 | `live.mjs` | Fixed credential-free feed, category sum, coverage/row checks and receipt times |
 | `data.mjs` | Explicit gzip decoding and exact historical payload/hash validation |
 | `routes.mjs` | One lazy worker, bounded estimate cache, pedestrian endpoint-access correction |
@@ -35,13 +35,13 @@ No backend, proxy, secret, rental table or database download is needed at runtim
 
 Static module paths above are relative to `web/static/`. Existing `/api/bootstrap`, `/api/plan`, `/api/place-label` and `/api/live` strings are **internal command names** handled by `BikeStatic.request`; they never request HTTP API routes. The frontend gives operations a 30-second abort signal. Bootstrap fetches station/shortcut data and history metadata, never live inventory, count cells or WASM. Count cells load on first comparison; street shards load when labeling selected points; WASM/graph load on first estimate. Failures reset initialization promises for retry.
 
-The planner scans the catalogue once, retaining only five candidates and the nearest return. Stable ties retain catalogue order. Only selected rows are cloned. Explicit departure/return overrides retain existing semantics. Refresh uses ID maps for a linear merge, preserving the station array used by the planner. Failed refreshes preserve original receipt times; the UI expires them normally.
+The planner scans the catalogue once, retaining only five candidates and the nearest destination station. Stable ties retain catalogue order. Only selected rows are cloned. Explicit departure/destination-station overrides retain existing semantics; internal return keys remain compatible. Refresh uses ID maps for a linear merge, preserving the station array used by the planner. Failed refreshes preserve the last quantities and original receipt times; UI snapshots remain stable until an explicit update.
 
 ## Live counts
 
 POST form `stationGrpSeq=ALL` to the fixed official HTTPS endpoint documented in DATA_SOURCES. CORS mode, omitted credentials, no redirects, eight-second upstream timeout. Reject unsuccessful/non-ALL replies, invalid/duplicate stations, and counts outside the current 2,500–10,000-row coverage guard. That guard is a dated defensive threshold, not a proof of completeness.
 
-Aggregate `parkingBikeTotCnt` + `parkingQRBikeCnt` + `parkingELECBikeCnt`, matching the official map. Invalid quantities are unknown. Session metadata is discarded. The feed supplies no observation timestamp; local receipt time expires after 120 seconds. One active request and a 60-second attempt cooldown per tab follow explicit actions only. Visitors do not share a global quota/cache. No polling collector or persistent inventory storage exists.
+Aggregate `parkingBikeTotCnt` + `parkingQRBikeCnt` + `parkingELECBikeCnt`, matching the official map. Invalid quantities are unknown. Session metadata is discarded. The feed supplies no observation timestamp; receipt time stays attached to the snapshot; the 120-second freshness threshold only limits automatic station suggestions. The UI does not expire valid counts or immediate-availability snapshots. One active request and a 60-second attempt cooldown per tab follow explicit actions only. Visitors do not share a global quota/cache. No polling collector or persistent inventory storage exists.
 
 ## Historical sufficient statistics
 
@@ -59,7 +59,7 @@ The browser SDK is pinned to valhalla-browser 0.2.1 / Valhalla 3.8.3 revision `a
 
 Only `.gph.gz` tiles and `.wasm.gz` engine data are published. Full-tile requests decode explicitly for Pages, validating bounded size, SHA-256 and native GraphId. Range-transport checks remain unchanged; this deployment uses individual tiles. Graph manifest/config retain upstream archive descriptors for provenance; `graph.tar` is not published or used. Do not use archive transport against this deployment.
 
-One initialization promise prevents duplicate workers. Tile memory budget: 96 MiB; WASM initial 64 MiB, maximum 512 MiB; 2,048 direction/mode/coordinate/station-role-keyed estimates in LRU order. HTTP assets cache across visits under host policy; decoded/native caches are session-local. Eleven serial routes (five pickup walks, five rides, one return-to-destination walk) avoid loading multiple workers. Diagnostic route samples are disabled in normal use, bounded to ten when explicitly enabled.
+One initialization promise prevents duplicate workers. Tile memory budget: 96 MiB; WASM initial 64 MiB, maximum 512 MiB; 2,048 direction/mode/coordinate/station-role-keyed estimates in LRU order. HTTP assets cache across visits under host policy; decoded/native caches are session-local. Eleven serial routes (five pickup walks, five rides, one destination-station-to-point walk) avoid loading multiple workers. Diagnostic route samples are disabled in normal use, bounded to ten when explicitly enabled.
 
 ## Publication
 

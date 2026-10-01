@@ -8,7 +8,7 @@ Public station catalogue: 2,735 saved IDs/numbers/names/coordinates in `data/inp
 
 The official [Seoul Bike website](https://www.bikeseoul.com/) map posts `stationGrpSeq=ALL` to [its HTTPS realtime feed](https://www.bikeseoul.com/app/station/getStationRealtimeStatus.do). Browser requests use no key, cookie or credentials. On 2026-10-01 the response allowed cross-origin access and contained 2,748 stations. Aggregate bikes sum legacy, QR and smaller 새싹 categories (`parkingBikeTotCnt`, `parkingQRBikeCnt`, `parkingELECBikeCnt`), as the official map does. Category availability is not a bicycle-type filter.
 
-The website feed is not a published versioned API contract. There is no verified account/global request quota here; a 60-second per-tab attempt interval is an implementation throttle. Receipt timestamps are local, not provider observations. All-station coverage checks do not establish source freshness or completeness independently. Failed/malformed/missing/expired quantities are unknown, never zero.
+The website feed is not a published versioned API contract. There is no verified account/global request quota here; a 60-second per-tab attempt interval is an implementation throttle. Receipt timestamps are local, not provider observations. All-station coverage checks do not establish source freshness or completeness independently. Malformed/missing quantities are unknown, never zero. Failed refreshes retain the prior received quantities and their receipt time; displayed snapshots no longer expire automatically (user choice, 2026-10-01).
 
 ## Hourly availability archive
 

@@ -143,6 +143,7 @@ function harness() {
       timers.delete(id);
     },
     setInterval() {},
+    getComputedStyle: () => ({getPropertyValue: name => ({"--bike-good":"#24553f","--bike-good-soft":"#c4e3d4"})[name] || ""}),
     AbortController,
     fetch: async () => {
       throw new Error("offline");
@@ -197,31 +198,25 @@ function harness() {
   };
 }
 
-test("counts, badges and open popup expire despite failed refresh", async () => {
+test("counts, availability and open popup keep the last snapshot despite elapsed time and failed refresh", async () => {
   const h = harness();
-  h.run("renderResults();renderLive(state.plan.live);scheduleExpiry()");
-  assert.ok(
-    [...h.timers.values()].some((t) => t.delay === 120001),
-    "expiration runs separately from network refresh",
-  );
+  h.run("renderResults();renderLive(state.plan.live);updateLiveDisplay()");
+  assert.equal(h.e("popup-count").textContent,"4 bikes");
+  assert.ok(![...h.timers.values()].some(t => t.delay === 120001));
   await h.run("refreshLive()");
   let failRequest;
-  h.context.fetch = () =>
-    new Promise((_, reject) => {
-      failRequest = reject;
-    });
+  h.context.fetch = () => new Promise((_, reject) => {failRequest = reject;});
   const pending = h.run("refreshLive()");
-  const expiry = [...h.timers.values()].find((t) => t.delay === 120001);
-  h.advance(120001);
-  expiry.fn();
-  assert.doesNotMatch(h.e("station-rows").innerHTML, /Stale report/);
-  assert.doesNotMatch(h.e("station-rows").innerHTML, /small-tag">Bikes now/);
-  assert.equal(
-    h.e("popup-count").textContent,
-    "Live count unavailable",
-  );
+  h.advance(86400000);
+  h.run("updateLiveDisplay()");
+  assert.match(h.e("station-rows").innerHTML,/class="stat bikes ">4</);
+  assert.match(h.e("station-rows").innerHTML,/Available now/);
+  assert.doesNotMatch(h.e("station-rows").innerHTML,/Nearest|Bikes now|small-tag/);
+  assert.equal(h.e("popup-count").textContent,"4 bikes");
   failRequest(new Error("offline"));
   await pending;
+  assert.match(h.e("station-rows").innerHTML,/class="stat bikes ">4</);
+  assert.equal(h.e("popup-count").textContent,"4 bikes");
 });
 
 test("marker selection changes styling without panning or replacing popup layers", () => {
@@ -628,7 +623,7 @@ test("manual bike refresh updates counts without rerunning history; completion p
   assert.deepEqual(requests, ["/api/live", "/api/live?refresh=0"]);
 });
 
-test("fresh counts use red for zero, yellow for one or two, with no row timestamps", () => {
+test("known snapshot counts keep their colors and never turn missing data into zero", () => {
   const h = harness();
   for (const [bikes, expected] of [
     [0, "empty"],
@@ -646,11 +641,16 @@ test("fresh counts use red for zero, yellow for one or two, with no row timestam
   }
   h.advance(121000);
   h.run("renderRows()");
-  assert.doesNotMatch(h.e("station-rows").innerHTML, /class="stat bikes/);
-  assert.doesNotMatch(h.e("station-rows").innerHTML, /Stale report/);
+  assert.match(h.e("station-rows").innerHTML, /class="stat bikes ">20</);
+  for (const bikes of [null, undefined, -1, 1.5, NaN]) {
+    h.station.bikes = bikes;
+    h.run("renderRows()");
+    assert.doesNotMatch(h.e("station-rows").innerHTML, /class="stat bikes/);
+    assert.match(h.e("station-rows").innerHTML, /Live count unavailable">—/);
+  }
 });
 
-test("immediate availability overrides historical risk, while future and stale reports stay distinct", () => {
+test("immediate availability follows the retained snapshot while future risk and unknown counts stay distinct", () => {
   const h = harness();
   h.station.availability = { observations: 60, zero: 0 };
   for (const [bikes, label] of [
@@ -669,8 +669,10 @@ test("immediate availability overrides historical risk, while future and stale r
   h.advance(121000);
   assert.equal(
     h.run("stationAvailability(fixture.station,state.plan).label"),
-    "Unknown",
+    "Empty now",
   );
+  h.station.bikes = null;
+  assert.equal(h.run("stationAvailability(fixture.station,state.plan).label"), "Unknown");
   h.run("state.plan.immediate=false");
   assert.equal(
     h.run("stationAvailability(fixture.station,state.plan).label"),

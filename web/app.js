@@ -31,7 +31,6 @@ let map,
   candidateMarkers,
   endpointMarkers,
   pollTimer,
-  expiryTimer,
   bootstrapRequest;
 const departureMarkers = new Map();
 const stationMarkers = new Map();
@@ -71,6 +70,10 @@ function isFresh(station) {
     station.fetched_at &&
     Date.now() - Date.parse(station.fetched_at) <= 120000
   );
+}
+function hasBikeCount(station) {
+  return Number.isInteger(station?.bikes) && station.bikes >= 0 &&
+    Number.isFinite(Date.parse(station.fetched_at));
 }
 async function api(path) {
   const controller = new AbortController();
@@ -297,8 +300,8 @@ function initializeMap() {
 }
 function stationPopup(station) {
   const box = document.createElement("div");
-  const fresh = isFresh(station);
-  box.innerHTML = `<div class="popup-title">${esc(station.number)} · ${esc(station.name)}</div><div data-live-station="${station.id}">${fresh ? `${station.bikes} bikes now` : "Live count unavailable"}</div><div class="popup-buttons"><button type="button" data-role="departure">Use as departure</button><button type="button" data-role="return">Use as return</button></div>`;
+  const known = hasBikeCount(station);
+  box.innerHTML = `<div class="popup-title">${esc(station.number)} · ${esc(station.name)}</div><div data-live-station="${station.id}">${known ? `${station.bikes} bikes` : "Live count unavailable"}</div><div class="popup-buttons"><button type="button" data-role="departure">Use as departure</button><button type="button" data-role="return">Use as destination</button></div>`;
   box.querySelector("[data-role=departure]").onclick = () => {
     setPoint("origin", station, station.name);
     state.departureId = station.id;
@@ -312,11 +315,19 @@ function stationPopup(station) {
   };
   return box;
 }
+function stationMarkerStyle(radius = 5.5, weight = 1.5) {
+  const colors = getComputedStyle($("map"));
+  return {radius, weight,
+    color: colors.getPropertyValue("--bike-good").trim(),
+    fillColor: colors.getPropertyValue("--bike-good-soft").trim(),
+    fillOpacity: 1};
+}
 function renderBaseStations() {
   if (!map) return;
   const highlighted = new Set((state.plan?.departures || []).map((s) => s.id));
   const bounds = map.getBounds().pad(0.15);
   const visible = new Set();
+  const markerStyle = stationMarkerStyle();
   for (const station of state.stations) {
     if (
       !bounds.contains([station.lat, station.lng]) ||
@@ -332,13 +343,7 @@ function renderBaseStations() {
       }
       continue;
     }
-    const marker = L.circleMarker([station.lat, station.lng], {
-      radius: 4,
-      weight: 1,
-      color: "#77888a",
-      fillColor: "#a1afb0",
-      fillOpacity: 0.8,
-    })
+    const marker = L.circleMarker([station.lat, station.lng], markerStyle)
       .bindPopup(() =>
         stationPopup(
           state.stations.find((s) => s.id === station.id) || station,
@@ -382,13 +387,7 @@ function renderMapStations() {
   });
   const ret = state.plan?.return_station;
   if (ret)
-    L.circleMarker([ret.lat, ret.lng], {
-      radius: 9,
-      weight: 3,
-      color: "#577778",
-      fillColor: "#b6c7c7",
-      fillOpacity: 1,
-    })
+    L.circleMarker([ret.lat, ret.lng], stationMarkerStyle(9, 3))
       .bindPopup(() => stationPopup(ret))
       .addTo(candidateMarkers);
 }
@@ -490,7 +489,6 @@ async function compare(event) {
     renderResults();
     renderMapStations();
     renderLive(result.live);
-    scheduleExpiry();
   } catch (error) {
     if (request !== state.request) return;
     state.plan = null;
@@ -553,7 +551,7 @@ async function refreshLive(manual = true) {
     state.live = { ...state.live, refreshing: false };
     state.awaitingLive = false;
   }
-  updateFreshness();
+  updateLiveDisplay();
 }
 function selectDeparture(id, pan = true) {
   state.selectedId = id;
@@ -594,7 +592,7 @@ function historicalRisk(availability) {
 }
 function stationAvailability(station, plan) {
   if (!plan.immediate) return historicalRisk(station.availability);
-  if (!isFresh(station)) return { level: "unknown", label: "Unknown" };
+  if (!hasBikeCount(station)) return { level: "unknown", label: "Unknown" };
   if (station.bikes === 0) return { level: "high", label: "Empty now" };
   if (station.bikes <= 2) return { level: "moderate", label: "Few bikes" };
   return { level: "low", label: "Available now" };
@@ -613,7 +611,7 @@ function renderRows() {
   $("station-rows").innerHTML = data.departures
     .map((station, index) => {
       const risk = stationAvailability(station, data),
-        fresh = isFresh(station);
+        known = hasBikeCount(station);
       const route = station.cycling_route;
       const rideTime = Number.isFinite(route?.minutes) && route.minutes > 0
         ? formatDuration(route.minutes)
@@ -624,10 +622,10 @@ function renderRows() {
         : "—";
       const selected = station.id === state.selectedId;
       return `<tr class="${selected ? "chosen" : ""}" data-station="${station.id}">
-      <td><div class="station-cell"><span class="station-rank">${index + 1}</span><div><button class="station-name" type="button" data-select="${station.id}" aria-pressed="${selected}">${esc(station.name)}</button><span class="station-sub">Station #${esc(station.number)} · ${metres(station.distance_m)} away${index === 0 ? '<span class="small-tag">Nearest</span>' : ""}${fresh && station.bikes > 0 && data.suggested_id === station.id ? '<span class="small-tag">Bikes now</span>' : ""}</span></div></div></td>
-      <td data-heading="Bikes">${fresh ? `<span class="stat bikes ${station.bikes === 0 ? "empty" : station.bikes <= 2 ? "few" : ""}">${station.bikes}</span>` : `<span class="stat unknown" title="Live count unavailable">—</span>`}</td>
+      <td><div class="station-cell"><span class="station-rank">${index + 1}</span><div><button class="station-name" type="button" data-select="${station.id}" aria-pressed="${selected}">${esc(station.name)}</button><span class="station-sub">Station #${esc(station.number)} · ${metres(station.distance_m)} away</span></div></div></td>
+      <td data-heading="Bikes">${known ? `<span class="stat bikes ${station.bikes === 0 ? "empty" : station.bikes <= 2 ? "few" : ""}">${station.bikes}</span>` : `<span class="stat unknown" title="Live count unavailable">—</span>`}</td>
       <td data-heading="Walk time" class="ride-duration" title="${esc(walk?.error || "Estimated walk from your starting point at 5.1 km/h")}">${walkTime}</td>
-      <td data-heading="Ride time" class="ride-duration" title="${esc(route?.error || "Estimated cycling time to the return station")}">${rideTime}</td>
+      <td data-heading="Ride time" class="ride-duration" title="${esc(route?.error || "Estimated cycling time to the destination station")}">${rideTime}</td>
       <td data-heading="${data.immediate ? "Availability now" : "Historical no-bike risk"}"><span class="risk-badge risk-${risk.level}">${risk.label}</span></td>
       </tr>`;
     })
@@ -658,35 +656,21 @@ function renderResults() {
   $("return-number").textContent = `Station #${station.number}`;
   $("return-walk-time").textContent = Number.isFinite(walk?.minutes) && walk.minutes >= 0
     ? formatDuration(walk.minutes) : "—";
-  $("return-walk-time").title = walk?.error || "Estimated walk from the return station to your destination at 5.1 km/h";
+  $("return-walk-time").title = walk?.error || "Estimated walk from the destination station to your selected point at 5.1 km/h";
   $("return-destination").textContent = data.destination_label || "Chosen point";
   $("return-section").hidden = false;
 }
-// Expire displayed reports even when the next network request fails or hangs.
-function scheduleExpiry() {
-  clearTimeout(expiryTimer);
-  const reports = [...state.stations, ...(state.plan?.departures || [])];
-  const expiries = reports
-    .filter(isFresh)
-    .map((s) => Date.parse(s.fetched_at) + 120001);
-  if (expiries.length)
-    expiryTimer = setTimeout(
-      updateFreshness,
-      Math.max(1, Math.min(...expiries) - Date.now()),
-    );
-}
-function updateFreshness() {
+function updateLiveDisplay() {
   renderRows();
   renderLive(state.live);
   document.querySelectorAll("[data-live-station]").forEach((node) => {
     const id = Number(node.dataset.liveStation);
     const station = state.stations.find((s) => s.id === id);
     node.textContent =
-      station && isFresh(station)
-        ? `${station.bikes} bikes now`
+      hasBikeCount(station)
+        ? `${station.bikes} bikes`
         : "Live count unavailable";
   });
-  scheduleExpiry();
 }
 async function loadBootstrap() {
   if (bootstrapRequest) return bootstrapRequest;
@@ -698,7 +682,6 @@ async function loadBootstrap() {
       renderPopularRoutes(data.popular_routes || []);
       showError("");
       renderLive(data.live);
-      scheduleExpiry();
       invalidateComparison();
     } catch (error) {
       showError(error.message);
@@ -733,7 +716,7 @@ async function start() {
   $("refresh-live").onclick = () => refreshLive();
   await loadBootstrap();
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) updateFreshness();
+    if (!document.hidden) updateLiveDisplay();
   });
 }
 start();
