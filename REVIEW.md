@@ -2,6 +2,16 @@
 
 Dated evidence for the static-only optimization, 2026-10-01. This document reports checks, not a guarantee of every OSM route, source freshness or future availability.
 
+## Overseas live-count investigation — 2026-10-01
+
+The user reported missing live counts in Germany, the UK and Pakistan. Source inspection confirmed that `web/static/live.mjs` POSTs directly from the visitor's browser to the official website, with omitted credentials, CORS mode and an eight-second timeout. There is no shared relay. Network/HTTP/JSON failures become a generic unavailable error; service failures preserve existing counts and receipt times. These errors alone do not identify geography as the cause.
+
+A local POST with `stationGrpSeq=ALL` and `Origin: https://bttlbmb.github.io` returned HTTP 200, `Access-Control-Allow-Origin: *`, a successful ALL response and 2,748 stations. The response Date was 2026-10-01 11:19:48 UTC (20:19:48 KST); a separate IP-country lookup returned KR. This was a command-line check, not an overseas browser or physical-phone check. The web research service received a firewall-block page for the official homepage; that different request path does not reproduce the browser inventory POST.
+
+Seoul Bike's [official App Store developer responses](https://apps.apple.com/ca/app/서울자전거-따릉이/id1037272004), inspected on 2026-10-01, acknowledge restrictions on overseas IPs/networks; the June 17 response describes some overseas-network restrictions. Combined with the user reports, this makes provider access restrictions a likely explanation, without proving a blanket ban or specific country rules for the website feed. The [documented Seoul Open Data live-bike API](https://data.seoul.go.kr/dataList/datasetView.do?currentPageNo=1&infId=OA-15493&serviceKind=1&srvType=A) is a possible alternative; it requires an authentication key and limits each request to 1,000 rows. Its overseas reachability and category equivalence have not been verified here. A shared feed would require a deliberate architecture change and verified upstream access.
+
+Updated source-limit documentation and the unresolved live-access issue. Runtime code, generated assets and publication were not changed. Documentation links and evidence were checked; no runtime test run was needed for these documentation-only changes.
+
 ## Exactness and storage
 
 All 134,832 historical cells independently decoded from the new binary matched the prior JSON summary exactly, with identical station order and coverage. Dedicated availability storage retains all 6,152,132 station/date/hour observations in 151,662,592 bytes; the former mixed rental/availability database was about 1.17 GB and is no longer required.
@@ -80,6 +90,14 @@ Adjusted header left padding so the drawn logo aligns with **From** in the plann
 Map station popups now show **#number · station name** and the departure/destination selection buttons, with no quantities or live-count status. Removed the unused popup-count updater; comparison inventory is retained.
 
 All 6 Python and 38 Node checks passed. Local headless Chromium at 1440×900, 390×844 and 320×568 opened station #3426 through the map canvas and verified the prefixed number and absence of inventory for both unknown and synthetic known counts. Both selection buttons remained available; keyboard activation of Use as departure set only the origin and did not compare. Screenshots were visually inspected without horizontal overflow. Phone-sized checks are desktop emulation; this build has not been published.
+
+## Quiet slash live-error display — 2026-10-01
+
+Implemented the user's selected Quiet slash proposal: missing bike quantities appear as `/` in a neutral gray box, with an accessible unavailable label. Completed live failures display a 12 px red notice below the departure table and before Your destination. Its first word Live aligns with the Station header text. A refresh failure with retained quantities explains that the last received counts remain; successful refresh hides the notice. Startup, active refresh and a changed journey do not show the failure notice. The footer retains successful refresh times and avoids duplicating the unavailable message.
+
+All **6 Python checks** passed using the bundled Python 3.12 runtime; the default Python was too old for an existing `hashlib.file_digest` check. All **39 Node checks** passed, including refresh completion/recovery, valid zero versus missing counts, preserved quantities/timestamps/routes/history, and clearing the notice after a journey change.
+
+Local headless Chromium at **1440×900**, **390×844** and **320×568** used the retained station/history datasets with synthetic route estimates and controlled feed responses. HTTP 403 produced five gray slash boxes and the notice. A successful response restored counts and removed the notice; subsequent failures preserved quantities, original receipt times, routes and history. The desktop run also exercised the real eight-second browser fetch timeout using a deliberately unanswered intercepted request. Station and Live text both started at **x=362 px** on desktop. Station selection retained keyboard focus, Back to map restored the journey and compare-button focus, and phone results scrolled internally with no horizontal overflow. Screenshots were visually inspected. This is browser emulation and controlled failure evidence, not physical-phone or overseas-network verification. The local build has not been published.
 
 ## Popular-route removal — 2026-10-01
 

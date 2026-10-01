@@ -30,7 +30,7 @@ Manual comparison replaces the map with results. Back to map restores the journe
 | Column | Meaning |
 | --- | --- |
 | Station | Departure station's official name, “Station #…” number, straight-line distance, neutral selection/rank box; no Nearest/current-bike indicators |
-| Bikes | Last fetched inventory: mint 3+, amber 1–2, coral 0. Counts remain visible until an explicit action updates them; missing reports are a neutral dash. |
+| Bikes | Last fetched inventory: mint 3+, amber 1–2, coral 0. Counts remain visible until an explicit action updates them; missing reports are a gray box containing `/`, with an accessible unavailable label. |
 | Walk time | Valhalla pedestrian estimate from A to that departure at 5.1 km/h. Exact same coordinates → 0 min; positive results round to at least 1 min. |
 | Ride time | Valhalla city-bicycle estimate from that departure to the common destination station, configured at 15 km/h. Whole minutes, minimum 1 for positive routes. |
 | Availability now OR Historical no-bike risk | Current availability for immediate pickup; separate archived signal for later pickup, defined below. |
@@ -44,6 +44,8 @@ Walking/cycling estimates retain whole-minute rounding. Rounded values above 60 
 ## Live inventory and immediate pickup
 
 The provider supplies no observation timestamp. At the user's request on 2026-10-01, the last valid count and immediate-availability snapshot remain stable through elapsed time, returning to the tab, and failed/hanging refreshes. There is no count-expiry timer. The existing footer shows the last completed refresh time. Missing or invalid quantities without a prior valid snapshot are unavailable, never zero.
+
+After a live request fails or times out, show a small red notice directly below the five departure rows, before Your destination. With no valid counts among those departures: **Live bike counts unavailable. Some networks may be restricted.** With retained counts: **Live bike refresh failed. Showing last received counts.** The notice does not assert a geographic cause. It is hidden before an attempt, during an active refresh and after successful refresh; draft edits or a new comparison clear the old notice. The word Live aligns with the Station column header text on desktop. Routes, history and previous receipt times remain intact. Selected Quiet slash design, 2026-10-01.
 
 For pickup within 15 minutes of comparison: snapshot 0 → **Empty now**; 1–2 → **Few bikes**; 3+ → **Available now**; missing → **Unknown**. Historical Low never overrides a reported zero. The planner selects the closest compared fresh nonzero station (excluding the destination station); no unused alternative recommendation is calculated or displayed. Counts are snapshots, not pickup guarantees.
 

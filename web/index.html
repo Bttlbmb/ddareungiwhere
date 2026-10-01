@@ -154,6 +154,7 @@
                   </tbody>
                 </table>
               </div>
+              <p id="live-error" role="status" aria-live="polite" hidden></p>
               <section id="return-section" hidden aria-labelledby="return-heading">
                 <h2 id="return-heading">Your destination.</h2>
                 <div class="return-row">
@@ -166,7 +167,7 @@
               </section>
               <div class="results-footer">
                 <span class="muted"
-                  ><span id="fetch-time"></span> · time estimates via Valhalla / OpenStreetMap
+                  ><span id="fetch-time"></span><span class="fetch-separator"> · </span>time estimates via Valhalla / OpenStreetMap
                   <span class="footer-refresh">· <button id="refresh-live" class="text-button" type="button">↻ Refresh bikes</button></span></span
                 >
               </div>

@@ -211,6 +211,8 @@ test("counts and availability keep the last snapshot despite elapsed time and fa
   failRequest(new Error("offline"));
   await pending;
   assert.match(h.e("station-rows").innerHTML,/class="stat bikes ">4</);
+  assert.equal(h.e("live-error").hidden, false);
+  assert.equal(h.e("live-error").textContent, "Live bike refresh failed. Showing last received counts.");
 });
 
 test("marker selection changes styling without panning or replacing popup layers", () => {
@@ -640,8 +642,44 @@ test("known snapshot counts keep their colors and never turn missing data into z
     h.station.bikes = bikes;
     h.run("renderRows()");
     assert.doesNotMatch(h.e("station-rows").innerHTML, /class="stat bikes/);
-    assert.match(h.e("station-rows").innerHTML, /Live count unavailable">—/);
+    assert.match(h.e("station-rows").innerHTML, /aria-label="Live bike count unavailable">\//);
   }
+});
+
+test("live failure notice follows refresh completion, clears on success and preserves routes and history", async () => {
+  const h = harness();
+  h.station.bikes = null;
+  h.station.fetched_at = null;
+  h.station.availability = {observations:60,zero:0};
+  h.run('fixture.station.walking_route={minutes:3};fixture.station.cycling_route={minutes:8};state.plan.immediate=false;state.plan.live={refreshing:false,error:null,fetched_at:null};renderResults();renderLive(state.plan.live)');
+  assert.equal(h.e('live-error').hidden,true);
+  let live = {refreshing:true,error:null,fetched_at:null};
+  let incoming = {...h.station};
+  h.context.fetch = async () => ({ok:true,json:async()=>({stations:[incoming],live})});
+  await h.run('refreshLive()');
+  assert.equal(h.e('live-error').hidden,true);
+  live = {refreshing:false,error:'Provider request timed out.',fetched_at:null};
+  await h.run('refreshLive(false)');
+  assert.equal(h.e('live-error').hidden,false);
+  assert.equal(h.e('live-error').textContent,'Live bike counts unavailable. Some networks may be restricted.');
+  assert.equal(h.e('fetch-time').textContent,'');
+  assert.match(h.e('station-rows').innerHTML,/aria-label="Live bike count unavailable">\//);
+  assert.match(h.e('station-rows').innerHTML,/>3 min<.*>8 min<.*>Low</s);
+  incoming = {...h.station,bikes:0,fetched_at:'2026-09-30T00:01:00Z'};
+  live = {refreshing:false,error:null,fetched_at:incoming.fetched_at};
+  await h.run('refreshLive()');
+  assert.equal(h.e('live-error').hidden,true);
+  assert.equal(h.e('live-error').textContent,'');
+  assert.match(h.e('station-rows').innerHTML,/stat bikes empty">0</);
+  const stamp = h.run('state.plan.departures[0].fetched_at');
+  live = {...live,error:'Provider blocked request.'};
+  await h.run('refreshLive()');
+  assert.equal(h.e('live-error').textContent,'Live bike refresh failed. Showing last received counts.');
+  assert.equal(h.run('state.plan.departures[0].fetched_at'),stamp);
+  assert.match(h.e('station-rows').innerHTML,/stat bikes empty">0</);
+  assert.match(h.e('station-rows').innerHTML,/>3 min<.*>8 min<.*>Low</s);
+  h.run('invalidateComparison()');
+  assert.equal(h.e('live-error').hidden,true);
 });
 
 test("immediate availability follows the retained snapshot while future risk and unknown counts stay distinct", () => {

@@ -43,6 +43,8 @@ POST form `stationGrpSeq=ALL` to the fixed official HTTPS endpoint documented in
 
 Aggregate `parkingBikeTotCnt` + `parkingQRBikeCnt` + `parkingELECBikeCnt`, matching the official map. Invalid quantities are unknown. Session metadata is discarded. The feed supplies no observation timestamp; receipt time stays attached to the snapshot; the 120-second freshness threshold only limits automatic station suggestions. The UI does not expire valid counts or immediate-availability snapshots. One active request and a 60-second attempt cooldown per tab follow explicit actions only. Visitors do not share a global quota/cache. No polling collector or persistent inventory storage exists.
 
+The results UI shows missing quantities as a gray `/` box and renders a compact below-table notice from completed `live.error` state. The copy distinguishes no valid departure counts from retained counts after a failed refresh. It hides during refresh, success, draft edits and a new comparison. No browser IP lookup or inferred geographic error classification is performed. Live command exceptions use the same notice when a comparison exists; other command errors retain the ordinary error surface.
+
 ## Historical sufficient statistics
 
 Offline `availability.sqlite3` contains availability(number, day, hour, weekday, bikes) keyed by station/date/hour plus source metadata. Conflicting duplicate quantities abort import; exact duplicates deduplicate; missing/invalid records are excluded. The import builds a replacement before publishing it. No trip table is retained.

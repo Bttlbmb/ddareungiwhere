@@ -25,6 +25,7 @@
   --bike-zero: #8b302a;
   --bike-zero-soft: #efbbb5;
   --radius: 6px;
+  --station-heading-inset: 20px;
 }
 
 * {
@@ -361,7 +362,7 @@ table {
 }
 
 th:first-child {
-  padding-left: 20px;
+  padding-left: var(--station-heading-inset);
   width: 36%;
 }
 
@@ -448,19 +449,30 @@ tbody tr.chosen td:first-child {
   white-space: nowrap;
 }
 
-.stat.bikes {
+.stat.bikes, .stat.unknown {
   display: inline-block;
-  background: var(--bike-good-soft);
-  color: var(--bike-good);
   padding: 6px 9px;
   border-radius: 6px;
   min-width: 40px;
   text-align: center;
 }
 
+.stat.bikes {
+  background: var(--bike-good-soft);
+  color: var(--bike-good);
+}
+
 .stat.unknown {
-  font-size: 14px;
+  background: var(--soft);
   color: var(--muted);
+}
+
+#live-error {
+  margin: 12px 0 0;
+  padding-left: var(--station-heading-inset);
+  color: var(--danger);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .loading {
@@ -501,6 +513,10 @@ tbody tr.chosen td:first-child {
   }
 }
 @media (max-width: 700px) {
+
+  :root {
+    --station-heading-inset: 12px;
+  }
 
   .brand {
     font-size: 22px;
@@ -576,7 +592,7 @@ tbody tr.chosen td:first-child {
     left: 0;
     z-index: 1;
     max-width: 205px;
-    padding-left: 12px;
+    padding-left: var(--station-heading-inset);
     width: 36%;
   }
 
@@ -966,6 +982,10 @@ td {
 
 .footer-refresh {
   white-space: nowrap;
+}
+
+#fetch-time:empty + .fetch-separator {
+  display: none;
 }
 
 .results-footer #refresh-live {

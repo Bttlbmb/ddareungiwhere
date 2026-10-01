@@ -412,6 +412,7 @@ function invalidateComparison() {
   state.request++;
   state.plan = null;
   $("return-section").hidden = true;
+  $("live-error").hidden = true;
   state.awaitingLive = false;
   clearTimeout(pollTimer);
   const incomplete = !state.origin || !state.destination;
@@ -438,6 +439,7 @@ async function compare(event) {
   const request = ++state.request;
   $("results").setAttribute("aria-busy", "true");
   $("return-section").hidden = true;
+  $("live-error").hidden = true;
   $("compare-button").disabled = true;
   showError("");
   const query = new URLSearchParams({
@@ -481,10 +483,21 @@ function renderLive(live) {
   $("refresh-live").textContent = live.refreshing
     ? "↻ Refreshing…"
     : "↻ Refresh bikes";
+  renderLiveError(live);
   if (live.refreshing && state.awaitingLive) {
     clearTimeout(pollTimer);
     pollTimer = setTimeout(() => refreshLive(false), 2000);
   }
+}
+function renderLiveError(live) {
+  const message = $("live-error");
+  const failed = state.plan && live.error && !live.refreshing;
+  message.hidden = !failed;
+  message.textContent = failed
+    ? state.plan.departures.some(hasBikeCount)
+      ? "Live bike refresh failed. Showing last received counts."
+      : "Live bike counts unavailable. Some networks may be restricted."
+    : "";
 }
 async function refreshLive(manual = true) {
   if (manual) state.awaitingLive = true;
@@ -518,8 +531,11 @@ async function refreshLive(manual = true) {
     if (!response.live.refreshing) state.awaitingLive = false;
     renderMapStations();
   } catch (error) {
-    showError(error.message);
-    state.live = { ...state.live, refreshing: false };
+    state.live = { ...state.live, refreshing: false, error: error.message };
+    if (state.plan) {
+      state.plan.live = state.live;
+      renderResults();
+    } else showError(error.message);
     state.awaitingLive = false;
   }
   updateLiveDisplay();
@@ -594,7 +610,7 @@ function renderRows() {
       const selected = station.id === state.selectedId;
       return `<tr class="${selected ? "chosen" : ""}" data-station="${station.id}">
       <td><div class="station-cell"><span class="station-rank">${index + 1}</span><div><button class="station-name" type="button" data-select="${station.id}" aria-pressed="${selected}">${esc(station.name)}</button><span class="station-sub">Station #${esc(station.number)} · ${metres(station.distance_m)} away</span></div></div></td>
-      <td data-heading="Bikes">${known ? `<span class="stat bikes ${station.bikes === 0 ? "empty" : station.bikes <= 2 ? "few" : ""}">${station.bikes}</span>` : `<span class="stat unknown" title="Live count unavailable">—</span>`}</td>
+      <td data-heading="Bikes">${known ? `<span class="stat bikes ${station.bikes === 0 ? "empty" : station.bikes <= 2 ? "few" : ""}">${station.bikes}</span>` : `<span class="stat unknown" title="Live count unavailable" role="img" aria-label="Live bike count unavailable">/</span>`}</td>
       <td data-heading="Walk time" class="ride-duration" title="${esc(walk?.error || "Estimated walk from your starting point at 5.1 km/h")}">${walkTime}</td>
       <td data-heading="Ride time" class="ride-duration" title="${esc(route?.error || "Estimated cycling time to the destination station")}">${rideTime}</td>
       <td data-heading="${data.immediate ? "Availability now" : "Historical no-bike risk"}"><span class="risk-badge risk-${risk.level}">${risk.label}</span></td>
@@ -620,8 +636,9 @@ function renderResults() {
     : "Historical no-bike risk";
   $("fetch-time").textContent = data.live.fetched_at
     ? `Live refresh completed ${clockTime(data.live.fetched_at)} KST`
-    : "Live counts unavailable · History remains usable";
+    : data.live.refreshing ? "Fetching bike counts" : "";
   renderRows();
+  renderLiveError(data.live);
   const station = data.return_station, walk = data.destination_walking_route;
   $("return-name").textContent = station.name;
   $("return-number").textContent = `Station #${station.number}`;
