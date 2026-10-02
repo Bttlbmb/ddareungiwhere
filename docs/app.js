@@ -271,7 +271,7 @@ function initializeMap() {
       '<p class="loading">The map library could not load. Try refreshing the page.</p>';
     return;
   }
-  map = L.map("map", { preferCanvas: true, scrollWheelZoom: false }).setView(
+  map = L.map("map", { preferCanvas: true, scrollWheelZoom: true }).setView(
     [37.56, 126.98],
     14,
   );

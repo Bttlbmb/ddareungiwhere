@@ -23,6 +23,8 @@ The browser requests five nearest departures by straight-line origin proximity. 
 
 Station popups show **#number · station name** and the two point-selection actions. They never display bike quantities or live-count status messages; inventory remains in comparison results.
 
+The mouse wheel zooms the map around the pointer. Zooming and panning do not change journey points or request a comparison.
+
 Manual comparison replaces the map with results. Back to map restores the journey; late replies must not switch views. Desktop keeps the planner visible, phones hide it in results. Outer page fits the viewport, with internal scrolling if needed. The dashed A–B line updates with both pins and is a **straight guide, not a cycling route**.
 
 ## Results
