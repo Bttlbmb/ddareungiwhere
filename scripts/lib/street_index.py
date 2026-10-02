@@ -31,19 +31,23 @@ class StreetNames:
     def __init__(self, path=STREETS, streets=None):
         self.cells = defaultdict(lambda: array('I'))
         self.names = []
+        self.names_ko = []
         self.geometry = array('d')
         if streets is None:
             if not path.exists():
                 return  # The UI can still show a nearby station's actual name.
             with gzip.open(path, 'rt', encoding='utf-8') as stream:
                 streets = json.load(stream)['streets']
-        for name, points in streets:
+        for street in streets:
+            name, points = street[:2]
             name = sys.intern(name)
+            name_ko = sys.intern((street[2] if len(street) > 2 else None) or name)
             for a, b in zip(points, points[1:]):
                 # Packed coordinates and cell IDs avoid retaining the large JSON
                 # object graph after startup. Doubles preserve lookup precision.
                 segment = len(self.names)
                 self.names.append(name)
+                self.names_ko.append(name_ko)
                 self.geometry.extend((*a, *b))
                 for lat in range(math.floor(min(a[0], b[0]) / CELL), math.floor(max(a[0], b[0]) / CELL) + 1):
                     for lng in range(math.floor(min(a[1], b[1]) / CELL), math.floor(max(a[1], b[1]) / CELL) + 1):
@@ -55,6 +59,7 @@ class StreetNames:
         lat_radius = radius / METRES_PER_DEGREE
         lng_radius = lat_radius / math.cos(math.radians(lat))
         closest = None
+        closest_ko = None
         best = radius
         seen = set()
         longitude_scale = METRES_PER_DEGREE * math.cos(math.radians(lat))
@@ -73,5 +78,6 @@ class StreetNames:
                         (geometry[offset + 2] - lat) * METRES_PER_DEGREE)
                     if distance <= best:
                         closest, best = self.names[segment], distance
-        return {'label': closest, 'distance_m': round(best) if closest else None,
+                        closest_ko = self.names_ko[segment]
+        return {'label': closest, 'label_ko': closest_ko, 'distance_m': round(best) if closest else None,
                 'source': 'OpenStreetMap', 'kind': 'nearest_street' if closest else None}

@@ -27,9 +27,15 @@ def main():
     for element in payload['elements']:
         tags = element.get('tags', {})
         name = tags.get('name:en') or tags.get('name')
+        name_ko = tags.get('name:ko') or tags.get('name') or name
         geometry = element.get('geometry', [])
         if name and len(geometry) >= 2:
-            streets.append([name, [[p['lat'], p['lon']] for p in geometry]])
+            street = [name, [[p['lat'], p['lon']] for p in geometry]]
+            # Older two-field extracts remain valid; store another name only
+            # when Korean differs from the existing English-preferred label.
+            if name_ko != name:
+                street.append(name_ko)
+            streets.append(street)
     if not streets:
         raise SystemExit('No named street geometry found.')
     output = ROOT / 'data/processed/seoul_streets.json.gz'

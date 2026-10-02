@@ -22,7 +22,7 @@ These descriptive bands are not calibrated forecasts. Exact hourly sampling/aggr
 
 [OpenStreetMap attribution/license](https://www.openstreetmap.org/copyright), ODbL 1.0. Saved PBF fingerprint/queries/provider URLs are in `data/inputs/routing-coverage.json`; graph manifests record PBF SHA-256 and the pinned Valhalla revision. The coverage record retains the original native extraction version (3.9.0); the browser graph itself is built with 3.8.3. Bounds: south 37.395, west 126.735, north 37.745, east 127.245, covering the saved catalogue in the 2026-09-30 check. OSM accessibility/connectivity and endpoint matching can produce detours; estimates are not a safety/accessibility guarantee.
 
-Named street extract: Overpass response timestamp 2026-09-30T00:15:05Z; query in `scripts/seoul_streets.overpass`, fingerprints in the manifest. Prefer English names when available. Nearest-road labels are approximate, without house numbers, not verified postal addresses. Background map tiles come from the ordinary OSM interactive service, separately from routing geometry.
+Named street extract: Overpass response timestamp 2026-09-30T00:15:05Z; query in `scripts/seoul_streets.overpass`, fingerprints in the manifest. The English interface prefers `name:en`; Korean retains `name:ko` or the local `name` from the same ways, falling back to the existing name when absent. Both labels use identical geometry. Korean-name retention was added 2026-10-02 by re-importing this saved response; source timestamp/fingerprint did not change. Nearest-road labels are approximate, without house numbers, not verified postal addresses. Background map tiles come from the ordinary OSM interactive service, separately from routing geometry.
 
 ## Retired rental-derived shortcuts
 

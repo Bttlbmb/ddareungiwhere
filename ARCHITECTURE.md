@@ -37,6 +37,12 @@ Static module paths above are relative to `web/static/`. Existing `/api/bootstra
 
 The planner scans the catalogue once, retaining only five candidates and the nearest destination station. Stable ties retain catalogue order. Only selected rows are cloned. Explicit departure/destination-station overrides retain existing semantics; internal return keys remain compatible. Refresh uses ID maps for a linear merge, preserving the station array used by the planner. Failed refreshes preserve the last quantities and original receipt times; UI snapshots remain stable until an explicit update.
 
+## Localization
+
+`web/i18n.json` maps stable English messages to Korean, including placeholders and accessibility/error copy. The builder embeds the compact catalog in the shared `app.js`; switching needs no translation fetch or duplicated runtime. `scripts/lib/localization.py` renders initial Korean HTML after revisioning, rebasing only relative assets to the parent directory. Both entries resolve the same versioned styles/scripts/logo and data. Each has a self-canonical and reciprocal en/ko/x-default alternate links; the sitemap lists both entry URLs.
+
+The URL determines the initial language. The header's real links also work without JavaScript or in new tabs. Normal clicks use History API and rerender copy only, retaining draft/applied state and cached bilingual label descriptors. Popstate updates language; late replies render in the current language. There is no storage, automatic redirect, external translation service, route/count invalidation or map reconstruction on a switch.
+
 ## Live counts
 
 POST form `stationGrpSeq=ALL` to the fixed official HTTPS endpoint documented in DATA_SOURCES. CORS mode, omitted credentials, no redirects, eight-second upstream timeout. Reject unsuccessful/non-ALL replies, invalid/duplicate stations, and counts outside the current 2,500–10,000-row coverage guard. That guard is a dated defensive threshold, not a proof of completeness.
@@ -55,7 +61,7 @@ Current table: 2,809 historical station numbers, 134,832 cells. A station withou
 
 ## Streets and routing
 
-Named-road geometry is indexed in 0.005° cells, published in 0.05° gzip shards. A 32-shard cache bounds decoded lookup data. Search is within 250 m; labels beyond 35 m get Near. Geometry precision is retained. No external reverse geocoder is called.
+Named-road geometry is indexed in 0.005° cells, published in 0.05° gzip shards. A 32-shard cache bounds decoded lookup data. Search is within 250 m; labels beyond 35 m get Near. Geometry precision is retained. Optional Korean labels are carried alongside the original English fallback: processed ways `[English, geometry, Korean?]`, exported segments `[id, English, aLat, aLng, bLat, bLng, Korean?]`. Both Python/browser lookups retain `label` and add `label_ko`; old extracts/shards fall back to English. The UI selects the retained name without another lookup/request. No external reverse geocoder is called.
 
 The browser SDK is pinned to valhalla-browser 0.2.1 / Valhalla 3.8.3 revision `a60c7cbfc83e073f50887cd27e0109d02e6b64e5`. WASM is unmodified and delivered as explicit gzip, with decoded size and SHA-256 checked before compilation. Offline graph includes bicycle/pedestrian access, excludes driving-only ways, and retains hierarchy/shortcuts. Bicycle costing: hybrid, 15 km/h. Pedestrian: 5.1 km/h; user-point radius 30 m, station radius 50 m, search cutoff 100 m, station bridge matching excluded. Geometry endpoints add short walking access; gaps over 100 m are rejected. Shape scanning retains endpoints rather than the whole decoded polyline. A checked boolean station role passes through the SDK client/worker so the station correlation applies at the origin for the final forward walking leg; omitted roles retain the existing destination-station default. The planner retains the applied destination coordinates, and the UI keeps its applied label through inventory refreshes.
 

@@ -12,3 +12,5 @@ Current rationale, updated 2026-10-02.
 - **Small existing UI.** Route Ribbon / Slate & Teal, City basket logo (selected 2026-10-02, superseding Looking Wheels), five candidates, shared destination station, compact desktop/phone results. No framework, slogans, extra methodology UI, accounts or background collection added.
 
 Known correctness/performance limits belong in [plan.md](plan.md), source limits in [DATA_SOURCES.md](DATA_SOURCES.md), dated measurements in [REVIEW.md](REVIEW.md).
+
+- **English/Korean static entries, approved 2026-10-02.** Use `/` and `/ko/` with shared assets, self-canonicals and reciprocal alternates. A compact switch updates copy and URL in place, preserving the journey and count snapshots. Embed a small catalog; retain Korean road labels in existing lazy shards. Independent wording reviews require descriptive archive frequency and receipt-time copy, with missing counts distinct from zero. No redirects, language storage or translation requests.

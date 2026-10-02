@@ -63,6 +63,7 @@ function harness() {
   let now = Date.parse("2026-09-30T00:00:00Z"),
     nextTimer = 0;
   const document = {
+    documentElement: {lang: "en"},
     activeElement: null,
     hidden: false,
     addEventListener() {},
@@ -103,6 +104,9 @@ function harness() {
       this.attributes ||= {};
       this.attributes[name] = value;
     }
+    getAttribute(name) {
+      return this.attributes?.[name] ?? null;
+    }
   }
   document.getElementById = (id) => {
     if (!elements.has(id)) elements.set(id, new Element(id));
@@ -111,7 +115,8 @@ function harness() {
   document.querySelectorAll = (selector) =>
     selector === "[data-select]"
       ? document.getElementById("station-rows").children
-      : [];
+      : [...elements.values()].filter(element =>
+          selector.startsWith("[data-i18n") && element.getAttribute(selector.slice(1, -1)) !== null);
   document.querySelector = (selector) =>
     document
       .querySelectorAll("[data-select]")
@@ -126,9 +131,14 @@ function harness() {
   }
   const context = vm.createContext({
     document,
-    window: {},
+    window: {
+      location: new URL("https://example.test/ddareungiwhere/"),
+      history: {pushState(_state, _unused, url) {context.window.location = new URL(url);}},
+      addEventListener() {},
+    },
     Date: Clock,
     Intl,
+    URL,
     URLSearchParams,
     console,
     setTimeout(fn, delay) {
@@ -148,6 +158,7 @@ function harness() {
   });
   const source = fs
     .readFileSync(require("node:path").join(__dirname, "../web/app.js"), "utf8")
+    .replace('/*__KOREAN_TRANSLATIONS__*/ {}', fs.readFileSync(require("node:path").join(__dirname, "../web/i18n.json"), "utf8").trim())
     .replace(/start\(\);\s*$/, "");
   // UI fixtures supply command results through the browser coordinator. The
   // response-shaped stubs below are test data, never a production HTTP API.
@@ -837,4 +848,80 @@ test("a late destination street label updates only the matching applied destinat
   h.run('state.plan.destination_label="Applied road";state.plan.destination={lat:37.6,lng:127};state.labelRequests.destination=2');
   await h.run('lookupPointLabel("destination",{lat:37.5,lng:127},2)');
   assert.equal(h.run('state.plan.destination_label'),'Applied road');
+});
+
+test('language switches preserve the journey, counts, routes, focus and cached street labels without commands', () => {
+  const h = harness();
+  let commands = 0;
+  h.context.window.BikeStatic.request = () => {commands++; throw new Error('Language change must not query');};
+  h.run(`state.origin={lat:37.5,lng:127};state.destination={lat:37.51,lng:127.01};
+    state.pickup="2026-10-02T17:30";state.plan.destination={...state.destination};
+    state.pointLabels.origin={street:true,label:"Sejong-daero",label_ko:"세종대로",distance_m:5};
+    state.pointLabels.destination={street:true,label:"Eulji-ro",label_ko:"을지로",distance_m:50};
+    state.plan.departures[0].walking_route={minutes:72};state.plan.departures[0].cycling_route={minutes:20};
+    state.plan.destination_walking_route={minutes:4};state.live=state.plan.live;state.view="results";
+    renderResults();`);
+  const before = h.run('JSON.stringify({origin:state.origin,destination:state.destination,pickup:state.pickup,departures:state.plan.departures,live:state.live,selected:state.selectedId,request:state.request})');
+  h.e('pickup').value = '2026-10-02T17:30';
+  h.e('language-switch').focus();
+  h.e('station-rows').scrollTop = 75;
+  h.run('switchLanguage({preventDefault(){}})');
+  assert.equal(h.context.window.location.pathname, '/ddareungiwhere/ko/');
+  assert.equal(h.document.documentElement.lang, 'ko');
+  assert.equal(h.e('language-switch').textContent, 'English');
+  assert.match(h.e('station-rows').innerHTML, /1시간 12분/);
+  assert.match(h.e('station-rows').innerHTML, /최근 조회 현황/);
+  assert.match(h.e('station-rows').innerHTML, /직선거리 20 m/);
+  assert.equal(h.e('origin-label').textContent, '세종대로');
+  assert.equal(h.e('return-destination').textContent, '을지로 근처');
+  assert.equal(h.document.activeElement, h.e('language-switch'));
+  assert.equal(h.e('station-rows').scrollTop, 75);
+  assert.equal(h.e('pickup').value, '2026-10-02T17:30');
+  assert.equal(h.run('JSON.stringify({origin:state.origin,destination:state.destination,pickup:state.pickup,departures:state.plan.departures,live:state.live,selected:state.selectedId,request:state.request})'), before);
+  h.run('switchLanguage({preventDefault(){}})');
+  assert.equal(h.context.window.location.pathname, '/ddareungiwhere/');
+  assert.match(h.e('station-rows').innerHTML, /1h 12min/);
+  assert.equal(h.e('return-destination').textContent, 'Near Eulji-ro');
+  assert.equal(commands, 0);
+});
+
+test('Korean keeps zero distinct from missing counts and describes archive frequency and receipt time', () => {
+  const h = harness();
+  h.run('state.live=state.plan.live;state.plan.departures[0].bikes=null;applyLanguage("ko")');
+  assert.match(h.e('station-rows').innerHTML, /aria-label="자전거 수를 확인할 수 없음"/);
+  assert.match(h.e('station-rows').innerHTML, /알 수 없음/);
+  h.run('state.plan.departures[0].bikes=0;renderResults()');
+  assert.match(h.e('station-rows').innerHTML, /자전거 없음/);
+  h.run('state.plan.immediate=false;state.plan.departures[0].availability={observations:30,zero:0};renderResults()');
+  assert.equal(h.e('availability-heading').textContent, '과거 자전거 없음 빈도');
+  assert.match(h.e('station-rows').innerHTML, /낮음/);
+  assert.match(h.e('fetch-time').textContent, /갱신 완료 .*한국 시간/);
+  assert.doesNotMatch(h.e('fetch-time').textContent, /기준/);
+  h.run('showError("Choose a pickup time from now through the next seven days (Seoul time).")');
+  assert.match(h.e('error').textContent, /한국 시간.*자전거 대여 시각/);
+});
+
+test('language can change during comparison and location lookup without canceling either request', async () => {
+  const h = harness();
+  let finish;
+  h.context.window.BikeStatic.request = () => new Promise(resolve => {finish=resolve;});
+  h.run('state.origin={lat:37.5,lng:127};state.destination={lat:37.51,lng:127.01};state.live=state.plan.live');
+  const pending = h.run('compare({preventDefault(){}})');
+  const request = h.run('state.request');
+  h.run('switchLanguage({preventDefault(){}})');
+  assert.equal(h.run('state.request'), request);
+  assert.match(h.e('station-rows').innerHTML, /최근 조회 현황/);
+  finish({departures:[{...h.station,walking_route:{minutes:5},cycling_route:{minutes:10}}],return_station:h.station,destination:{lat:37.51,lng:127.01},immediate:true,live:{refreshing:false,fetched_at:h.station.fetched_at}});
+  await pending;
+  assert.match(h.e('station-rows').innerHTML, /5분/);
+  let label;
+  h.context.window.BikeStatic.request = () => new Promise(resolve => {label=resolve;});
+  h.run('state.labelRequests.destination=2');
+  const lookup = h.run('lookupPointLabel("destination",state.destination,2)');
+  h.run('applyLanguage("en")');
+  label({label:'Eulji-ro',label_ko:'을지로',distance_m:5});
+  await lookup;
+  assert.equal(h.e('destination-label').textContent, 'Eulji-ro');
+  h.run('applyLanguage("ko")');
+  assert.equal(h.e('destination-label').textContent, '을지로');
 });

@@ -1,3 +1,4 @@
+import {StreetLabels} from '../web/static/streets.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {StaticPlanner,pickupTime,distance} from '../web/static/planner.mjs';
@@ -180,4 +181,53 @@ test('walking endpoint roles reach the router and use separate cache entries',as
   assert.deepEqual(calls[1].locations.map(p=>p.station),[true,false]);
   assert.deepEqual(calls[1].locations.map(p=>[p.lat,p.lon]),[[a.lat,a.lng],[b.lat,b.lng]]);
   assert.equal((await engine.estimate(a,a,'pedestrian',undefined,{stationAtOrigin:true})).minutes,0);
+});
+
+function streetFixture(segments) {
+  const shards=new Map();
+  for(const segment of segments) {
+    const [id,,aLat,aLng,bLat,bLng]=segment;
+    for(let row=Math.floor(Math.min(aLat,bLat)/.005);row<=Math.floor(Math.max(aLat,bLat)/.005);row++) {
+      for(let col=Math.floor(Math.min(aLng,bLng)/.005);col<=Math.floor(Math.max(aLng,bLng)/.005);col++) {
+        const key=`${Math.floor(row/10)}_${Math.floor(col/10)}`;
+        if(!shards.has(key))shards.set(key,{cells:{},segments:[]});
+        const shard=shards.get(key);
+        (shard.cells[`${row},${col}`]??=[]).push(id);
+        if(!shard.segments.includes(segment))shard.segments.push(segment);
+      }
+    }
+  }
+  const calls=[];
+  const labels=new StreetLabels(new URL('https://example.test/app/?v=revision'),async url=>{
+    calls.push(new URL(url));
+    const key=new URL(url).pathname.split('/').at(-1).replace('.json.gz','');
+    if(!shards.has(key))throw Object.assign(new Error('Missing shard'),{status:404});
+    return shards.get(key);
+  });
+  return {labels,calls};
+}
+
+test('bilingual street names share the same geometry and cached requests with legacy fallback',async()=>{
+  const segments=[
+    [0,'Long road',37.5601,126.96,37.5601,126.98,'긴길'],
+    [1,'Other road',37.5605,126.969,37.5605,126.971,'다른길'],
+    [2,'English only',37.563,126.969,37.563,126.971]
+  ];
+  const bilingual=streetFixture(segments);
+  const legacy=streetFixture(segments.map(segment=>segment.slice(0,6)));
+  for(const [lat,lng,expectedKo] of [[37.5601,126.9701,'긴길'],[37.5605,126.9701,'다른길'],
+                                  [37.563,126.9701,'English only']]) {
+    const result=await bilingual.labels.lookup(lat,lng);
+    const {label_ko,...unchanged}=result;
+    const {label_ko:legacyKo,...old}=await legacy.labels.lookup(lat,lng);
+    assert.equal(label_ko,expectedKo);
+    assert.equal(legacyKo,old.label);
+    assert.deepEqual(unchanged,old);
+    const previous=bilingual.calls.length;
+    const repeated=await bilingual.labels.lookup(lat,lng);
+    assert.deepEqual(repeated,result);
+    assert.equal(bilingual.calls.length,previous);
+  }
+  assert.deepEqual(await bilingual.labels.lookup(37.7,126.97),
+    {label:null,label_ko:null,distance_m:null,source:'OpenStreetMap',kind:null});
 });

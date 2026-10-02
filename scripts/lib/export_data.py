@@ -54,7 +54,8 @@ def export_streets(destination):
         shard[f'{row},{col}'] = list(ids)
     for name, cells in shards.items():
         ids = sorted({i for cell in cells.values() for i in cell})
-        segments = [[i, streets.names[i], *streets.geometry[i * 4:i * 4 + 4]] for i in ids]
+        segments = [[i, streets.names[i], *streets.geometry[i * 4:i * 4 + 4],
+                     *([streets.names_ko[i]] if streets.names_ko[i] != streets.names[i] else [])] for i in ids]
         write_json(destination / 'streets' / f'{name}.json', {'cells': cells, 'segments': segments})
     return len(shards)
 

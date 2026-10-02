@@ -4,10 +4,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#293338" />
-    <title>Seoul Public Bike Trip Planner — 따릉이 Where?</title>
-    <meta name="description" content="Plan a Seoul public-bike trip with Ddareungi (따릉이). Compare five nearby stations, current bike counts, and estimated walking and cycling times." />
+    <title data-i18n="Seoul Public Bike Trip Planner — 따릉이 Where?">Seoul Public Bike Trip Planner — 따릉이 Where?</title>
+    <meta name="description" data-i18n-content="Plan a Seoul public-bike trip with Ddareungi (따릉이). Compare five nearby stations, current bike counts, and estimated walking and cycling times." content="Plan a Seoul public-bike trip with Ddareungi (따릉이). Compare five nearby stations, current bike counts, and estimated walking and cycling times." />
     <meta name="google-site-verification" content="4aIFd6CeTcdIrMhoxV11iG1X03PqBMDgOewWps7looc" />
-    <link rel="canonical" href="https://bttlbmb.github.io/ddareungiwhere/" />
+    <link id="canonical-url" rel="canonical" href="https://bttlbmb.github.io/ddareungiwhere/" />
+    <link rel="alternate" hreflang="en" href="https://bttlbmb.github.io/ddareungiwhere/" />
+    <link rel="alternate" hreflang="ko" href="https://bttlbmb.github.io/ddareungiwhere/ko/" />
+    <link rel="alternate" hreflang="x-default" href="https://bttlbmb.github.io/ddareungiwhere/" />
     <link rel="icon" type="image/svg+xml" href="/assets/city-basket.svg" />
     <link rel="stylesheet" href="/vendor/leaflet.css" />
     <link rel="stylesheet" href="/style.css" />
@@ -16,29 +19,30 @@
   </head>
   <body>
     <header class="site-header">
-      <a class="brand" href="/" aria-label="따릉이 Where? home">
+      <a id="home-link" class="brand" href="/" data-i18n-aria-label="따릉이 Where? home" aria-label="따릉이 Where? home">
         <img class="brand-mark" src="/assets/city-basket.svg" width="48" height="42" alt="" />
         <span class="brand-wordmark"><span lang="ko">따릉이</span> Where?</span>
       </a>
-      <p class="site-description">Plan your trip with Seoul’s public bikes.</p>
+      <a id="language-switch" class="text-button language-switch" href="/ko/" lang="ko" hreflang="ko" aria-label="Switch to Korean">한국어</a>
+      <p class="site-description" data-i18n="Plan your trip with Seoul’s public bikes.">Plan your trip with Seoul’s public bikes.</p>
     </header>
     <main>
-      <div id="error" class="message error" role="alert" hidden></div>
-      <section id="workspace" class="planner-grid" aria-label="Plan a ride">
+      <div data-load-error="The app could not be loaded. Please reload to try again." id="error" class="message error" role="alert" hidden></div>
+      <section id="workspace" class="planner-grid" data-i18n-aria-label="Plan a ride" aria-label="Plan a ride">
         <form id="planner-form" class="planner-card">
           <div class="section-title">
-            <h2>From, to, and when?</h2>
+            <h2 data-i18n="From, to, and when?">From, to, and when?</h2>
           </div>
           <div class="location-fields">
             <div class="origin-field">
               <div class="location-heading">
-                <label class="location-label" for="set-origin">Starting point</label>
+                <label class="location-label" for="set-origin" data-i18n="Starting point">Starting point</label>
                 <button id="use-location" class="text-button location-action" type="button">
                   <svg class="location-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false">
                     <circle cx="12" cy="12" r="6.5" />
                     <path d="M12 2v20M2 12h20" />
                   </svg>
-                  <span id="current-location-label">Current location</span>
+                  <span id="current-location-label" data-i18n="Current location">Current location</span>
                 </button>
               </div>
               <button
@@ -49,15 +53,15 @@
               >
                 <span class="point-dot start-dot">A</span
                 ><span
-                  ><strong id="origin-label">Choose starting point</strong
-                  ><em>Choose on the map</em></span
+                  ><strong id="origin-label" data-i18n="Choose starting point">Choose starting point</strong
+                  ><em data-i18n="Choose on the map">Choose on the map</em></span
                 ><span class="crosshair" aria-hidden="true">⌖</span>
               </button>
               <p id="location-status" class="input-help" role="status"></p>
             </div>
             <div class="destination-field">
               <label class="location-label" for="set-destination"
-                >Destination</label
+                 data-i18n="Destination">Destination</label
               >
               <button
                 id="set-destination"
@@ -67,70 +71,68 @@
               >
                 <span class="point-dot end-dot">B</span
                 ><span
-                  ><strong id="destination-label">Choose destination</strong
-                  ><em>Choose on the map</em></span
+                  ><strong id="destination-label" data-i18n="Choose destination">Choose destination</strong
+                  ><em data-i18n="Choose on the map">Choose on the map</em></span
                 ><span class="crosshair" aria-hidden="true">⌖</span>
               </button>
             </div>
           </div>
           <div class="time-heading">
-            <label for="pickup">Bike pickup time</label>
+            <label for="pickup" data-i18n="Bike pickup time">Bike pickup time</label>
           </div>
           <input id="pickup" type="datetime-local" />
           <div
             class="time-shortcuts"
             role="group"
-            aria-label="Pickup time shortcuts"
+            data-i18n-aria-label="Pickup time shortcuts" aria-label="Pickup time shortcuts"
           >
-            <button id="now-button" type="button">Now</button>
-            <button id="plus-30" type="button">In 30min</button>
-            <button id="plus-60" type="button">In 1h</button>
+            <button id="now-button" type="button" data-i18n="Now">Now</button>
+            <button id="plus-30" type="button" data-i18n="In 30min">In 30min</button>
+            <button id="plus-60" type="button" data-i18n="In 1h">In 1h</button>
           </div>
           <button class="primary-button" id="compare-button" type="submit" disabled>
-            Compare stations <span aria-hidden="true">↗</span>
+            <span class="button-label" data-i18n="Compare stations">Compare stations</span> <span aria-hidden="true">↗</span>
           </button>
         </form>
         <div class="journey-panel">
           <div id="journey-map" class="map-panel">
             <div class="map-toolbar">
               <span id="map-instruction"
-                >Click the map to set your starting point</span
+                 data-i18n="Click the map to set your starting point">Click the map to set your starting point</span
               ><button
                 type="button"
                 id="fit-map"
-                aria-label="Fit journey on map"
+                data-i18n-aria-label="Fit journey on map" aria-label="Fit journey on map"
                 disabled
               >
-                ↗ <span>Fit journey</span>
+                ↗ <span data-i18n="Fit journey">Fit journey</span>
               </button>
             </div>
             <div
               id="map"
-              aria-label="Interactive station map"
+              data-i18n-aria-label="Interactive station map" aria-label="Interactive station map"
               role="region"
             ></div>
             <div id="map-error" class="map-error" hidden>
-              Map tiles are unavailable. Station markers and comparisons still
-              work.
+              <span data-i18n="Map tiles are unavailable. Station markers and comparisons still work.">Map tiles are unavailable. Station markers and comparisons still work.</span>
             </div>
             <div class="map-bottom">
-              <span><i class="legend-dot"></i>Bike station</span
-              ><span><i class="legend-dot selected"></i>Selected departure</span
+              <span><i class="legend-dot"></i><span data-i18n="Bike station">Bike station</span></span
+              ><span><i class="legend-dot selected"></i><span data-i18n="Selected departure">Selected departure</span></span
               ><span
-                ><i class="journey-line-key"></i>A–B straight line, not a
-                cycling route</span
+                ><i class="journey-line-key"></i><span data-i18n="A–B straight line, not a cycling route">A–B straight line, not a cycling route</span></span
               >
             </div>
           </div>
           <section id="results" class="results-section" aria-busy="true" hidden>
             <div class="results-heading">
-              <h2>Choose your departure.</h2>
+              <h2 data-i18n="Choose your departure.">Choose your departure.</h2>
               <button
                 id="back-to-map"
                 class="secondary-button"
                 type="button"
                 aria-controls="journey-map"
-              >
+               data-i18n="← Back to map">
                 ← Back to map
               </button>
             </div>
@@ -139,18 +141,18 @@
                 <table id="station-table">
                   <thead>
                     <tr>
-                      <th scope="col">Station</th>
-                      <th scope="col">Bikes</th>
-                      <th scope="col">Walk time</th>
-                      <th scope="col">Ride time</th>
-                      <th id="availability-heading" scope="col">
+                      <th scope="col" data-i18n="Station">Station</th>
+                      <th scope="col" data-i18n="Bikes">Bikes</th>
+                      <th scope="col" data-i18n="Walk time">Walk time</th>
+                      <th scope="col" data-i18n="Ride time">Ride time</th>
+                      <th id="availability-heading" scope="col" data-i18n="Historical no-bike risk">
                         Historical no-bike risk
                       </th>
                     </tr>
                   </thead>
                   <tbody id="station-rows">
                     <tr>
-                      <td colspan="5" class="loading">
+                      <td colspan="5" class="loading" data-i18n="Preparing your station comparison…">
                         Preparing your station comparison…
                       </td>
                     </tr>
@@ -159,7 +161,7 @@
               </div>
               <p id="live-error" role="status" aria-live="polite" hidden></p>
               <section id="return-section" hidden aria-labelledby="return-heading">
-                <h2 id="return-heading">Your destination.</h2>
+                <h2 id="return-heading" data-i18n="Your destination.">Your destination.</h2>
                 <div class="return-row">
                   <div class="return-station"><div class="station-cell">
                     <span class="station-rank return-rank" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4v10a3 3 0 0 0 3 3h11m-5-5 5 5-5 5"/></svg></span>
@@ -170,8 +172,8 @@
               </section>
               <div class="results-footer">
                 <span class="muted"
-                  ><span id="fetch-time"></span><span class="fetch-separator"> · </span>time estimates via Valhalla / OpenStreetMap
-                  <span class="footer-refresh">· <button id="refresh-live" class="text-button" type="button">↻ Refresh bikes</button></span></span
+                  ><span id="fetch-time"></span><span class="fetch-separator"> · </span><span data-i18n="time estimates via Valhalla / OpenStreetMap">time estimates via Valhalla / OpenStreetMap</span>
+                  <span class="footer-refresh">· <button id="refresh-live" class="text-button" type="button" data-i18n="↻ Refresh bikes">↻ Refresh bikes</button></span></span
                 >
               </div>
             </div>
@@ -180,19 +182,19 @@
       </section>
       <footer class="site-footer">
         <span
-          >Bike data:
+          ><span data-i18n="Bike data:">Bike data:</span>
           <a
             href="https://www.bikeseoul.com/"
             target="_blank"
             rel="noreferrer"
-            >Seoul Bike</a
+             data-i18n="Seoul Bike">Seoul Bike</a
           >
-          · Street labels:
+          · <span data-i18n="Street labels:">Street labels:</span>
           <a
             href="https://www.openstreetmap.org/copyright"
             target="_blank"
             rel="noreferrer"
-            >© OpenStreetMap contributors</a
+             data-i18n="© OpenStreetMap contributors">© OpenStreetMap contributors</a
           >
           </span
         >

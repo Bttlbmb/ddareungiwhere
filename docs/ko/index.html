@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="theme-color" content="#293338">
+    <title data-i18n="Seoul Public Bike Trip Planner — 따릉이 Where?">서울 따릉이 대여소·이동 시간 비교 — 따릉이 Where?</title>
+    <meta name="description" data-i18n-content="Plan a Seoul public-bike trip with Ddareungi (따릉이). Compare five nearby stations, current bike counts, and estimated walking and cycling times." content="따릉이로 서울에서 이동할 계획을 세워 보세요. 가까운 대여소 5곳의 자전거 수와 예상 도보·자전거 이동 시간을 비교할 수 있습니다.">
+    <meta name="google-site-verification" content="4aIFd6CeTcdIrMhoxV11iG1X03PqBMDgOewWps7looc">
+    <link id="canonical-url" rel="canonical" href="https://bttlbmb.github.io/ddareungiwhere/ko/">
+    <link rel="alternate" hreflang="en" href="https://bttlbmb.github.io/ddareungiwhere/">
+    <link rel="alternate" hreflang="ko" href="https://bttlbmb.github.io/ddareungiwhere/ko/">
+    <link rel="alternate" hreflang="x-default" href="https://bttlbmb.github.io/ddareungiwhere/">
+    <link rel="icon" type="image/svg+xml" href="../assets/city-basket.svg">
+    <link rel="stylesheet" href="../vendor/leaflet.css">
+    <link rel="stylesheet" href="../style.css?v=cff33d800117e3c0">
+    <script src="../vendor/leaflet.js" defer></script>
+    <script type="module" src="../static/start.mjs?v=cff33d800117e3c0"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a id="home-link" class="brand" href="./" data-i18n-aria-label="따릉이 Where? home" aria-label="따릉이 Where? 홈">
+        <img class="brand-mark" src="../assets/city-basket.svg" width="48" height="42" alt="">
+        <span class="brand-wordmark"><span lang="ko">따릉이</span> Where?</span>
+      </a>
+      <a id="language-switch" class="text-button language-switch" href="../" lang="en" hreflang="en" aria-label="영어로 전환">English</a>
+      <p class="site-description" data-i18n="Plan your trip with Seoul’s public bikes.">따릉이로 이동할 계획을 세워 보세요.</p>
+    </header>
+    <main>
+      <div data-load-error="앱을 불러오지 못했습니다. 페이지를 새로고침해 주세요." id="error" class="message error" role="alert" hidden></div>
+      <section id="workspace" class="planner-grid" data-i18n-aria-label="Plan a ride" aria-label="따릉이 이동 계획">
+        <form id="planner-form" class="planner-card">
+          <div class="section-title">
+            <h2 data-i18n="From, to, and when?">어디서, 어디로, 언제?</h2>
+          </div>
+          <div class="location-fields">
+            <div class="origin-field">
+              <div class="location-heading">
+                <label class="location-label" for="set-origin" data-i18n="Starting point">출발지</label>
+                <button id="use-location" class="text-button location-action" type="button">
+                  <svg class="location-icon" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false">
+                    <circle cx="12" cy="12" r="6.5"></circle>
+                    <path d="M12 2v20M2 12h20"></path>
+                  </svg>
+                  <span id="current-location-label" data-i18n="Current location">현재 위치</span>
+                </button>
+              </div>
+              <button id="set-origin" type="button" class="location-button active" aria-pressed="true">
+                <span class="point-dot start-dot">A</span><span><strong id="origin-label" data-i18n="Choose starting point">출발지를 선택하세요</strong><em data-i18n="Choose on the map">지도에서 선택</em></span><span class="crosshair" aria-hidden="true">⌖</span>
+              </button>
+              <p id="location-status" class="input-help" role="status"></p>
+            </div>
+            <div class="destination-field">
+              <label class="location-label" for="set-destination" data-i18n="Destination">목적지</label>
+              <button id="set-destination" type="button" class="location-button" aria-pressed="false">
+                <span class="point-dot end-dot">B</span><span><strong id="destination-label" data-i18n="Choose destination">목적지를 선택하세요</strong><em data-i18n="Choose on the map">지도에서 선택</em></span><span class="crosshair" aria-hidden="true">⌖</span>
+              </button>
+            </div>
+          </div>
+          <div class="time-heading">
+            <label for="pickup" data-i18n="Bike pickup time">자전거 대여 시각 (한국 시간)</label>
+          </div>
+          <input id="pickup" type="datetime-local">
+          <div class="time-shortcuts" role="group" data-i18n-aria-label="Pickup time shortcuts" aria-label="자전거 대여 시각 빠른 선택">
+            <button id="now-button" type="button" data-i18n="Now">지금</button>
+            <button id="plus-30" type="button" data-i18n="In 30min">30분 후</button>
+            <button id="plus-60" type="button" data-i18n="In 1h">1시간 후</button>
+          </div>
+          <button class="primary-button" id="compare-button" type="submit" disabled>
+            <span class="button-label" data-i18n="Compare stations">대여소 비교</span> <span aria-hidden="true">↗</span>
+          </button>
+        </form>
+        <div class="journey-panel">
+          <div id="journey-map" class="map-panel">
+            <div class="map-toolbar">
+              <span id="map-instruction" data-i18n="Click the map to set your starting point">지도를 눌러 출발지를 선택하세요</span><button type="button" id="fit-map" data-i18n-aria-label="Fit journey on map" aria-label="지도에서 출발지와 목적지 보기" disabled>
+                ↗ <span data-i18n="Fit journey">출발지·목적지 보기</span>
+              </button>
+            </div>
+            <div id="map" data-i18n-aria-label="Interactive station map" aria-label="위치를 선택할 수 있는 따릉이 대여소 지도" role="region"></div>
+            <div id="map-error" class="map-error" hidden>
+              <span data-i18n="Map tiles are unavailable. Station markers and comparisons still work.">배경 지도를 불러올 수 없습니다. 대여소 표시와 비교 기능은 계속 사용할 수 있습니다.</span>
+            </div>
+            <div class="map-bottom">
+              <span><i class="legend-dot"></i><span data-i18n="Bike station">대여소</span></span><span><i class="legend-dot selected"></i><span data-i18n="Selected departure">선택한 출발 대여소</span></span><span><i class="journey-line-key"></i><span data-i18n="A–B straight line, not a cycling route">A–B 직선 (자전거 경로 아님)</span></span>
+            </div>
+          </div>
+          <section id="results" class="results-section" aria-busy="true" hidden>
+            <div class="results-heading">
+              <h2 data-i18n="Choose your departure.">출발 대여소를 선택하세요.</h2>
+              <button id="back-to-map" class="secondary-button" type="button" aria-controls="journey-map" data-i18n="← Back to map">← 지도로 돌아가기</button>
+            </div>
+            <div class="results-body">
+              <div class="table-wrap">
+                <table id="station-table">
+                  <thead>
+                    <tr>
+                      <th scope="col" data-i18n="Station">대여소</th>
+                      <th scope="col" data-i18n="Bikes">자전거 수</th>
+                      <th scope="col" data-i18n="Walk time">도보 시간</th>
+                      <th scope="col" data-i18n="Ride time">자전거 이동 시간</th>
+                      <th id="availability-heading" scope="col" data-i18n="Historical no-bike risk">과거 자전거 없음 빈도</th>
+                    </tr>
+                  </thead>
+                  <tbody id="station-rows">
+                    <tr>
+                      <td colspan="5" class="loading" data-i18n="Preparing your station comparison…">대여소 비교를 준비하고 있습니다…</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p id="live-error" role="status" aria-live="polite" hidden></p>
+              <section id="return-section" hidden aria-labelledby="return-heading">
+                <h2 id="return-heading" data-i18n="Your destination.">목적지까지</h2>
+                <div class="return-row">
+                  <div class="return-station"><div class="station-cell">
+                    <span class="station-rank return-rank" aria-hidden="true"><svg viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4v10a3 3 0 0 0 3 3h11m-5-5 5 5-5 5"></path></svg></span>
+                    <div class="return-station-info"><span id="return-name" class="station-name"></span><span id="return-number" class="station-sub"></span></div>
+                  </div></div>
+                  <div class="return-walk"><span id="return-walk-time" class="ride-duration"></span><span class="destination-arrow" aria-hidden="true">→</span><span id="return-destination"></span></div>
+                </div>
+              </section>
+              <div class="results-footer">
+                <span class="muted"><span id="fetch-time"></span><span class="fetch-separator"> · </span><span data-i18n="time estimates via Valhalla / OpenStreetMap">예상 이동 시간: Valhalla / OpenStreetMap</span>
+                  <span class="footer-refresh">· <button id="refresh-live" class="text-button" type="button" data-i18n="↻ Refresh bikes">↻ 자전거 수 갱신</button></span></span>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+      <footer class="site-footer">
+        <span><span data-i18n="Bike data:">자전거 데이터:</span>
+          <a href="https://www.bikeseoul.com/" target="_blank" rel="noreferrer" data-i18n="Seoul Bike">서울자전거 따릉이</a>
+          · <span data-i18n="Street labels:">도로명:</span>
+          <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" data-i18n="© OpenStreetMap contributors">© OpenStreetMap 기여자</a>
+          </span>
+      </footer>
+    </main>
+  </body>
+</html>

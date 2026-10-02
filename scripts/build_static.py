@@ -19,6 +19,7 @@ sys.path.insert(0, str(ROOT))
 from scripts.lib.files import write_json
 from scripts.lib.export_data import export_history, export_streets
 from scripts.lib.sdk import install_sdk
+from scripts.lib.localization import korean_page
 
 
 def build(sdk, output, graph_url='', months=6, history_db=None):
@@ -37,12 +38,19 @@ def build(sdk, output, graph_url='', months=6, history_db=None):
     try:
         for name in ['app.js', 'style.css', 'sitemap.xml']:
             shutil.copyfile(ROOT / 'web' / name, staging / name)
+        catalog = json.loads((ROOT / 'web/i18n.json').read_text())
+        app = (staging / 'app.js').read_text()
+        marker = '/*__KOREAN_TRANSLATIONS__*/ {}'
+        if app.count(marker) != 1:
+            raise ValueError('Expected exactly one embedded translation catalog marker.')
+        (staging / 'app.js').write_text(app.replace(marker, json.dumps(catalog, ensure_ascii=False, separators=(',', ':'))))
         for name in ['vendor', 'assets', 'static']:
             shutil.copytree(ROOT / 'web' / name, staging / name)
         html = (ROOT / 'web/index.html').read_text()
         html = html.replace('href="/', 'href="./').replace('src="/', 'src="./')
         html = html.replace('<script src="./app.js" defer></script>', '<script type="module" src="./static/start.mjs"></script>')
         (staging / 'index.html').write_text(html)
+        (staging / 'ko').mkdir()
         (staging / '.nojekyll').touch()
         clean = json.loads((ROOT / 'data/inputs/stations.json').read_text())
         write_json(staging / 'data/stations.json', clean)
@@ -79,6 +87,7 @@ def build(sdk, output, graph_url='', months=6, history_db=None):
             path.write_text(text)
         html = (staging / 'index.html').read_text().replace('./static/start.mjs', f'./static/start.mjs?v={revision}').replace('./style.css', f'./style.css?v={revision}')
         (staging / 'index.html').write_text(html)
+        (staging / 'ko/index.html').write_text(korean_page(html, catalog))
         # Street shards are requested explicitly compressed, including on Pages.
         for path in list(staging.rglob('*')):
             if path.is_file() and path.suffix in ('.json', '.js', '.mjs', '.css', '.wasm', '.html', '.gph'):

@@ -15,6 +15,8 @@ The page runs entirely in the browser. GitHub Pages serves the assets; Valhalla 
 
 Draft edits never compare automatically. Displayed counts stay as the last fetched snapshot until comparison or Refresh bikes updates them; unknown is not zero. Later pickup uses archived hourly zeros, not a forecast that an empty station will refill. The dashed A–B line is a straight guide. Historical coverage is currently **October–December 2025**, despite a six-month export window. See [SPEC.md](SPEC.md) for exact rules.
 
+The header switches between English and [한국어](https://bttlbmb.github.io/ddareungiwhere/ko/) without reloading or changing the journey. Both entry URLs share the same assets.
+
 ## Preview and maintain
 
 A Git clone already includes the published page in `docs/`. With Python 3.11+:

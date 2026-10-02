@@ -51,6 +51,12 @@ Risk badges use quieter tints than inventory boxes. Unknown stays neutral. Color
 - The bottom provenance footer is right-aligned, retaining Seoul Bike and OpenStreetMap credit and omitting the map-issue link.
 - Outer page fits the viewport; long form/results scroll internally. Phone results replace the form and reflow each station's metrics into two columns without sideways scrolling. Back to map stays outside the scrolling body.
 
+## Language switch and Korean copy
+
+Approved 2026-10-02. Add only a small **한국어 / English** link at the right of the header. On phones it shares the wordmark row; the selected description remains below. Keep the same compact form, table, two-column phone metrics and internal scrolling in both languages. Korean browser title: **서울 따릉이 대여소·이동 시간 비교 — 따릉이 Where?** Header description: **따릉이로 이동할 계획을 세워 보세요.**
+
+Use **대여소**, **출발지**, **목적지**, **자전거 대여 시각 (한국 시간)** and **대여소 비교**. Durations use 분 / 시간. Immediate inventory uses **최근 조회 현황** and future history **과거 자전거 없음 빈도**, preserving their different meanings. Definitions remain in SPEC/docs without adding panels or captions.
+
 ## Copy choices to preserve
 
 The user repeatedly simplified the page. Do not reintroduce without a new request/reason:

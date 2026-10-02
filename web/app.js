@@ -1,5 +1,15 @@
 "use strict";
 const $ = (id) => document.getElementById(id);
+// The static build embeds the catalog here, adding no translation request.
+const korean = /*__KOREAN_TRANSLATIONS__*/ {};
+function t(message, values = {}) {
+  const text = state.language === "ko" ? korean[message] || message : message;
+  return text.replace(/\{(\w+)\}/g, (_, key) => String(values[key] ?? `{${key}}`));
+}
+function translatedError(message) {
+  return state.language === "ko" && message && !korean[message]
+    ? t("Something went wrong. Please try again.") : t(message || "");
+}
 const esc = (s) =>
   String(s ?? "").replace(
     /[&<>"']/g,
@@ -9,6 +19,11 @@ const esc = (s) =>
       ],
   );
 const state = {
+  language: /\/ko\/(?:index\.html)?$/.test(window.location?.pathname || "") ? "ko" : "en",
+  pointLabels: {},
+  errorMessage: "",
+  locationStatus: "",
+  comparisonMessage: "",
   stations: [],
   history: null,
   origin: null,
@@ -31,7 +46,8 @@ let map,
   candidateMarkers,
   endpointMarkers,
   pollTimer,
-  bootstrapRequest;
+  bootstrapRequest,
+  tileCredit;
 const departureMarkers = new Map();
 const stationMarkers = new Map();
 const clockFormatter = new Intl.DateTimeFormat("en-GB", {
@@ -90,8 +106,105 @@ async function api(path) {
   }
 }
 function showError(message) {
-  $("error").textContent = message;
+  state.errorMessage = message;
+  $("error").textContent = translatedError(message);
   $("error").hidden = !message;
+}
+function setLocationStatus(message) {
+  state.locationStatus = message;
+  $("location-status").textContent = t(message);
+}
+function languageURL(language) {
+  const current = new URL(window.location?.href || "http://localhost/");
+  const base = window.BikeStatic?.base?.pathname || current.pathname.replace(/(?:ko\/)?(?:index\.html)?$/, "");
+  current.pathname = `${base}${language === "ko" ? "ko/" : ""}`;
+  return current;
+}
+function updatePointLabel(type, point = state[type]) {
+  const value = state.pointLabels[type];
+  let label;
+  if (value?.street) {
+    const name = state.language === "ko" ? value.label_ko || value.label : value.label;
+    label = value.distance_m > 35 ? t("Near {name}", { name }) : name;
+  } else if (value?.near) label = t("Near {name}", { name: value.near });
+  else label = value?.message ? t(value.message) : value?.name ||
+    t(type === "origin" ? "Choose starting point" : "Choose destination");
+  $(`${type}-label`).textContent = label;
+  $(`${type}-label`).title = value?.street
+    ? t("{label} · nearest named street, approximate", { label }) : label;
+  if (type === "destination" && point && state.plan?.destination?.lat === point.lat && state.plan.destination.lng === point.lng)
+    state.plan.destination_label = label;
+}
+function renderComparisonMessage(message) {
+  state.comparisonMessage = message;
+  $("station-rows").innerHTML = `<tr><td colspan="5" class="loading">${esc(t(message))}</td></tr>`;
+}
+function updateRefreshButton() {
+  $("refresh-live").textContent = t(state.live.refreshing ? "↻ Refreshing…" : "↻ Refresh bikes");
+}
+function applyLanguage(language) {
+  state.language = language === "ko" ? "ko" : "en";
+  document.documentElement.lang = state.language;
+  document.querySelectorAll("[data-i18n]").forEach(node => {
+    node.textContent = t(node.getAttribute("data-i18n"));
+  });
+  for (const attribute of ["aria-label", "content"]) {
+    document.querySelectorAll(`[data-i18n-${attribute}]`).forEach(node =>
+      node.setAttribute(attribute, t(node.getAttribute(`data-i18n-${attribute}`))));
+  }
+  const next = state.language === "ko" ? "en" : "ko";
+  const link = $("language-switch");
+  link.href = languageURL(next).href;
+  link.textContent = next === "ko" ? "한국어" : "English";
+  link.lang = next;
+  link.hreflang = next;
+  link.setAttribute("aria-label", t(next === "ko" ? "Switch to Korean" : "Switch to English"));
+  $("home-link").href = languageURL(state.language).href;
+  $("canonical-url").href = `https://bttlbmb.github.io/ddareungiwhere/${state.language === "ko" ? "ko/" : ""}`;
+  for (const type of ["origin", "destination"]) updatePointLabel(type);
+  $("current-location-label").textContent = t($("use-location").disabled ? "Locating…" : "Current location");
+  setLocationStatus(state.locationStatus);
+  showError(state.errorMessage);
+  if (typeof updateMapInstruction === "function") updateMapInstruction();
+  else $("map-instruction").textContent = t(state.mode === "origin"
+    ? "Click the map to set your starting point" : "Click the map to set your destination");
+  updateRefreshButton();
+  if (state.plan) renderResults();
+  else if (state.comparisonMessage) {
+    renderComparisonMessage(state.comparisonMessage);
+    $("availability-heading").textContent = t("Availability");
+  }
+  // Update existing markers and controls without recreating or moving the map.
+  endpointMarkers?.eachLayer(marker => {
+    if (marker.pointType) {
+      const title = t(marker.pointType === "origin" ? "Starting point. Drag to move." : "Destination. Drag to move.");
+      marker.getElement()?.setAttribute("title", title);
+      marker.getElement()?.setAttribute("aria-label", title);
+    }
+  });
+  if (map?.attributionControl) {
+    const credit = osmAttribution();
+    if (credit !== tileCredit) {
+      map.attributionControl.removeAttribution(tileCredit);
+      map.attributionControl.addAttribution(credit);
+      tileCredit = credit;
+    }
+  }
+  translatePopupClose();
+  const zoom = map?.zoomControl;
+  if (zoom) {
+    for (const [button, message] of [[zoom._zoomInButton, "Zoom in"], [zoom._zoomOutButton, "Zoom out"]]) {
+      button?.setAttribute("title", t(message));
+      button?.setAttribute("aria-label", t(message));
+    }
+  }
+}
+function switchLanguage(event) {
+  if (event && (event.button > 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey)) return;
+  event?.preventDefault();
+  const next = state.language === "ko" ? "en" : "ko";
+  window.history.pushState(null, "", languageURL(next));
+  applyLanguage(next);
 }
 function setMode(mode) {
   showView("map");
@@ -100,10 +213,8 @@ function setMode(mode) {
     $(`set-${name}`).classList.toggle("active", mode === name);
     $(`set-${name}`).setAttribute("aria-pressed", String(mode === name));
   }
-  $("map-instruction").textContent =
-    mode === "origin"
-      ? "Click the map to set your starting point"
-      : "Click the map to set your destination";
+  $("map-instruction").textContent = t(mode === "origin"
+    ? "Click the map to set your starting point" : "Click the map to set your destination");
 }
 function showView(view) {
   state.view = view;
@@ -116,7 +227,7 @@ function setPoint(type, point, label) {
   if (type === "origin") {
     state.locationRequest++;
     resetLocationButton();
-    $("location-status").textContent = "";
+    setLocationStatus("");
   }
   const request = ++state.labelRequests[type];
   state[type] = { lat: point.lat, lng: point.lng };
@@ -131,15 +242,14 @@ function setPoint(type, point, label) {
         nearestDistance = d;
       }
     }
-    label =
-      nearest && nearestDistance < 1000
-        ? `Near ${nearest.name}`
-        : type === "origin"
-          ? "Selected starting point"
-          : "Selected destination";
+    state.pointLabels[type] = nearest && nearestDistance < 1000
+      ? { near: nearest.name }
+      : { message: type === "origin" ? "Selected starting point" : "Selected destination" };
+  } else {
+    state.pointLabels[type] = label === "Your current location"
+      ? { message: label } : { name: label };
   }
-  $(`${type}-label`).textContent = label;
-  $(`${type}-label`).title = label;
+  updatePointLabel(type);
   invalidateComparison();
   renderEndpoints();
   lookupPointLabel(type, point, request);
@@ -150,32 +260,27 @@ async function lookupPointLabel(type, point, request) {
       `/api/place-label?${new URLSearchParams({ lat: point.lat, lng: point.lng })}`,
     );
     if (state.labelRequests[type] !== request || !result.label) return;
-    const label =
-      result.distance_m > 35 ? `Near ${result.label}` : result.label;
-    $(`${type}-label`).textContent = label;
-    $(`${type}-label`).title = `${label} · nearest named street, approximate`;
-    if (type === "destination" && state.plan?.destination?.lat === point.lat && state.plan.destination.lng === point.lng) {
-      state.plan.destination_label = label;
-      $("return-destination").textContent = label;
-    }
+    state.pointLabels[type] = { ...result, street: true };
+    updatePointLabel(type, point);
+    if (type === "destination" && state.plan?.destination?.lat === point.lat && state.plan.destination.lng === point.lng)
+      $("return-destination").textContent = state.plan.destination_label;
   } catch (_) {
     // Keep the descriptive station/landmark label if the local lookup fails.
   }
 }
 function resetLocationButton() {
   $("use-location").disabled = false;
-  $("current-location-label").textContent = "Current location";
+  $("current-location-label").textContent = t("Current location");
 }
 function useCurrentLocation() {
   const request = ++state.locationRequest;
   if (!navigator.geolocation) {
-    $("location-status").textContent =
-      "Location is unavailable in this browser. Choose your starting point on the map.";
+    setLocationStatus("Location is unavailable in this browser. Choose your starting point on the map.");
     return;
   }
   $("use-location").disabled = true;
-  $("current-location-label").textContent = "Locating…";
-  $("location-status").textContent = "";
+  $("current-location-label").textContent = t("Locating…");
+  setLocationStatus("");
   navigator.geolocation.getCurrentPosition(
     (position) => {
       if (request !== state.locationRequest) return;
@@ -189,24 +294,22 @@ function useCurrentLocation() {
         lng < 126.7 ||
         lng > 127.3
       ) {
-        $("location-status").textContent =
-          "Your location is outside the Seoul area. Choose your starting point on the map.";
+        setLocationStatus("Your location is outside the Seoul area. Choose your starting point on the map.");
         return;
       }
       setPoint("origin", { lat, lng }, "Your current location");
-      $("location-status").textContent = "";
+      setLocationStatus("");
       if (map) map.setView([lat, lng], 16);
       setMode("destination");
     },
     (error) => {
       if (request !== state.locationRequest) return;
       resetLocationButton();
-      $("location-status").textContent =
-        error.code === 1
+      setLocationStatus(error.code === 1
           ? "Location permission was denied. You can still choose a starting point on the map."
           : error.code === 3
             ? "Location took too long. Try again or choose a point on the map."
-            : "Your location could not be found. Try again or choose a point on the map.";
+            : "Your location could not be found. Try again or choose a point on the map.");
     },
     { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 },
   );
@@ -246,9 +349,10 @@ function renderEndpoints() {
       }),
       title:
         type === "origin"
-          ? "Starting point. Drag to move."
-          : "Destination. Drag to move.",
+          ? t("Starting point. Drag to move.")
+          : t("Destination. Drag to move."),
     });
+    marker.pointType = type;
     marker.on("dragend", () => {
       setPoint(type, marker.getLatLng());
     });
@@ -268,17 +372,17 @@ function fitMap() {
 function initializeMap() {
   if (!window.L) {
     $("map").innerHTML =
-      '<p class="loading">The map library could not load. Try refreshing the page.</p>';
+      `<p class="loading" data-i18n="The map library could not load. Try refreshing the page.">${esc(t("The map library could not load. Try refreshing the page."))}</p>`;
     return;
   }
   map = L.map("map", { preferCanvas: true, scrollWheelZoom: true }).setView(
     [37.56, 126.98],
     14,
   );
+  tileCredit = osmAttribution();
   const tiles = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    attribution: tileCredit,
   }).addTo(map);
   tiles.on("tileerror", () => {
     $("map-error").hidden = false;
@@ -297,10 +401,18 @@ function initializeMap() {
   // Leaflet moves existing markers itself. Replacing them during focus/popup
   // panning can remove the click target before its activation completes.
   map.on("moveend", renderBaseStations);
+  map.on("popupopen", translatePopupClose);
+}
+function translatePopupClose() {
+  document.querySelectorAll(".leaflet-popup-close-button").forEach(button =>
+    button.setAttribute("aria-label", t("Close popup")));
+}
+function osmAttribution() {
+  return `&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> ${t("contributors")}`;
 }
 function stationPopup(station) {
   const box = document.createElement("div");
-  box.innerHTML = `<div class="popup-title">#${esc(station.number)} · ${esc(station.name)}</div><div class="popup-buttons"><button type="button" data-role="departure">Use as departure</button><button type="button" data-role="return">Use as destination</button></div>`;
+  box.innerHTML = `<div class="popup-title">#${esc(station.number)} · ${esc(station.name)}</div><div class="popup-buttons"><button type="button" data-role="departure" data-i18n="Use as departure">${esc(t("Use as departure"))}</button><button type="button" data-role="return" data-i18n="Use as destination">${esc(t("Use as destination"))}</button></div>`;
   box.querySelector("[data-role=departure]").onclick = () => {
     setPoint("origin", station, station.name);
     state.departureId = station.id;
@@ -411,6 +523,7 @@ function setPickupOffset(minutes) {
 function invalidateComparison() {
   state.request++;
   state.plan = null;
+  state.comparisonMessage = "";
   $("return-section").hidden = true;
   $("live-error").hidden = true;
   state.awaitingLive = false;
@@ -456,6 +569,7 @@ async function compare(event) {
     const result = await api(`/api/plan?${query}`);
     if (request !== state.request) return;
     state.plan = result;
+    state.comparisonMessage = "";
     result.destination_label = $("destination-label").textContent;
     if (!result.departures.some((s) => s.id === state.selectedId))
       state.selectedId = result.suggested_id ?? result.departures[0]?.id;
@@ -468,8 +582,7 @@ async function compare(event) {
     state.awaitingLive = false;
     renderMapStations();
     showError(error.message);
-    $("station-rows").innerHTML =
-      '<tr><td colspan="5" class="loading">Update your journey and try again.</td></tr>';
+    renderComparisonMessage("Update your journey and try again.");
   } finally {
     if (request === state.request) {
       $("results").setAttribute("aria-busy", "false");
@@ -480,9 +593,7 @@ async function compare(event) {
 function renderLive(live) {
   state.live = live;
   $("refresh-live").disabled = live.refreshing;
-  $("refresh-live").textContent = live.refreshing
-    ? "↻ Refreshing…"
-    : "↻ Refresh bikes";
+  updateRefreshButton();
   renderLiveError(live);
   if (live.refreshing && state.awaitingLive) {
     clearTimeout(pollTimer);
@@ -495,8 +606,8 @@ function renderLiveError(live) {
   message.hidden = !failed;
   message.textContent = failed
     ? state.plan.departures.some(hasBikeCount)
-      ? "Live bike refresh failed. Showing last received counts."
-      : "Live bike counts unavailable. Some networks may be restricted."
+      ? t("Live bike refresh failed. Showing last received counts.")
+      : t("Live bike counts unavailable. Some networks may be restricted.")
     : "";
 }
 async function refreshLive(manual = true) {
@@ -566,30 +677,30 @@ function historicalRisk(availability) {
     zero < 0 ||
     zero > n
   )
-    return { level: "unknown", label: "Unknown" };
+    return { level: "unknown", label: t("Unknown") };
   const share = zero / n;
   if (share >= 0.2)
-    return { level: "high", label: "High" };
+    return { level: "high", label: t("High") };
   if (share >= 0.05)
     return {
       level: "moderate",
-      label: "Moderate",
+      label: t("Moderate"),
     };
-  return { level: "low", label: "Low" };
+  return { level: "low", label: t("Low") };
 }
 function stationAvailability(station, plan) {
   if (!plan.immediate) return historicalRisk(station.availability);
-  if (!hasBikeCount(station)) return { level: "unknown", label: "Unknown" };
-  if (station.bikes === 0) return { level: "high", label: "Empty now" };
-  if (station.bikes <= 2) return { level: "moderate", label: "Few bikes" };
-  return { level: "low", label: "Available now" };
+  if (!hasBikeCount(station)) return { level: "unknown", label: t("Unknown") };
+  if (station.bikes === 0) return { level: "high", label: t("Empty now") };
+  if (station.bikes <= 2) return { level: "moderate", label: t("Few bikes") };
+  return { level: "low", label: t("Available now") };
 }
 function formatDuration(minutes) {
   const rounded = minutes === 0 ? 0 : Math.max(1, Math.round(minutes));
-  if (rounded <= 60) return `${rounded} min`;
+  if (rounded <= 60) return t("{minutes} min", { minutes: rounded });
   const hours = Math.floor(rounded / 60);
   const remainder = rounded % 60;
-  return `${hours}h${remainder ? ` ${remainder}min` : ""}`;
+  return t(remainder ? "{hours}h {minutes}min" : "{hours}h", { hours, minutes: remainder });
 }
 function renderRows() {
   const data = state.plan;
@@ -609,11 +720,11 @@ function renderRows() {
         : "—";
       const selected = station.id === state.selectedId;
       return `<tr class="${selected ? "chosen" : ""}" data-station="${station.id}">
-      <td><div class="station-cell"><span class="station-rank">${index + 1}</span><div><button class="station-name" type="button" data-select="${station.id}" aria-pressed="${selected}">${esc(station.name)}</button><span class="station-sub">Station #${esc(station.number)} · ${metres(station.distance_m)} away</span></div></div></td>
-      <td data-heading="Bikes">${known ? `<span class="stat bikes ${station.bikes === 0 ? "empty" : station.bikes <= 2 ? "few" : ""}">${station.bikes}</span>` : `<span class="stat unknown" title="Live count unavailable" role="img" aria-label="Live bike count unavailable">/</span>`}</td>
-      <td data-heading="Walk time" class="ride-duration" title="${esc(walk?.error || "Estimated walk from your starting point at 5.1 km/h")}">${walkTime}</td>
-      <td data-heading="Ride time" class="ride-duration" title="${esc(route?.error || "Estimated cycling time to the destination station")}">${rideTime}</td>
-      <td data-heading="${data.immediate ? "Availability now" : "Historical no-bike risk"}"><span class="risk-badge risk-${risk.level}">${risk.label}</span></td>
+      <td><div class="station-cell"><span class="station-rank">${index + 1}</span><div><button class="station-name" type="button" data-select="${station.id}" aria-pressed="${selected}">${esc(station.name)}</button><span class="station-sub">${esc(t("Station #{number} · {distance} away", { number: station.number, distance: metres(station.distance_m) }))}</span></div></div></td>
+      <td data-heading="${esc(t("Bikes"))}">${known ? `<span class="stat bikes ${station.bikes === 0 ? "empty" : station.bikes <= 2 ? "few" : ""}">${station.bikes}</span>` : `<span class="stat unknown" title="${esc(t("Live count unavailable"))}" role="img" aria-label="${esc(t("Live bike count unavailable"))}">/</span>`}</td>
+      <td data-heading="${esc(t("Walk time"))}" class="ride-duration" title="${esc(walk?.error ? translatedError(walk.error) : t("Estimated walk from your starting point at 5.1 km/h"))}">${walkTime}</td>
+      <td data-heading="${esc(t("Ride time"))}" class="ride-duration" title="${esc(route?.error ? translatedError(route.error) : t("Estimated cycling time to the destination station"))}">${rideTime}</td>
+      <td data-heading="${esc(t(data.immediate ? "Availability now" : "Historical no-bike risk"))}"><span class="risk-badge risk-${risk.level}">${risk.label}</span></td>
       </tr>`;
     })
     .join("");
@@ -632,20 +743,20 @@ function renderResults() {
   const data = state.plan;
   if (!data) return;
   $("availability-heading").textContent = data.immediate
-    ? "Availability now"
-    : "Historical no-bike risk";
+    ? t("Availability now")
+    : t("Historical no-bike risk");
   $("fetch-time").textContent = data.live.fetched_at
-    ? `Live refresh completed ${clockTime(data.live.fetched_at)} KST`
-    : data.live.refreshing ? "Fetching bike counts" : "";
+    ? t("Live refresh completed {time} KST", { time: clockTime(data.live.fetched_at) })
+    : data.live.refreshing ? t("Fetching bike counts") : "";
   renderRows();
   renderLiveError(data.live);
   const station = data.return_station, walk = data.destination_walking_route;
   $("return-name").textContent = station.name;
-  $("return-number").textContent = `Station #${station.number}`;
+  $("return-number").textContent = t("Station #{number}", { number: station.number });
   $("return-walk-time").textContent = Number.isFinite(walk?.minutes) && walk.minutes >= 0
     ? formatDuration(walk.minutes) : "—";
-  $("return-walk-time").title = walk?.error || "Estimated walk from the destination station to your selected point at 5.1 km/h";
-  $("return-destination").textContent = data.destination_label || "Chosen point";
+  $("return-walk-time").title = walk?.error ? translatedError(walk.error) : t("Estimated walk from the destination station to your selected point at 5.1 km/h");
+  $("return-destination").textContent = data.destination_label || t("Chosen point");
   $("return-section").hidden = false;
 }
 function updateLiveDisplay() {
@@ -675,6 +786,9 @@ async function loadBootstrap() {
 }
 async function start() {
   initializeMap();
+  applyLanguage(state.language);
+  $("language-switch").onclick = switchLanguage;
+  window.addEventListener("popstate", () => applyLanguage(/\/ko\/(?:index\.html)?$/.test(window.location.pathname) ? "ko" : "en"));
   setNow();
   $("set-origin").onclick = () => setMode("origin");
   $("use-location").onclick = useCurrentLocation;

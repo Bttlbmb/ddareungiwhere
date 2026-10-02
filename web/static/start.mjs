@@ -9,5 +9,5 @@ try {
   window.BikeStatic=new StaticService(base,config);
   await import('../app.js');
 } catch(error) {
-  const message=document.getElementById('error');message.textContent='The app could not be loaded. Please reload to try again.';message.hidden=false;
+  const message=document.getElementById('error');message.textContent=message.dataset.loadError || 'The app could not be loaded. Please reload to try again.';message.hidden=false;
 }

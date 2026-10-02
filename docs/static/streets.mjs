@@ -22,17 +22,17 @@ export class StreetLabels {
     })));
     const segments=new Map();
     for(const shard of shards.values()) for(const segment of shard?.segments||[]) segments.set(segment[0],segment);
-    let best=250,label=null;
+    let best=250,label=null,label_ko=null;
     const seen=new Set();
     for(const cell of cells) for(const id of shards.get(cell.shard)?.cells[cell.key]||[]) {
       if(seen.has(id))continue;seen.add(id);
-      const [,name,aLat,aLng,bLat,bLng]=segments.get(id);
+      const [,name,aLat,aLng,bLat,bLng,nameKo]=segments.get(id);
       const ax=(aLng-lng)*scale,ay=(aLat-lat)*111195,bx=(bLng-lng)*scale,by=(bLat-lat)*111195;
       const dx=bx-ax,dy=by-ay,length=dx*dx+dy*dy;
       const t=length?Math.max(0,Math.min(1,-(ax*dx+ay*dy)/length)):0;
       const d=Math.hypot(ax+t*dx,ay+t*dy);
-      if(d<=best){best=d;label=name;}
+      if(d<=best){best=d;label=name;label_ko=nameKo||name;}
     }
-    return {label,distance_m:label?Math.round(best):null,source:'OpenStreetMap',kind:label?'nearest_street':null};
+    return {label,label_ko,distance_m:label?Math.round(best):null,source:'OpenStreetMap',kind:label?'nearest_street':null};
   }
 }

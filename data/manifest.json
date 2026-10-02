@@ -14,6 +14,15 @@
       "encoding": "cp949"
     },
     {
+      "path": "data/raw/seoul-routing.osm.pbf",
+      "bytes": 14944279,
+      "sha256": "b4358b81ec99709f270fb005a7f7822d15ed6588d2c0c28dee2cd1e1b3e727f2",
+      "source": "OpenStreetMap contributors",
+      "license": "ODbL 1.0",
+      "retrieved": "2026-09-30",
+      "provenance_file": "data/inputs/routing-coverage.json"
+    },
+    {
       "path": "data/raw/seoul_streets_osm.json.gz",
       "bytes": 7306942,
       "sha256": "146750fbce558f9b4e71e1c29059cedea8ac08ac566fd59424dc21398ea32aa1",
@@ -32,23 +41,14 @@
     },
     {
       "path": "data/processed/seoul_streets.json.gz",
-      "bytes": 3945137,
-      "sha256": "f9e06928ca686c8e536d0b2afbb2df1e4ebbd6359e1e71e73a91b88da6c0db30",
+      "bytes": 4239977,
+      "sha256": "2c4d98d8027fbc4b6ee225be8db3857166edbd84a978cceb6a606564d781aa41",
       "source": "OpenStreetMap contributors",
       "url": "https://overpass-api.de/api/interpreter",
       "license": "ODbL 1.0",
       "source_timestamp": "2026-09-30T00:15:05Z",
       "query_file": "scripts/seoul_streets.overpass",
       "scope": "Named streets in the Seoul bounding box; nearest-street labels, not verified postal addresses"
-    },
-    {
-      "path": "data/raw/seoul-routing.osm.pbf",
-      "bytes": 14944279,
-      "sha256": "b4358b81ec99709f270fb005a7f7822d15ed6588d2c0c28dee2cd1e1b3e727f2",
-      "source": "OpenStreetMap contributors",
-      "license": "ODbL 1.0",
-      "retrieved": "2026-09-30",
-      "provenance_file": "data/inputs/routing-coverage.json"
     }
   ],
   "privacy": "Public station aggregates and roads only. Credentials and raw/processed local inputs are not published.",

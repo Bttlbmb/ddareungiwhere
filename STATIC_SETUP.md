@@ -80,9 +80,17 @@ node --test tests/test_frontend.cjs tests/test_static.mjs
 
 ### Search metadata and Search Console
 
-Approved 2026-10-02. `web/index.html` owns the page title, meta description, public Google site-verification tag and absolute canonical URL, `https://bttlbmb.github.io/ddareungiwhere/`. Keep the verification tag present after initial verification. `web/sitemap.xml` lists only that homepage; the build copies it into the generated site and the publisher includes it in `docs/`. Update both the canonical URL and sitemap if the public address changes. No route/data assets are sitemap entries, and no `lastmod` date is claimed.
+Approved 2026-10-02. `web/index.html` owns the page title, meta description, public Google site-verification tag and absolute canonical URL, `https://bttlbmb.github.io/ddareungiwhere/`. Keep the verification tag present after initial verification. `web/sitemap.xml` lists the English homepage and Korean `/ko/` entry; the build copies it into the generated site and the publisher includes it in `docs/`. Update canonical/alternate URLs, the Korean builder URL and sitemap if the public address changes. No route/data assets are sitemap entries, and no `lastmod` date is claimed.
 
-After publishing, verify the URL-prefix property `https://bttlbmb.github.io/ddareungiwhere/` in Search Console, submit `https://bttlbmb.github.io/ddareungiwhere/sitemap.xml`, and inspect/request indexing for the homepage. These files support verification and discovery; they do not confirm indexing, ranking or traffic. A project-level `robots.txt` is ineffective because crawlers read that file at the host root, `https://bttlbmb.github.io/robots.txt`. References: [Google ownership verification](https://support.google.com/webmasters/answer/9008080?hl=en), [sitemap guidance](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap), [robots location rules](https://developers.google.com/crawling/docs/robots-txt/create-robots-txt).
+After publishing, verify the URL-prefix property `https://bttlbmb.github.io/ddareungiwhere/` in Search Console, submit `https://bttlbmb.github.io/ddareungiwhere/sitemap.xml`, and inspect/request indexing for both language entry URLs. These files support verification and discovery; they do not confirm indexing, ranking or traffic. A project-level `robots.txt` is ineffective because crawlers read that file at the host root, `https://bttlbmb.github.io/robots.txt`. References: [Google ownership verification](https://support.google.com/webmasters/answer/9008080?hl=en), [sitemap guidance](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap), [robots location rules](https://developers.google.com/crawling/docs/robots-txt/create-robots-txt).
+
+The bilingual alternate links follow [Google’s localized-page guidance](https://developers.google.com/search/docs/specialty/international/localized-versions): both entries include the same fully qualified language alternatives.
+
+### Localization maintenance
+
+`web/index.html` remains the English source. Annotated `data-i18n` text and `data-i18n-aria-label` / `data-i18n-content` attributes reference English keys in `web/i18n.json`. Keep placeholder names identical. The standard builder embeds the Korean catalog and generates `ko/index.html` after asset revisioning; both languages share the same runtime/data assets. Edit source/catalog rather than generated Korean HTML. Run the normal Python/Node checks and inspect both desktop/phone layouts after copy or layout changes.
+
+The 2026-10-02 street importer retains `name:ko` / local Korean road names in the existing extract/shards. Re-importing the retained, manifest-checked Overpass input is sufficient; no new map download or routing rebuild is required. Older extracts remain readable but cannot supply omitted Korean names.
 
 ### Publication checkout
 

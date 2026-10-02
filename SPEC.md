@@ -4,7 +4,7 @@ Current static-only behavior, 2026-10-01. Rationale is in [DECISIONS.md](DECISIO
 
 ## Purpose and scope
 
-Help a rider choose among nearby Seoul public-bike departures for a starting point, destination, and bike pickup time. Static browser app hosted on GitHub Pages. Current interface: English labels with official Korean station names/numbers; a complete language policy has not been separately settled.
+Help a rider choose among nearby Seoul public-bike departures for a starting point, destination, and bike pickup time. Static browser app hosted on GitHub Pages. English and Korean interfaces share the same planner; official Korean station names/numbers remain unchanged.
 
 Compare current bikes, local walking/cycling estimates, and a distinct historical availability signal. A 10 m proximity advantage should not hide the alternatives. No booking, payment, accounts, turn-by-turn navigation, destination-capacity forecast, or validated future empty probability is implemented.
 
@@ -12,10 +12,16 @@ Compare current bikes, local walking/cycling estimates, and a distinct historica
 
 - Start with both points unset, no A/B pins, and Compare stations / Fit journey disabled until both are chosen. Metadata recovery preserves partial selections.
 - Place/drag map pins or use Current location for the origin. GPS is one permission-controlled fix, not continuous tracking. Denied/failed/out-of-area access preserves the journey; manual edits supersede late fixes.
-- Show approximate street names without house numbers. Local lookup searches within 250 m, prefers English where available, and adds “Near” beyond 35 m. Missing roads fall back to meaningful station/landmark text. Ignore late lookups for older selections. Labels are visually limited to two lines, with full text retained.
+- Show approximate street names without house numbers. Local lookup searches within 250 m, uses the selected language where available, and adds “Near” / “주변” beyond 35 m. Missing roads fall back to meaningful station/landmark text. Ignore late lookups for older selections. Labels are visually limited to two lines, with full text retained.
 - Pickup means **collecting the bike at the station**, in Asia/Seoul (KST), now through seven days ahead. Minute-precision input has a one-minute past tolerance in the browser. Walking time does not shift pickup or enforce the abandoned ten-minute budget.
 - Now / In 30min / In 1h set the draft relative to click time. Editing points, GPS, time or map station choices invalidates the old comparison, but does not query history/routes or start live collection.
 - **Compare stations** explicitly queries the draft. **Refresh bikes** updates inventory only, preserving historical and route estimates. No periodic/tab-visibility collection; short polling only finishes a user-initiated refresh. Browser operations time out after 30 seconds and release controls for retry.
+
+## Language
+
+Approved 2026-10-02: English at the homepage and Korean at `/ko/`, with a compact **한국어 / English** header link. An ordinary switch updates the URL and visible/accessibility copy in place. It preserves points, pickup value, selected station, applied estimates/count snapshots, pending work, view, focus and internal scroll; it does not query, refresh, reroute or move the map. Back/forward follows the language URL. Opening a language link in a new tab or reloading starts a normal empty journey in that language. No language cookie, browser-language redirect or remote translation service is used.
+
+Korean pickup copy explicitly says 한국 시간. **최근 조회 현황** describes retained counts; **자전거 없음 / 적음 / 있음** are snapshot states. Future **과거 자전거 없음 빈도** with 낮음 / 보통 / 높음 describes archive frequency, not a forecast or refill promise. Missing evidence is 알 수 없음; missing-count accessibility copy says 자전거 수를 확인할 수 없음, never zero. The refresh footer describes completion time, not an upstream observation time. English wording remains unchanged.
 
 ## Nearby stations and navigation
 
