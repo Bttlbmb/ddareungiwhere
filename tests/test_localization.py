@@ -42,8 +42,17 @@ class LocalizationTests(unittest.TestCase):
         self.assertEqual(assets(english, 'https://example.test/ddareungiwhere/'),
                          assets(korean, 'https://example.test/ddareungiwhere/ko/'))
         switch = next(attrs for tag, attrs in korean.tags if attrs.get('id') == 'language-switch')
-        self.assertEqual(switch['href'], '../')
-        self.assertEqual(switch['hreflang'], 'en')
+        self.assertEqual(switch['data-language'], 'ko')
+        self.assertEqual(switch['aria-label'], '언어')
+        for page, base, selected in [(english, 'https://example.test/ddareungiwhere/', 'en'),
+                                     (korean, 'https://example.test/ddareungiwhere/ko/', 'ko')]:
+            for language in ('en', 'ko'):
+                link = next(attrs for tag, attrs in page.tags if attrs.get('id') == f'language-{language}')
+                self.assertEqual(urljoin(base, link['href']), 'https://example.test/ddareungiwhere/' + ('ko/' if language == 'ko' else ''))
+                self.assertEqual(link['hreflang'], language)
+                self.assertEqual(link['aria-current'], str(language == selected).lower())
+        self.assertIn('>ENG</a>', translated)
+        self.assertIn('>한국어</a>', translated)
         error = next(attrs for tag, attrs in korean.tags if attrs.get('id') == 'error')
         self.assertIn('앱을 불러오지 못했습니다', error['data-load-error'])
 

@@ -36,16 +36,18 @@ class KoreanPage(HTMLParser):
         if attrs.get('id') == 'home-link':
             attrs['href'] = './'
         if attrs.get('id') == 'language-switch':
-            attrs.update(href='../', lang='en', hreflang='en')
-            attrs['aria-label'] = self.catalog['Switch to English']
-            key = 'language-switch'
+            attrs['data-language'] = 'ko'
+        if attrs.get('id') in ('language-en', 'language-ko'):
+            selected = attrs['id'] == 'language-ko'
+            attrs['href'] = './' if selected else '../'
+            attrs['aria-current'] = 'true' if selected else 'false'
         if attrs.get('id') == 'error':
             attrs['data-load-error'] = self.catalog[attrs['data-load-error']]
         serialized = ''.join(f' {name}' if value is None else f' {name}="{escape(value, quote=True)}"' for name, value in attrs.items())
         if not parent_translated:
             self.output.append(f'<{tag}{serialized}>')
             if key:
-                self.output.append(escape('English' if key == 'language-switch' else self.catalog[key]))
+                self.output.append(escape(self.catalog[key]))
         if tag not in self.VOID:
             self.frames.append(bool(key) or parent_translated)
 

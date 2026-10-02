@@ -13,9 +13,9 @@
     <link rel="alternate" hreflang="x-default" href="https://bttlbmb.github.io/ddareungiwhere/">
     <link rel="icon" type="image/svg+xml" href="../assets/city-basket.svg">
     <link rel="stylesheet" href="../vendor/leaflet.css">
-    <link rel="stylesheet" href="../style.css?v=cff33d800117e3c0">
+    <link rel="stylesheet" href="../style.css?v=95954d233fd98037">
     <script src="../vendor/leaflet.js" defer></script>
-    <script type="module" src="../static/start.mjs?v=cff33d800117e3c0"></script>
+    <script type="module" src="../static/start.mjs?v=95954d233fd98037"></script>
   </head>
   <body>
     <header class="site-header">
@@ -23,7 +23,10 @@
         <img class="brand-mark" src="../assets/city-basket.svg" width="48" height="42" alt="">
         <span class="brand-wordmark"><span lang="ko">따릉이</span> Where?</span>
       </a>
-      <a id="language-switch" class="text-button language-switch" href="../" lang="en" hreflang="en" aria-label="영어로 전환">English</a>
+      <div id="language-switch" class="language-switch" data-language="ko" role="group" data-i18n-aria-label="Language" aria-label="언어">
+        <a id="language-en" href="../" data-language="en" lang="en" hreflang="en" aria-current="false" data-i18n-aria-label="Switch to English" aria-label="영어로 전환">ENG</a>
+        <a id="language-ko" href="./" data-language="ko" lang="ko" hreflang="ko" aria-current="true" data-i18n-aria-label="Switch to Korean" aria-label="한국어로 전환">한국어</a>
+      </div>
       <p class="site-description" data-i18n="Plan your trip with Seoul’s public bikes.">따릉이로 이동할 계획을 세워 보세요.</p>
     </header>
     <main>
