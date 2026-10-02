@@ -10,6 +10,8 @@ The approved **City basket** logo, selected 2026-10-02, is a compact bicycle wit
 
 ## Approved appearance
 
+Search/browser title approved 2026-10-02: **Seoul Public Bike Trip Planner — 따릉이 Where?** The HTML meta description is **Plan a Seoul public-bike trip with Ddareungi (따릉이). Compare five nearby stations, current bike counts, and estimated walking and cycling times.** These are page metadata; the header wordmark and its selected description retain their existing text and appearance.
+
 The selected layout is **Route Ribbon**, with the **Slate & Teal** refinement: the third option in both relevant proposal sets. Implemented 2026-09-30. Earlier lime green felt too aggressive. Use calm teal sparingly; stronger useful color accents come from bike-count boxes. Keep the page light, elegant, and slightly playful through the logo, A/B markers, ranks, and counts.
 
 | Role | Current colors | Use |

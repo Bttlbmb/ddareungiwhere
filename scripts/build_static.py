@@ -35,7 +35,7 @@ def build(sdk, output, graph_url='', months=6, history_db=None):
     output.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix='.static-', dir=output.parent))
     try:
-        for name in ['app.js', 'style.css']:
+        for name in ['app.js', 'style.css', 'sitemap.xml']:
             shutil.copyfile(ROOT / 'web' / name, staging / name)
         for name in ['vendor', 'assets', 'static']:
             shutil.copytree(ROOT / 'web' / name, staging / name)

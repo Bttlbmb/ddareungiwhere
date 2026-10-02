@@ -78,6 +78,14 @@ node --test tests/test_frontend.cjs tests/test_static.mjs
 
 ## Publish
 
+### Search metadata and Search Console
+
+Approved 2026-10-02. `web/index.html` owns the page title, meta description, public Google site-verification tag and absolute canonical URL, `https://bttlbmb.github.io/ddareungiwhere/`. Keep the verification tag present after initial verification. `web/sitemap.xml` lists only that homepage; the build copies it into the generated site and the publisher includes it in `docs/`. Update both the canonical URL and sitemap if the public address changes. No route/data assets are sitemap entries, and no `lastmod` date is claimed.
+
+After publishing, verify the URL-prefix property `https://bttlbmb.github.io/ddareungiwhere/` in Search Console, submit `https://bttlbmb.github.io/ddareungiwhere/sitemap.xml`, and inspect/request indexing for the homepage. These files support verification and discovery; they do not confirm indexing, ranking or traffic. A project-level `robots.txt` is ineffective because crawlers read that file at the host root, `https://bttlbmb.github.io/robots.txt`. References: [Google ownership verification](https://support.google.com/webmasters/answer/9008080?hl=en), [sitemap guidance](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap), [robots location rules](https://developers.google.com/crawling/docs/robots-txt/create-robots-txt).
+
+### Publication checkout
+
 GitHub Pages is configured for `main` → `/docs`. In this source workspace the separate SSH Git checkout is `dist/publication`:
 
 ```sh

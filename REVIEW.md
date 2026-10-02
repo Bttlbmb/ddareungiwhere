@@ -114,3 +114,11 @@ All **6 Python** and **39 Node** checks passed. The standard local static build 
 ## Mouse-wheel map zoom — 2026-10-02
 
 Enabled Leaflet's pointer-centered mouse-wheel zoom at the user's request. This publication contains only wheel zoom and its documentation; the separate code/documentation audit remains local. The isolated build from the published branch passed all **6 Python** and **39 Node** checks using retained inputs and the unchanged SDK/graph. Local browser wheel gestures zoomed in and out while both points stayed unset and Compare stations stayed disabled. An independent source review confirmed zoom/pan only redraw visible stations, without comparing or refreshing bikes. The allowlisted publisher's credential/file-size scan and Git whitespace check passed. These checks are desktop browser evidence, not physical-phone or route-accuracy measurements.
+
+## Search metadata and verification — 2026-10-02
+
+Implemented the approved **Seoul Public Bike Trip Planner — 따릉이 Where?** page title, the selected meta description, the user-supplied public Google verification tag, and the absolute canonical homepage URL. Added a source-owned single-URL sitemap, copied by the standard build. No `lastmod` date is claimed. DESIGN records the title/description; STATIC_SETUP records verification, sitemap submission and the host-root robots constraint.
+
+All **8 Python** and **55 Node** checks passed in the source workspace with Python 3.11. An isolated source based on published commit `fe4c663`, containing only these metadata/build/documentation changes, passed **6 Python** and **39 Node** checks. The standard builds use the retained inputs and unchanged pinned SDK/graph; no map or archive was downloaded or rebuilt. Publication is isolated from the earlier unpublished audit. These checks do not establish Google verification, indexing, ranking or search traffic.
+
+The generated metadata and XML sitemap were parsed and checked for the exact approved text/tag and matching canonical URL. With the same Python 3.14 build runtime as the published baseline, only generated `index.html` and the new `sitemap.xml` differ; the page body and all runtime/data/style assets are byte-identical to that baseline. The allowlisted publisher's credential/file-size scan and Git whitespace check passed.
