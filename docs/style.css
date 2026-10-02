@@ -574,12 +574,6 @@ tbody tr.chosen td:first-child {
 [hidden] {
   display: none !important;
 }
-@media (max-width: 1000px) {
-
-  .map-bottom span:last-child {
-    display: none;
-  }
-}
 @media (max-width: 700px) {
 
   :root {
@@ -816,6 +810,25 @@ body {
   min-height: 0;
 }
 
+/* Keyboard point selection uses the map center without adding a toolbar control. */
+#map:focus-visible::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 24px;
+  transform: translate(-50%, -50%);
+  z-index: 650;
+  pointer-events: none;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background:
+    linear-gradient(var(--ink), var(--ink)) center / 2px 100% no-repeat,
+    linear-gradient(var(--ink), var(--ink)) center / 100% 2px no-repeat;
+  box-shadow: 0 0 0 2px #fff;
+}
+
 .map-toolbar, .map-bottom {
   flex: 0 0 auto;
 }
@@ -978,10 +991,6 @@ body {
   }
 }
 
-.map-bottom > span:last-child {
-  display: inline-flex;
-}
-
 .origin-field {
   min-width: 0;
 }
@@ -1023,7 +1032,9 @@ body {
 }
 
 .results-body {
+  container: comparison / inline-size;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   min-height: 0;
   overscroll-behavior: contain;
   padding: 0 12px 12px;
@@ -1247,6 +1258,64 @@ main {
     padding: 8px 0 12px;
   }
 
+  .secondary-button {
+    min-height: 32px;
+  }
+}
+
+/* The return row shares the departure name, number, marker and duration styles. */
+#return-heading {
+  padding: 18px 6px 12px;
+}
+.return-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+.return-station, .return-walk {
+  padding: 0 12px;
+  min-width: 0;
+}
+.return-station-info {
+  min-width: 0;
+}
+#return-name {
+  display: block;
+}
+#return-name:hover {
+  text-decoration: none;
+}
+.return-rank {
+  flex: 0 0 25px;
+  outline: 1px solid var(--line);
+  outline-offset: -1px;
+}
+.return-rank svg {
+  width: 16px;
+  height: 16px;
+}
+.return-walk {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.destination-arrow {
+  color: var(--muted);
+}
+#return-destination {
+  padding: 5px 10px;
+  border-radius: 5px;
+  background: var(--bike-good-soft);
+  color: var(--bike-good);
+  font-size: 14px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+/* Reflow when the table's own content area cannot fit its 540px columns.
+   The desktop planner and headings still follow the page breakpoint. */
+@container comparison (max-width: 540px) {
   .table-wrap {
     border-radius: 0;
     overflow: visible;
@@ -1302,64 +1371,9 @@ main {
 
   .station-name {
     max-width: none;
-  }
-
-  .station-name, .secondary-button {
     min-height: 32px;
   }
-}
 
-/* The return row shares the departure name, number, marker and duration styles. */
-#return-heading {
-  padding: 18px 6px 12px;
-}
-.return-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: center;
-  padding: 18px 0;
-  border-bottom: 1px solid var(--line);
-}
-.return-station, .return-walk {
-  padding: 0 12px;
-  min-width: 0;
-}
-.return-station-info {
-  min-width: 0;
-}
-#return-name {
-  display: block;
-}
-#return-name:hover {
-  text-decoration: none;
-}
-.return-rank {
-  flex: 0 0 25px;
-  outline: 1px solid var(--line);
-  outline-offset: -1px;
-}
-.return-rank svg {
-  width: 16px;
-  height: 16px;
-}
-.return-walk {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-}
-.destination-arrow {
-  color: var(--muted);
-}
-#return-destination {
-  padding: 5px 10px;
-  border-radius: 5px;
-  background: var(--bike-good-soft);
-  color: var(--bike-good);
-  font-size: 14px;
-  font-weight: 700;
-  overflow-wrap: anywhere;
-}
-@media (max-width: 700px) {
   .return-row {
     gap: 9px 14px;
     padding: 14px 4px;
@@ -1377,5 +1391,90 @@ main {
     padding: 0;
     flex-wrap: wrap;
     gap: 4px 8px;
+  }
+}
+
+/* Keep the existing phone layout when container queries are unavailable. */
+@supports not (container-type: inline-size) {
+  @media (max-width: 700px) {
+    .table-wrap {
+      border-radius: 0;
+      overflow: visible;
+    }
+
+    #station-table {
+      min-width: 0;
+    }
+
+    #station-table, #station-rows {
+      display: block;
+    }
+
+    #station-table thead {
+      display: none;
+    }
+
+    #station-rows tr {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 9px 14px;
+      padding: 14px 4px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    #station-rows td {
+      padding: 0;
+      border: 0;
+    }
+
+    #station-rows td:first-child {
+      grid-column: 1 / -1;
+      position: static;
+      max-width: none;
+      width: auto;
+      padding: 0 0 5px;
+      background: transparent;
+    }
+
+    #station-rows td[data-heading]::before {
+      content: attr(data-heading);
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 400;
+      white-space: normal;
+      margin-bottom: 4px;
+    }
+
+    .station-rank {
+      display: grid;
+    }
+
+    .station-name {
+      max-width: none;
+      min-height: 32px;
+    }
+
+    .return-row {
+      gap: 9px 14px;
+      padding: 14px 4px;
+    }
+
+    .return-station {
+      grid-column: 1 / -1;
+      padding: 0 0 5px;
+    }
+
+    #return-name {
+      display: flex;
+      align-items: center;
+    }
+
+    .return-walk {
+      grid-column: 2;
+      padding: 0;
+      flex-wrap: wrap;
+      gap: 4px 8px;
+    }
   }
 }

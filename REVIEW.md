@@ -20,7 +20,7 @@ Seoul Bike's [official App Store developer responses](https://apps.apple.com/ca/
 
 Updated source-limit documentation and the unresolved live-access issue. Runtime code, generated assets and publication were not changed. Documentation links and evidence were checked; no runtime test run was needed for these documentation-only changes.
 
-## Exactness and storage
+## Exactness and storage — 2026-10-01
 
 All 134,832 historical cells independently decoded from the new binary matched the prior JSON summary exactly, with identical station order and coverage. Dedicated availability storage retains all 6,152,132 station/date/hour observations in 151,662,592 bytes; the former mixed rental/availability database was about 1.17 GB and is no longer required.
 
@@ -30,20 +30,20 @@ Generated site: **42,211,740 bytes**, down from 171,280,698 bytes before this pa
 
 A local Node benchmark compared the prior published source (`c7b1bee`) with the optimized modules using the same 2,735-station catalogue, historical cells, query and mocked official-feed JSON. Median of seven batches of 100 plans: **2.075 → 0.161 ms** per shortlist/history calculation (about 13× faster). Median of 15 complete synthetic refreshes: **27.422 → 4.283 ms** (about 6× faster). These isolate local logic/JSON work; they exclude network and WASM routing, so they are not end-to-end page-speed claims.
 
-## Checks
+## Checks — 2026-10-01
 
 - **6 Python checks passed**: street import/provenance and geometric boundaries; six-month exact export, missing evidence and conflicting archive rejection preserving the published database.
 - **34 Node checks passed**: manual-only queries, draft/GPS/late-response guards, expiry/zero/unknown distinctions, refresh without rerouting, KST validation, exact binary integrity, stable bounded shortlist and versioned lazy bootstrap.
 - All **10 native/browser route fixtures matched** time/distance after gzip-only WASM/tile delivery, allowing the rounded pedestrian access correction. This preserves the known Oksu detour rather than validating its plausibility.
 - Actual local browser bootstrap started with no points. Guro + In 1h comparison loaded gzip streets/stations/history and returned all five walk/ride estimates, historical Low bands and fresh direct-feed quantities. Refresh preserved estimates/history. Desktop appearance remained intact. The available browser viewport override did not change the actual viewport, so this pass does not claim a new phone-layout check.
 
-## Hosted confirmation
+## Hosted confirmation — 2026-10-01
 
 Published source/assets commit `2420a20`, module revision `9487ab71380abb6a`, verified on GitHub Pages at **2026-10-01 09:55 KST**. The hosted Guro + In 1h comparison resolved street labels, displayed all five walking/cycling estimates and historical Low bands, and fetched fresh bike quantities **27/7/11/24/10** directly from the official feed. These are dated receipt snapshots, not current promises. The deployed gzip WASM was independently decoded and byte-matched against the pinned original. Public assets matched the generated build; no raw tiles, raw WASM, SQLite or diagnostic page was included. The known local credential scan passed before retiring the unused configuration.
 
 Removed local server/proxy/rental/research files were moved outside the source workspace to a temporary private recovery folder; removal does not erase prior Git history. Cloudflare account/build settings were not changed. Most storage reduction comes from removing raw `.gph` duplicates and unused gzip siblings; it is not a claim that compressed routing tile downloads shrank by the same amount. WASM remains 9,861,835 decoded bytes, but explicit gzip delivery cuts its payload to about 2.1 MB (about 78% smaller); compressed graph tiles total 29,839,155 bytes and load as needed. The graph has not been rebuilt during this pass.
 
-## Limits
+## Limits — 2026-10-01
 
 Exact-origin Oksu pier #5651 remains unresolved. Current history covers only October–December 2025. Live quantities are dated snapshots with no provider observation time. Physical-phone memory/cold-download performance, endpoint/CORS longevity, and historical measurement semantics remain unverified. See [plan.md](plan.md).
 
@@ -119,9 +119,23 @@ Implemented the user's selected City basket proposal in the header and SVG favic
 
 All **6 Python** and **39 Node** checks passed. The standard local static build completed using retained inputs and the existing pinned SDK/graph; no maps or archives were downloaded or rebuilt. Local Chromium checks at **1440×900**, **390×844** and **320×568** confirmed the header and favicon use city-basket.svg, the image loads, no horizontal overflow occurs, the brand retains a visible keyboard focus outline, and In 1h remains reachable through the phone planner's internal scrolling. The drawn logo left edge is within 0.3 px of the planner heading on desktop and 0.1 px on phones. Screenshots were visually inspected. These are desktop browser viewport checks, not physical-phone evidence. These measurements describe the local build before publication.
 
+## Code and documentation audit — 2026-10-02
+
+Three agents independently reviewed the frontend, browser/offline tools and documentation. Changes stop obsolete comparison work, prevent changed drafts from comparing after metadata recovery, isolate immediate retries from canceled shared data loads, and check cancellation before live collection. New comparisons show a loading row instead of the previous journey. Draft edits clear busy/error state. Pickup bounds follow the current clock while preserving an explicitly chosen time.
+
+Keyboard users can focus the map, move it with arrow keys and place the active point with Enter. Instructions and a center target appear only with visible keyboard focus; popup/control keys are excluded. Enter stops an unfinished pan before choosing the visible center. Street imports now reject external source paths and invalid provenance manifests before replacing existing data. README and owning documents clarify use, data limits, workspace/publication paths and maintenance; historical checks retain their original dates. All local Markdown links across ten documents resolve.
+
+All **8 Python** checks passed with Python 3.14; all **55 Node** checks passed. Independent agents also checked the supported Python 3.11 runtime, shared-load cancellation, street shard boundaries/cache/retry behavior, and isolated build/publication boundaries. The standard build succeeded with retained inputs and the unchanged pinned SDK/graph. No maps or archives were downloaded or rebuilt; native/browser route parity was not rerun in this pass.
+
+Local in-app browser checks at **1440×900**, **390×844** and **320×568** confirmed keyboard placement, normal point selection, explicit pickup entry, real walk/ride estimates, historical bands, received live quantities, Back to map, focus and internal scrolling. Page, form and results widths had no horizontal overflow; destination/refresh controls remained reachable. After the pan repair, the destination pin center matched the visible map center on both axes. Refresh preserved displayed route/history estimates. These are desktop browser viewport checks, not physical-phone or overseas-network evidence. Known Oksu routing, historical coverage and physical-phone limits remain in [plan.md](plan.md). This audit is local and has not been published.
+
+The allowlisted publication checkout was prepared with module revision `a4c88b6a4efbc430`; the credential/file-size scan and Git whitespace check passed. Diagnostics were excluded. Changes remain uncommitted and unpushed.
+
 ## Mouse-wheel map zoom — 2026-10-02
 
-Enabled Leaflet's pointer-centered mouse-wheel zoom at the user's request. This publication contains only wheel zoom and its documentation; the separate code/documentation audit remains local. The isolated build from the published branch passed all **6 Python** and **39 Node** checks using retained inputs and the unchanged SDK/graph. Local browser wheel gestures zoomed in and out while both points stayed unset and Compare stations stayed disabled. An independent source review confirmed zoom/pan only redraw visible stations, without comparing or refreshing bikes. The allowlisted publisher's credential/file-size scan and Git whitespace check passed. These checks are desktop browser evidence, not physical-phone or route-accuracy measurements.
+Enabled Leaflet's pointer-centered mouse-wheel zoom at the user's request. All **8 Python** and **55 Node** checks passed, and the standard build completed with retained inputs. An independent source review confirmed zoom/pan only redraw visible stations, without comparing or refreshing bikes. Local browser wheel gestures changed tile zoom from 14 to 15 and back to 14 while both points remained unset and comparison stayed disabled. At 320×568, scrolling over the planner moved its internal scroll position without zooming the map or creating horizontal overflow. This is desktop browser evidence, not a physical-phone check. The allowlisted publication/credential scan and Git whitespace check passed; these measurements describe the combined local build before publication.
+
+Published only wheel zoom and its documentation in commit `fe4c663` on `main`. The isolated publication build passed **6 Python** and **39 Node** checks, preserving the published branch's other behavior. GitHub Pages module revision `76f4cf2349ea0f25` was verified at **2026-10-02 11:19 KST**; an actual hosted wheel gesture changed zoom 14 to 15 without setting points or enabling comparison. The earlier audit remains local and unpublished. The original publication checkout was advanced to this commit with its audit work preserved; a Git stash also retains the pre-push local snapshot.
 
 ## Search metadata and verification — 2026-10-02
 
@@ -130,6 +144,8 @@ Implemented the approved **Seoul Public Bike Trip Planner — 따릉이 Where?**
 All **8 Python** and **55 Node** checks passed in the source workspace with Python 3.11. An isolated source based on published commit `fe4c663`, containing only these metadata/build/documentation changes, passed **6 Python** and **39 Node** checks. The standard builds use the retained inputs and unchanged pinned SDK/graph; no map or archive was downloaded or rebuilt. Publication is isolated from the earlier unpublished audit. These checks do not establish Google verification, indexing, ranking or search traffic.
 
 The generated metadata and XML sitemap were parsed and checked for the exact approved text/tag and matching canonical URL. With the same Python 3.14 build runtime as the published baseline, only generated `index.html` and the new `sitemap.xml` differ; the page body and all runtime/data/style assets are byte-identical to that baseline. The allowlisted publisher's credential/file-size scan and Git whitespace check passed.
+
+Published only the approved SEO additions in commit `d11acc1` on `main`. The live homepage and sitemap both returned HTTP 200 and byte-matched the isolated publication files at **2026-10-02 13:20 KST**. The verification tag is present in the initial hosted HTML; Search Console ownership verification and indexing remain actions/statuses in Google's service. The original publication checkout was advanced with every working file preserved and a recoverable Git snapshot; the earlier audit remains local.
 
 ## Bilingual interface and discovery, 2026-10-02
 
@@ -145,6 +161,8 @@ Measured against published `d11acc1`: shared app.js grows **24,150→38,938 byte
 
 The exact release preview subsequently received **14/5/1/2/3** at **14:10 KST**; route/history estimates remained unchanged. At 390px the footer was reachable by internal scrolling; at 320px the page/results had no horizontal overflow and keyboard focus reached Compare stations after the time shortcuts. An open station popup switched its two selection actions and close-button accessibility label in place. Routing/SDK/history/station assets (42 files) are byte-identical to the published baseline, and every street shard retains identical cell IDs, geometry and English labels. Only the processed street fingerprint changes semantically in the provenance manifest.
 
+Published the bilingual release in commit **d4feeef**, module revision **cff33d800117e3c0**. During **2026-10-02 14:16–14:20 KST**, hosted English/Korean HTML, sitemap and shared app bundle returned successfully and byte-matched the tested release. Initial Korean HTML contains the verification tag, translated metadata, self-canonical and matching alternate links. The hosted Korean page loaded the map, started empty, and preserved a manually selected origin and pickup through English→Korean switching; the cached label changed Cheonggyecheon-ro↔청계천로. Search Console indexing remains unverified. The original publication checkout was advanced to the release while preserving all 195 working files and a recoverable tracked Git snapshot; prior audit changes remain local.
+
 
 ## 2026-10-02 — Mint capsule language selector
 
@@ -155,6 +173,9 @@ Source checks: **13 Python** and **60 Node** pass. The isolated release from pub
 Local browser checks at **1440×900**, **390×844** and **320×568** showed both positions fit the header without horizontal overflow. Keyboard Enter selected Korean with visible focus on the same link. A comparison completed after a switch; selected departure, pickup and all five numeric walk/ride estimates survived another switch. Results scrolling remained at **378 px** through Korean→English; at the bottom, the browser naturally clamps to the shorter translated content's maximum. Footer controls remain reachable. The exact release opened directly in Korean, then preserved a selected origin and pickup through switching and Back/forward. These are desktop browser viewport checks, not physical-phone evidence. Earlier audit changes remain local and are excluded from this release.
 
 
+Hosted release **b526cd4**, module revision **95954d233fd98037**, was verified on GitHub Pages during **2026-10-02 14:56–14:59 KST**. English/Korean HTML, the stylesheet, app bundle and sitemap returned HTTP 200 and byte-matched the tested release; the Pages deployment reported success. The actual hosted capsule displayed the shared mint color and selected Korean position at 320 px, and English→Korean switching retained one manually selected origin and pickup with keyboard focus on the Korean link. Full and header-context screenshots are retained locally in `dist/language-capsule-live.png` and `dist/language-capsule-header.png`. The publication baseline was advanced to b526cd4 with all 195 working files preserved and recoverable tracked snapshot `5c150d2`; prior audit work remains local.
+
+
 ## 2026-10-02 — Whole-capsule language toggle
 
 At the user's follow-up request, clicking anywhere in the mint capsule now toggles to the other language, including the currently selected ENG or 한국어 label. The full capsule is one native language link and one focus stop; its destination and accessible action label update after each toggle. The selected mint position, fixed labels, reduced-motion treatment and capsule dimensions are retained. Native modified/new-tab navigation still opens the other language normally.
@@ -163,6 +184,9 @@ Source checks: **13 Python** and **60 Node** pass. The isolated release from pub
 
 Actual local browser checks at **320×568** clicked both labels while selected and while unselected, plus the top track padding: each click changed language exactly once. At **1440×900**, keyboard Enter toggled with a visible focus outline around the entire capsule while retaining a manually selected origin and pickup. No horizontal page overflow occurred at either size. These are desktop browser viewport checks, not physical-phone evidence. Prior audit changes remain local and excluded from the isolated release.
 
+
+Published commit **e672e76**, module revision **4dbcbb51cf61e77b**, verified **2026-10-02 15:12–15:14 KST**. Pages deployment reported success; hosted English/Korean HTML, app bundle and stylesheet byte-matched the tested release. At 390×844, actual hosted clicks on the current ENG label, current 한국어 label, each opposite label and track padding each toggled once; no horizontal overflow occurred. Screenshots are retained in `dist/language-toggle-live.png` and `dist/language-toggle-header.png`. The publication baseline advanced with all 195 working files preserved and recoverable tracked snapshot `76da7a5`; prior audit work remains local.
+
 ## Documentation review — 2026-10-02
 
 Reviewed all ten owning Markdown documents against the source workspace and the isolated published baseline. Updated nine; AGENTS already matches the project. Reconciled whole-capsule interaction and keyboard behavior, mint usage, Korean 근처 wording, translation/metadata ownership, retained archive dates, screenshot status and publication scope. Added Search Console follow-through to the remaining-work list; existing historical evidence remains dated and earlier local audit changes remain unpublished.
@@ -170,3 +194,17 @@ Reviewed all ten owning Markdown documents against the source workspace and the 
 All local Markdown targets exist: **32 references** in the source workspace and **31** in the release source. All **19 external link destinations** responded successfully after using normal GET requests where HEAD was unsupported; Google verification/sitemap/robots/localized-page rules and GitHub Pages availability were checked against their official documentation. These link checks do not establish the live inventory feed's browser functionality or overseas reachability.
 
 Checked documented command options and file paths, and parsed the committed English/Korean HTML and sitemap to confirm verification metadata, self-canonicals, reciprocal alternatives and selected/target language attributes. Source runtime, scripts, tests, public inputs and preview assets are byte-identical to the pre-review snapshot. The release reuses the committed site; its diff contains only nine Markdown documents. The allowlisted publisher, retained-credential scan and Git whitespace check passed. No runtime test run, map/archive download or rebuild was needed for this documentation-only update.
+
+Published the documentation-only update as **dd15d88** on `main`; GitHub’s commit endpoint and hosted README matched the release. All nine changed files are Markdown; app/data/test assets remain unchanged. The original publication checkout advanced with all 195 working files preserved and recoverable tracked snapshot `1eab84f`; earlier audit work remains local.
+
+## Selected small improvements — 2026-10-02
+
+Implemented the user's selected proposals **1–4 and 6**. Map legend captions remain visible at narrow widths. Results use the existing two-column station/destination layout when their available content width is at most 540 px, retaining the desktop planner; a stable scrollbar gutter prevents the threshold moving when vertical scrolling appears, and older browsers retain the original phone-width fallback. A popup departure choice advances to destination mode only if B is unset. Both language entries preload exactly the lightweight versioned app module used by the coordinator, without evaluating it before configuration. The English pickup label is unchanged.
+
+The release also includes the previously reviewed frontend audit: keyboard map placement, current-clock pickup shortcuts/bounds, draft cancellation, obsolete-response guards and isolation of immediate metadata/history retries from canceled shared loads. Visible map-size synchronization covers translated legends and focus instructions before keyboard center placement. The offline street-import source/provenance validation changes remain local and are excluded from this isolated release, prepared from published `dd15d88`.
+
+Source checks pass **14 Python** and **63 Node** tests; the isolated release excludes the two offline guard tests and passes **12 Python** and **63 Node** checks. Builds used retained inputs and the unchanged pinned SDK/graph, without downloading maps or archives. All **15 native/browser route fixtures** pass against Valhalla 3.8.3 `a60c7cbfc`; a real engine initialization canceled after 10 ms then retried successfully, matching its native fixture. Route parity includes the known long Oksu exact-origin result and does not resolve it.
+
+Local browser checks at **1440×900**, **882×900**, **390×844** and **320×568** inspected layout, focus and internal scrolling. Controlled long-name results and actual central-Seoul journeys have no horizontal page/results overflow; keyboard focus reaches the final row and Refresh bikes. At 934 px the panel keeps table columns with 541 px of content; at 933 px it reflows at 540 px, while preserving the planner. At 650 px its 587 px content fits the table. These are desktop viewport checks, not physical-phone evidence. A popup-selected A was preserved by the next map click selecting B; comparisons remain manual. Dated local receipt quantities are observations, not availability promises.
+
+A local resource-timing probe saw one app-module request begin before configuration loading; station/history metadata followed normal initialization, with no initial live, historical-count, street-shard or routing download. This verifies request ordering, not an end-to-end speed improvement on physical phones. The build's exact preload/import URL match is also covered in both languages. All local Markdown targets resolve; diagnostics are excluded from publication.

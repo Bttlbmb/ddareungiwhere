@@ -13,9 +13,10 @@
     <link rel="alternate" hreflang="x-default" href="https://bttlbmb.github.io/ddareungiwhere/">
     <link rel="icon" type="image/svg+xml" href="../assets/city-basket.svg">
     <link rel="stylesheet" href="../vendor/leaflet.css">
-    <link rel="stylesheet" href="../style.css?v=4dbcbb51cf61e77b">
+    <link rel="stylesheet" href="../style.css?v=58117882d95b0d7b">
+    <link rel="modulepreload" href="../app.js?v=58117882d95b0d7b">
     <script src="../vendor/leaflet.js" defer></script>
-    <script type="module" src="../static/start.mjs?v=4dbcbb51cf61e77b"></script>
+    <script type="module" src="../static/start.mjs?v=58117882d95b0d7b"></script>
   </head>
   <body>
     <header class="site-header">
@@ -80,7 +81,7 @@
                 ↗ <span data-i18n="Fit journey">출발지·목적지 보기</span>
               </button>
             </div>
-            <div id="map" data-i18n-aria-label="Interactive station map" aria-label="위치를 선택할 수 있는 따릉이 대여소 지도" role="region"></div>
+            <div id="map" data-i18n-aria-label="Interactive station map" aria-label="위치를 선택할 수 있는 따릉이 대여소 지도" aria-describedby="map-instruction" role="region"></div>
             <div id="map-error" class="map-error" hidden>
               <span data-i18n="Map tiles are unavailable. Station markers and comparisons still work.">배경 지도를 불러올 수 없습니다. 대여소 표시와 비교 기능은 계속 사용할 수 있습니다.</span>
             </div>
@@ -123,7 +124,7 @@
                   <div class="return-walk"><span id="return-walk-time" class="ride-duration"></span><span class="destination-arrow" aria-hidden="true">→</span><span id="return-destination"></span></div>
                 </div>
               </section>
-              <div class="results-footer">
+              <div id="results-footer" class="results-footer">
                 <span class="muted"><span id="fetch-time"></span><span class="fetch-separator"> · </span><span data-i18n="time estimates via Valhalla / OpenStreetMap">예상 이동 시간: Valhalla / OpenStreetMap</span>
                   <span class="footer-refresh">· <button id="refresh-live" class="text-button" type="button" data-i18n="↻ Refresh bikes">↻ 자전거 수 갱신</button></span></span>
               </div>

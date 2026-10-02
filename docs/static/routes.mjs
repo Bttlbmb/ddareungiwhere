@@ -58,7 +58,7 @@ export class BrowserRoutes {
   async getRouter() {
     if (!this.routerPromise) {
       this.routerPromise = (async () => {
-        const {Router} = await import('../vendor/valhalla/index.js?v=4dbcbb51cf61e77b');
+        const {Router} = await import('../vendor/valhalla/index.js?v=58117882d95b0d7b');
         return new Router({manifestUrl: new URL(this.config.manifestUrl, this.base).href,
           transport: 'individual-tiles', memoryBudgetBytes: 96 * 1024 * 1024,
           wasmMemory: {initialMiB: 64, maximumMiB: 512}, timeoutMs: 15000, retries: 1});

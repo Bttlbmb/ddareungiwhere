@@ -12,6 +12,6 @@ Reviewed 2026-10-02. These entries are proposals/issues, not instructions to imp
 
 Completed in the 2026-10-01 static-only cleanup: dedicated availability storage, exact binary summary, lazy loading, linear live merge, bounded stable shortlist, gzip-only routing/street/station publication, single worker initialization, bounded diagnostics and static-only documentation. Evidence is in [REVIEW.md](REVIEW.md).
 
-Published on 2026-10-02: City basket identity, mouse-wheel map zoom, approved search metadata/verification tag, English/Korean entries and street labels, and the mint language capsule with whole-control toggling. Earlier audit changes to keyboard map placement, cancellation/retry handling, pickup-clock updates and street-import validation remain local and unpublished; they are not part of those releases.
+Published on 2026-10-02: City basket identity, mouse-wheel map zoom, approved search metadata/verification tag, English/Korean entries and street labels, and the mint language capsule with whole-control toggling. The selected small-improvement release is prepared with visible map legends, results-panel reflow, conditional popup progression and app module preloading, plus the earlier keyboard map placement, cancellation/retry and pickup-clock safeguards. Offline street-import source/provenance validation remains local and unpublished. Publication evidence is recorded in REVIEW.
 
 Deferred: turn-by-turn directions, address search, booking, accounts, saved journeys, destination-capacity forecasts, weather, alerts and background collection.

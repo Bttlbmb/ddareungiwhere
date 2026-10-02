@@ -1,4 +1,3 @@
-import {StreetLabels} from '../web/static/streets.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {StaticPlanner,pickupTime,distance} from '../web/static/planner.mjs';
@@ -6,6 +5,7 @@ import {BrowserRoutes,routeEstimate} from '../web/static/routes.mjs';
 import {StaticService} from '../web/static/service.mjs';
 import {fetchWebsiteInventory,normalized} from '../web/static/live.mjs';
 import {loadHistory} from '../web/static/data.mjs';
+import {StreetLabels} from '../web/static/streets.mjs';
 import {createHash} from 'node:crypto';
 import {gzipSync} from 'node:zlib';
 
@@ -144,6 +144,94 @@ test('bootstrap versions compressed seed data and leaves history cells lazy',asy
   } finally {globalThis.fetch=original;}
 });
 
+test('an immediate metadata retry is isolated from an earlier canceled caller',async()=>{
+  const original=globalThis.fetch,old=new AbortController(),current=new AbortController();
+  const service=new StaticService(new URL('https://example.test/'),{});
+  let calls=0;
+  globalThis.fetch=async(url,{signal})=>{
+    calls++;
+    if(signal===old.signal)return new Promise((resolve,reject)=>{
+      signal.addEventListener('abort',()=>reject(signal.reason),{once:true});
+    });
+    return new URL(url).pathname.endsWith('stations.json.gz')
+      ? new Response(gzipSync(JSON.stringify(stations))) : Response.json({schema:2,stations:['1']});
+  };
+  try {
+    const abandoned=service.load(old.signal);old.abort();
+    const restarted=service.load(current.signal);
+    const [first,second]=await Promise.allSettled([abandoned,restarted]);
+    assert.equal(first.status,'rejected');assert.equal(first.reason.name,'AbortError');
+    assert.equal(second.status,'fulfilled');assert.equal(current.signal.aborted,false);
+    assert.equal(calls,4);assert.equal(service.stations.length,stations.length);
+    await service.load(current.signal);assert.equal(calls,4);
+    assert.equal(service.historyReady,null);assert.equal(service.routes.routerPromise,null);
+  } finally {globalThis.fetch=original;}
+});
+
+test('an immediate history retry is isolated from an earlier canceled caller',async()=>{
+  const bytes=Buffer.alloc(48*4),original=globalThis.fetch;
+  const service=new StaticService(new URL('https://example.test/'),{});
+  service.stations=stations;service.history={schema:2,stations:['1'],counts_url:'counts.bin',
+    counts_sha256:createHash('sha256').update(bytes).digest('hex')};
+  const old=new AbortController(),current=new AbortController();let calls=0;
+  globalThis.fetch=async(url,{signal})=>{
+    calls++;
+    if(signal===old.signal)return new Promise((resolve,reject)=>{
+      signal.addEventListener('abort',()=>reject(signal.reason),{once:true});
+    });
+    return new Response(bytes);
+  };
+  try {
+    const abandoned=service.loadPlanner(old.signal);old.abort();
+    const restarted=service.loadPlanner(current.signal);
+    const [first,second]=await Promise.allSettled([abandoned,restarted]);
+    assert.equal(first.status,'rejected');assert.equal(first.reason.name,'AbortError');
+    assert.equal(second.status,'fulfilled');assert.equal(current.signal.aborted,false);
+    assert.equal(calls,2);assert.ok(service.planner);
+    await service.loadPlanner(current.signal);assert.equal(calls,2);
+    assert.equal(service.routes.routerPromise,null);
+  } finally {globalThis.fetch=original;}
+});
+
+test('ordinary initialization failures require an explicit retry',async()=>{
+  const original=globalThis.fetch;let calls=0;
+  globalThis.fetch=async()=>{calls++;throw new Error('Connection failure');};
+  try {
+    const service=new StaticService(new URL('https://example.test/'),{});
+    await assert.rejects(service.load(new AbortController().signal),/Connection failure/);
+    assert.equal(calls,2);assert.equal(service.loaded,null);
+    service.history={schema:2,stations:['1'],counts_url:'counts.bin'};
+    await assert.rejects(service.loadPlanner(new AbortController().signal),/Connection failure/);
+    assert.equal(calls,3);assert.equal(service.historyReady,null);
+    const canceled=new AbortController();canceled.abort();
+    await assert.rejects(service.load(canceled.signal),{name:'AbortError'});
+    await assert.rejects(service.loadPlanner(canceled.signal),{name:'AbortError'});
+    assert.equal(calls,3);
+  } finally {globalThis.fetch=original;}
+});
+
+test('canceling while history finishes cannot start planning or live collection',async()=>{
+  const bytes=Buffer.alloc(48*4),original=globalThis.fetch;
+  const service=new StaticService(new URL('https://example.test/'),{});
+  service.loaded=Promise.resolve();service.stations=stations;
+  service.history={schema:2,stations:['1'],counts_url:'counts.bin',
+    counts_sha256:createHash('sha256').update(bytes).digest('hex')};
+  let refreshes=0,resolveData,started;
+  service.refresh=()=>refreshes++;
+  service.routes={estimate(){throw new Error('Canceled operation routed');}};
+  const fetching=new Promise(resolve=>started=resolve);
+  globalThis.fetch=()=>{started();return new Promise(resolve=>resolveData=resolve);};
+  try {
+    const controller=new AbortController(),q=query();q.delete('pickup');
+    const pending=service.request(`/api/plan?${q}`,{signal:controller.signal});
+    await fetching;controller.abort();resolveData(new Response(bytes));
+    await assert.rejects(pending,{name:'AbortError'});assert.equal(refreshes,0);
+    service.planner={plan(){throw new Error('Canceled operation validated');}};
+    await assert.rejects(service.compare(new URLSearchParams(),controller.signal),{name:'AbortError'});
+    assert.equal(refreshes,0);
+  } finally {globalThis.fetch=original;}
+});
+
 test('comparison calculates one forward return-to-destination walk and retains independent route failures',async()=>{
   const service=new StaticService(new URL('http://localhost/'),{}),calls=[];
   service.stations=stations;service.planner=new StaticPlanner(stations,history);
@@ -183,6 +271,7 @@ test('walking endpoint roles reach the router and use separate cache entries',as
   assert.equal((await engine.estimate(a,a,'pedestrian',undefined,{stationAtOrigin:true})).minutes,0);
 });
 
+// Export-shaped shards exercise browser geometry and cross-shard cell lookup.
 function streetFixture(segments) {
   const shards=new Map();
   for(const segment of segments) {
@@ -207,6 +296,31 @@ function streetFixture(segments) {
   return {labels,calls};
 }
 
+test('browser street labels find segment interiors and use versioned gzip shards',async()=>{
+  const {labels,calls}=streetFixture([
+    [0,'Long road',37.5601,126.96,37.5601,126.98],
+    [1,'Nearby endpoint',37.5605,126.9701,37.561,126.9701]
+  ]);
+  const result=await labels.lookup(37.5601,126.9701);
+  assert.equal(result.label,'Long road');assert.equal(result.distance_m,0);
+  assert.ok(calls.every(url=>url.pathname.endsWith('.json.gz')&&url.search==='?v=revision'));
+  const previous=calls.length;
+  await labels.lookup(37.5601,126.9701);
+  assert.equal(calls.length,previous);
+  await assert.rejects(labels.lookup(NaN,126.97),/Choose a location/);
+  await assert.rejects(labels.lookup(0,0),/Choose a location/);
+});
+
+test('browser street lookup searches both sides of a shard boundary',async()=>{
+  const {labels,calls}=streetFixture([
+    [0,'Across boundary',37.54995,126.969,37.54995,126.971],
+    [1,'Same side',37.5505,126.969,37.5505,126.971]
+  ]);
+  const result=await labels.lookup(37.55005,126.9701);
+  assert.equal(result.label,'Across boundary');assert.equal(result.distance_m,11);
+  assert.equal(new Set(calls.map(url=>url.pathname.split('/').at(-1).split('_')[0])).size,2);
+});
+
 test('bilingual street names share the same geometry and cached requests with legacy fallback',async()=>{
   const segments=[
     [0,'Long road',37.5601,126.96,37.5601,126.98,'긴길'],
@@ -230,4 +344,33 @@ test('bilingual street names share the same geometry and cached requests with le
   }
   assert.deepEqual(await bilingual.labels.lookup(37.7,126.97),
     {label:null,label_ko:null,distance_m:null,source:'OpenStreetMap',kind:null});
+});
+
+test('missing browser street shards produce no label while other fetch errors can retry',async()=>{
+  const missing=new StreetLabels(new URL('https://example.test/'),async()=>{
+    throw Object.assign(new Error('Not found'),{status:404});
+  });
+  assert.deepEqual(await missing.lookup(37.55,126.97),
+    {label:null,label_ko:null,distance_m:null,source:'OpenStreetMap',kind:null});
+  let calls=0;
+  const retry=new StreetLabels(new URL('https://example.test/'),async()=>{
+    if(++calls===1)throw new Error('Temporary connection failure');
+    return {cells:{},segments:[]};
+  });
+  const first=retry.shard('751_2539');
+  assert.equal(retry.shard('751_2539'),first);
+  await assert.rejects(first,/Temporary/);
+  assert.equal(retry.cache.size,0);
+  await retry.shard('751_2539');assert.equal(calls,2);
+});
+
+test('browser street shard cache remains bounded and refetches evicted entries',async()=>{
+  let calls=0;
+  const labels=new StreetLabels(new URL('https://example.test/'),async()=>{
+    calls++;return {cells:{},segments:[]};
+  });
+  for(let i=0;i<33;i++)await labels.shard(String(i));
+  assert.equal(labels.cache.size,32);assert.equal(labels.cache.has('0'),false);
+  await labels.shard('32');assert.equal(calls,33);
+  await labels.shard('0');assert.equal(calls,34);assert.equal(labels.cache.size,32);
 });

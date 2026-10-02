@@ -1,15 +1,17 @@
-import {StaticPlanner} from './planner.mjs?v=4dbcbb51cf61e77b';
-import {StreetLabels} from './streets.mjs?v=4dbcbb51cf61e77b';
-import {BrowserRoutes} from './routes.mjs?v=4dbcbb51cf61e77b';
-import {fetchWebsiteInventory} from './live.mjs?v=4dbcbb51cf61e77b';
-import {fetchJSON, loadHistory} from './data.mjs?v=4dbcbb51cf61e77b';
+import {StaticPlanner} from './planner.mjs?v=58117882d95b0d7b';
+import {StreetLabels} from './streets.mjs?v=58117882d95b0d7b';
+import {BrowserRoutes} from './routes.mjs?v=58117882d95b0d7b';
+import {fetchWebsiteInventory} from './live.mjs?v=58117882d95b0d7b';
+import {fetchJSON, loadHistory} from './data.mjs?v=58117882d95b0d7b';
 
 /** Browser-only coordinator. Command paths are internal, never HTTP endpoints. */
 export class StaticService {
   constructor(base, config) {
     this.base = base;
     this.loaded = null;
+    this.loadSignal = null;
     this.historyReady = null;
+    this.historySignal = null;
     this.stations = [];
     this.live = {refreshing: false, error: null, fetched_at: null};
     this.pendingLive = null;
@@ -20,15 +22,24 @@ export class StaticService {
 
   /** Initial map data is small; historical counts and WASM remain lazy. */
   async load(signal) {
-    if (!this.loaded) {
-      this.loaded = Promise.all(['stations', 'history'].map(name =>
-        fetchJSON(this.assetURL(`data/${name}.json${name === 'stations' ? '.gz' : ''}`), signal)
-      )).then(([stations, history]) => {
-        this.stations = stations.map(station => ({...station, bikes: null, fetched_at: null}));
-        this.history = history;
-      }).catch(error => {this.loaded = null; throw error;});
+    signal?.throwIfAborted();
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (!this.loaded) {
+        this.loadSignal = signal;
+        this.loaded = Promise.all(['stations', 'history'].map(name =>
+          fetchJSON(this.assetURL(`data/${name}.json${name === 'stations' ? '.gz' : ''}`), signal)
+        )).then(([stations, history]) => {
+          this.stations = stations.map(station => ({...station, bikes: null, fetched_at: null}));
+          this.history = history;
+        }).catch(error => {this.loaded = null; throw error;});
+      }
+      const ownerSignal = this.loadSignal;
+      try { return await this.loaded; }
+      catch (error) {
+        // A new caller may still be awaiting the canceled caller's shared load.
+        if (attempt || !ownerSignal?.aborted || signal?.aborted) throw error;
+      }
     }
-    return this.loaded;
   }
 
   assetURL(path) {
@@ -38,12 +49,20 @@ export class StaticService {
   }
 
   async loadPlanner(signal) {
-    if (!this.historyReady) {
-      this.historyReady = loadHistory(this.base, signal, this.history)
-        .then(history => {this.planner = new StaticPlanner(this.stations, history);})
-        .catch(error => {this.historyReady = null; throw error;});
+    signal?.throwIfAborted();
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (!this.historyReady) {
+        this.historySignal = signal;
+        this.historyReady = loadHistory(this.base, signal, this.history)
+          .then(history => {this.planner = new StaticPlanner(this.stations, history);})
+          .catch(error => {this.historyReady = null; throw error;});
+      }
+      const ownerSignal = this.historySignal;
+      try { return await this.historyReady; }
+      catch (error) {
+        if (attempt || !ownerSignal?.aborted || signal?.aborted) throw error;
+      }
     }
-    return this.historyReady;
   }
 
   /** One in-flight request and one attempt/minute, only following user actions. */
@@ -95,6 +114,7 @@ export class StaticService {
         return this.snapshot();
       case '/api/plan':
         await this.loadPlanner(signal);
+        signal?.throwIfAborted();
         return this.compare(url.searchParams, signal);
       default:
         throw new Error('Unknown operation.');
@@ -102,6 +122,7 @@ export class StaticService {
   }
 
   async compare(query, signal) {
+    signal?.throwIfAborted();
     const plan = this.planner.plan(query, {...this.live}); // Validate before live fetch.
     this.refresh();
     // The single WASM worker handles route jobs serially. Keep results bounded.

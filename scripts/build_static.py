@@ -85,7 +85,9 @@ def build(sdk, output, graph_url='', months=6, history_db=None):
         for path in module_paths:
             text = re.sub(r"(['\"])(\.\.?/[^'\"]+\.(?:mjs|js))\1", lambda match: f'{match[1]}{match[2]}?v={revision}{match[1]}', path.read_text())
             path.write_text(text)
-        html = (staging / 'index.html').read_text().replace('./static/start.mjs', f'./static/start.mjs?v={revision}').replace('./style.css', f'./style.css?v={revision}')
+        html = (staging / 'index.html').read_text()
+        for asset in ['./static/start.mjs', './style.css', './app.js']:
+            html = html.replace(asset, f'{asset}?v={revision}')
         (staging / 'index.html').write_text(html)
         (staging / 'ko/index.html').write_text(korean_page(html, catalog))
         # Street shards are requested explicitly compressed, including on Pages.

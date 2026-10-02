@@ -47,6 +47,7 @@ let map,
   endpointMarkers,
   pollTimer,
   bootstrapRequest,
+  comparisonController,
   tileCredit;
 const departureMarkers = new Map();
 const stationMarkers = new Map();
@@ -91,18 +92,26 @@ function hasBikeCount(station) {
   return Number.isInteger(station?.bikes) && station.bikes >= 0 &&
     Number.isFinite(Date.parse(station.fetched_at));
 }
-async function api(path) {
+async function api(path, { signal } = {}) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
+  const cancel = () => controller.abort();
+  signal?.addEventListener("abort", cancel, { once: true });
+  if (signal?.aborted) cancel();
+  let timedOut = false;
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, 30000);
   try {
     // Local browser commands; these paths are never HTTP API requests.
     return await window.BikeStatic.request(path, { signal: controller.signal });
   } catch (error) {
-    if (controller.signal.aborted)
+    if (timedOut)
       throw new Error("The comparison took too long. Try again.");
     throw error;
   } finally {
     clearTimeout(timeout);
+    signal?.removeEventListener("abort", cancel);
   }
 }
 function showError(message) {
@@ -198,6 +207,7 @@ function applyLanguage(language) {
       button?.setAttribute("aria-label", t(message));
     }
   }
+  syncMapSize();
 }
 function switchLanguage(event) {
   if (event.button > 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
@@ -213,8 +223,44 @@ function setMode(mode) {
     $(`set-${name}`).classList.toggle("active", mode === name);
     $(`set-${name}`).setAttribute("aria-pressed", String(mode === name));
   }
-  $("map-instruction").textContent = t(mode === "origin"
-    ? "Click the map to set your starting point" : "Click the map to set your destination");
+  updateMapInstruction();
+}
+function syncMapSize() {
+  if (state.view !== "map" || !map) return;
+  const size = map.getSize(), container = $("map");
+  if (size.x !== container.clientWidth || size.y !== container.clientHeight)
+    map.invalidateSize({ pan: false });
+}
+function updateMapInstruction() {
+  const origin = state.mode === "origin";
+  const keyboard = document.activeElement === $("map") &&
+    $("map").matches(":focus-visible");
+  $("map-instruction").textContent = keyboard
+    ? t(origin ? "Use arrow keys to move the map. Press Enter to set your starting point." : "Use arrow keys to move the map. Press Enter to set your destination.")
+    : t(origin ? "Click the map to set your starting point" : "Click the map to set your destination");
+  syncMapSize();
+}
+function chooseMapPoint(point) {
+  const type = state.mode;
+  setPoint(type, point);
+  if (type === "origin") setMode("destination");
+  else updateMapInstruction();
+}
+function handleMapKeydown(event) {
+  // Ignore keys from station pins, popup buttons and Leaflet controls.
+  if (event.target !== $("map")) return;
+  updateMapInstruction();
+  if (event.key !== "Enter" || event.repeat || event.isComposing || !map) return;
+  event.preventDefault();
+  // Freeze an arrow-key pan before reading its visible center.
+  map.stop();
+  chooseMapPoint(map.getCenter());
+}
+function configureMapKeyboard() {
+  const container = $("map");
+  container.onfocus = updateMapInstruction;
+  container.onblur = updateMapInstruction;
+  container.onkeydown = handleMapKeydown;
 }
 function showView(view) {
   state.view = view;
@@ -379,6 +425,7 @@ function initializeMap() {
     [37.56, 126.98],
     14,
   );
+  configureMapKeyboard();
   tileCredit = osmAttribution();
   const tiles = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
@@ -394,9 +441,7 @@ function initializeMap() {
   candidateMarkers = L.layerGroup().addTo(map);
   endpointMarkers = L.layerGroup().addTo(map);
   map.on("click", (event) => {
-    const type = state.mode;
-    setPoint(type, event.latlng);
-    if (type === "origin") setMode("destination");
+    chooseMapPoint(event.latlng);
   });
   // Leaflet moves existing markers itself. Replacing them during focus/popup
   // panning can remove the click target before its activation completes.
@@ -418,6 +463,7 @@ function stationPopup(station) {
     state.departureId = station.id;
     state.selectedId = station.id;
     map.closePopup();
+    if (!state.destination) setMode("destination");
   };
   box.querySelector("[data-role=return]").onclick = () => {
     setPoint("destination", station, station.name);
@@ -502,12 +548,19 @@ function renderMapStations() {
       .bindPopup(() => stationPopup(ret))
       .addTo(candidateMarkers);
 }
+function updatePickupBounds(n = new Date()) {
+  $("pickup").min = localInput(n);
+  $("pickup").max = localInput(new Date(n.getTime() + 7 * 86400000));
+}
 function setNow() {
   state.pickup = "now";
   const n = new Date();
   $("pickup").value = localInput(n);
-  $("pickup").min = localInput(n);
-  $("pickup").max = localInput(new Date(n.getTime() + 7 * 86400000));
+  updatePickupBounds(n);
+}
+function syncPickupClock() {
+  if (state.pickup === "now") setNow();
+  else updatePickupBounds();
 }
 function setPickupOffset(minutes) {
   if (minutes === 0) setNow();
@@ -515,16 +568,20 @@ function setPickupOffset(minutes) {
     const current = new Date();
     state.pickup = localInput(new Date(current.getTime() + minutes * 60000));
     $("pickup").value = state.pickup;
-    $("pickup").min = localInput(current);
-    $("pickup").max = localInput(new Date(current.getTime() + 7 * 86400000));
+    updatePickupBounds(current);
   }
   invalidateComparison();
 }
 function invalidateComparison() {
   state.request++;
+  comparisonController?.abort();
+  comparisonController = null;
   state.plan = null;
   state.comparisonMessage = "";
+  $("results").setAttribute("aria-busy", "false");
+  showError("");
   $("return-section").hidden = true;
+  $("results-footer").hidden = true;
   $("live-error").hidden = true;
   state.awaitingLive = false;
   clearTimeout(pollTimer);
@@ -541,8 +598,14 @@ async function compare(event) {
     showError("Choose a starting point and destination on the map.");
     return;
   }
-  if (!state.history) await loadBootstrap();
-  if (state.pickup === "now") setNow();
+  if (!state.history) {
+    const draftRequest = state.request;
+    await loadBootstrap();
+    // Successful metadata recovery invalidates once. Any additional change is
+    // a newer draft that requires its own explicit comparison.
+    if (!state.history || state.request !== draftRequest + 1) return;
+  }
+  syncPickupClock();
   if (!state.origin || !state.destination) return;
   if (event) {
     showView("results");
@@ -550,8 +613,18 @@ async function compare(event) {
   }
   state.awaitingLive = true;
   const request = ++state.request;
+  comparisonController?.abort();
+  const controller = new AbortController();
+  comparisonController = controller;
+  state.plan = null;
+  clearTimeout(pollTimer);
+  renderMapStations();
   $("results").setAttribute("aria-busy", "true");
+  renderComparisonMessage("Preparing your station comparison…");
+  $("fetch-time").textContent = "";
+  $("availability-heading").textContent = t("Availability");
   $("return-section").hidden = true;
+  $("results-footer").hidden = true;
   $("live-error").hidden = true;
   $("compare-button").disabled = true;
   showError("");
@@ -566,7 +639,7 @@ async function compare(event) {
   if (state.returnId !== null) query.set("return", state.returnId);
   if (state.departureId !== null) query.set("departure", state.departureId);
   try {
-    const result = await api(`/api/plan?${query}`);
+    const result = await api(`/api/plan?${query}`, { signal: controller.signal });
     if (request !== state.request) return;
     state.plan = result;
     state.comparisonMessage = "";
@@ -584,6 +657,7 @@ async function compare(event) {
     showError(error.message);
     renderComparisonMessage("Update your journey and try again.");
   } finally {
+    if (comparisonController === controller) comparisonController = null;
     if (request === state.request) {
       $("results").setAttribute("aria-busy", "false");
       $("compare-button").disabled = !state.origin || !state.destination;
@@ -742,6 +816,7 @@ function renderRows() {
 function renderResults() {
   const data = state.plan;
   if (!data) return;
+  $("results-footer").hidden = false;
   $("availability-heading").textContent = data.immediate
     ? t("Availability now")
     : t("Historical no-bike risk");
@@ -804,12 +879,17 @@ async function start() {
   $("plus-60").onclick = () => setPickupOffset(60);
   $("pickup").onchange = () => {
     state.pickup = $("pickup").value;
+    updatePickupBounds();
     invalidateComparison();
   };
+  $("pickup").onfocus = syncPickupClock;
   $("refresh-live").onclick = () => refreshLive();
   await loadBootstrap();
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) updateLiveDisplay();
+    if (!document.hidden) {
+      syncPickupClock();
+      updateLiveDisplay();
+    }
   });
 }
 start();

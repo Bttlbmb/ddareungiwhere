@@ -74,6 +74,8 @@ function harness() {
       this.dataset = {};
       this.children = [];
       this.textContent = "";
+      this.clientWidth = 0;
+      this.clientHeight = 0;
       this.writes = 0;
       this.classes = new Set();
       this.classList = {
@@ -99,6 +101,9 @@ function harness() {
     }
     focus() {
       document.activeElement = this;
+    }
+    matches(selector) {
+      return selector === ":focus-visible" && this.focusVisible === true;
     }
     setAttribute(name, value) {
       this.attributes ||= {};
@@ -789,6 +794,7 @@ test("station popup shows a prefixed number without inventory; choices update pi
   assert.equal(h.run('state.departureId'), h.station.id);
   assert.equal(h.run('state.selectedId'), h.station.id);
   assert.equal(h.e('origin-label').textContent,'Departure road');
+  assert.equal(h.run('state.mode'), 'origin');
   h.run('stationPopup({...fixture.station,id:2,lat:37.6,lng:127.1,name:"Return station"})');
   buttons['[data-role=return]'].onclick();
   await new Promise(setImmediate);
@@ -799,6 +805,32 @@ test("station popup shows a prefixed number without inventory; choices update pi
   assert.equal(h.e('origin-label').textContent,'Departure road');
   assert.equal(h.run('state.plan'),null);
   assert.ok(requests.every(path=>path.startsWith('/api/place-label?')));
+});
+
+test("choosing a departure from an empty journey advances to destination without overwriting it on the next map click", async () => {
+  const h = harness(), buttons = {}, requests = [];
+  h.document.createElement = () => ({
+    innerHTML: "",
+    querySelector: selector => buttons[selector] ||= {},
+  });
+  h.context.window.BikeStatic.request = async path => {requests.push(path);return {};};
+  h.run('map={closePopup(){},getSize(){return {x:0,y:0}},invalidateSize(){}};renderEndpoints=()=>{};renderMapStations=()=>{};state.origin=null;state.destination=null;stationPopup(fixture.station)');
+  buttons['[data-role=departure]'].onclick();
+  assert.equal(h.run('state.mode'), 'destination');
+  assert.equal(h.e('set-destination').getAttribute('aria-pressed'), 'true');
+  assert.equal(h.run('state.departureId'), h.station.id);
+  assert.equal(h.run('state.selectedId'), h.station.id);
+  assert.equal(h.e('compare-button').disabled, true);
+  h.run('chooseMapPoint({lat:37.6,lng:127.1})');
+  await new Promise(setImmediate);
+  assert.equal(h.run('state.origin.lat'), h.station.lat);
+  assert.equal(h.run('state.origin.lng'), h.station.lng);
+  assert.equal(h.run('state.destination.lat'), 37.6);
+  assert.equal(h.run('state.destination.lng'), 127.1);
+  assert.equal(h.run('state.departureId'), h.station.id);
+  assert.equal(h.e('compare-button').disabled, false);
+  assert.equal(h.run('state.plan'), null);
+  assert.ok(requests.every(path => path.startsWith('/api/place-label?')));
 });
 
 
@@ -850,6 +882,218 @@ test("a late destination street label updates only the matching applied destinat
   assert.equal(h.run('state.plan.destination_label'),'Applied road');
 });
 
+test("a changed draft cancels its old comparison and clears busy state and obsolete errors", async () => {
+  const h = harness();
+  let signal;
+  h.context.window.BikeStatic = {request: (_path, options) => new Promise((_resolve, reject) => {
+    signal = options.signal;
+    signal.addEventListener('abort', () => reject(new Error('cancelled old work')));
+  })};
+  h.run('state.origin={lat:37.5,lng:127};state.destination={lat:37.51,lng:127.01}');
+  const pending = h.run('compare({preventDefault(){}})');
+  h.run('showError("Old journey error");setPickupOffset(30)');
+  await pending;
+  assert.equal(signal.aborted, true);
+  assert.equal(h.run('state.plan'), null);
+  assert.equal(h.e('results').attributes['aria-busy'], 'false');
+  assert.equal(h.e('compare-button').disabled, false);
+  assert.equal(h.e('error').hidden, true);
+  assert.equal(h.run('state.view'), 'map');
+});
+
+test("editing during metadata recovery prevents the old submission from comparing the new draft", async () => {
+  const h = harness(), requests = [];
+  let recover;
+  h.run('state.history=null;state.plan=null;state.origin={lat:37.5,lng:127};state.destination={lat:37.51,lng:127.01}');
+  h.context.window.BikeStatic = {request: path => {
+    requests.push(path);
+    return new Promise(resolve => {recover = resolve;});
+  }};
+  const pending = h.run('compare({preventDefault(){}})');
+  h.run('setPickupOffset(0)');
+  recover({stations:[h.station],history:h.history,live:{refreshing:false}});
+  await pending;
+  assert.deepEqual(requests, ['/api/bootstrap']);
+  assert.equal(h.run('state.plan'), null);
+  assert.equal(h.run('state.view'), 'map');
+  assert.equal(h.e('compare-button').disabled, false);
+});
+
+test("successful metadata recovery continues the explicit comparison when the draft is unchanged", async () => {
+  const h = harness(), requests = [];
+  const result = h.run('state.plan');
+  h.run('state.history=null;state.plan=null;state.origin={lat:37.5,lng:127};state.destination={lat:37.51,lng:127.01}');
+  h.context.window.BikeStatic = {request: async path => {
+    requests.push(path);
+    return path === '/api/bootstrap'
+      ? {stations:[h.station],history:h.history,live:{refreshing:false}}
+      : result;
+  }};
+  await h.run('compare({preventDefault(){}})');
+  assert.equal(requests.length, 2);
+  assert.equal(requests[0], '/api/bootstrap');
+  assert.match(requests[1], /^\/api\/plan\?/);
+  assert.equal(h.run('state.plan'), result);
+  assert.equal(h.run('state.view'), 'results');
+});
+
+test("a newer comparison cancels the previous job and keeps the new result", async () => {
+  const h = harness(), jobs = [];
+  const result = h.run('state.plan');
+  h.context.window.BikeStatic = {request: (_path, {signal}) => new Promise((resolve, reject) => {
+    jobs.push({signal, resolve});
+    signal.addEventListener('abort', () => reject(new Error('cancelled old work')));
+  })};
+  h.run('state.origin={lat:37.5,lng:127};state.destination={lat:37.51,lng:127.01}');
+  const first = h.run('compare({preventDefault(){}})');
+  const second = h.run('compare({preventDefault(){}})');
+  assert.equal(jobs[0].signal.aborted, true);
+  assert.equal(jobs[1].signal.aborted, false);
+  jobs[1].resolve(result);
+  await Promise.all([first, second]);
+  assert.equal(h.run('state.plan'), result);
+  assert.equal(h.e('results').attributes['aria-busy'], 'false');
+  assert.equal(h.e('error').hidden, true);
+});
+
+test("a pending new journey shows loading without the previous stations or refresh details", async () => {
+  const h = harness();
+  const result = h.run('state.plan');
+  h.run('renderResults();state.origin={lat:37.5,lng:127};state.destination={lat:37.51,lng:127.01}');
+  assert.match(h.e('station-rows').innerHTML, /First station/);
+  let finish;
+  h.context.window.BikeStatic = {request: () => new Promise(resolve => {finish = resolve;})};
+  const pending = h.run('compare({preventDefault(){}})');
+  assert.match(h.e('station-rows').innerHTML, /Preparing your station comparison/);
+  assert.doesNotMatch(h.e('station-rows').innerHTML, /First station|Available now/);
+  assert.equal(h.e('fetch-time').textContent, '');
+  assert.equal(h.e('return-section').hidden, true);
+  assert.equal(h.e('results-footer').hidden, true);
+  finish(result);
+  await pending;
+  assert.equal(h.e('results-footer').hidden, false);
+  assert.match(h.e('station-rows').innerHTML, /First station/);
+});
+
+test("pickup bounds follow the current clock while Now and a typed time retain their meanings", () => {
+  const h = harness();
+  h.run('setNow()');
+  h.advance(86400000);
+  h.run('syncPickupClock()');
+  assert.equal(h.run('state.pickup'), 'now');
+  assert.equal(h.e('pickup').value, '2026-10-01T09:00');
+  assert.equal(h.e('pickup').min, '2026-10-01T09:00');
+  assert.equal(h.e('pickup').max, '2026-10-08T09:00');
+  h.e('pickup').value = '2026-10-08T08:30';
+  h.run('state.pickup="2026-10-08T08:30"');
+  h.advance(3600000);
+  h.run('syncPickupClock()');
+  assert.equal(h.run('state.pickup'), '2026-10-08T08:30');
+  assert.equal(h.e('pickup').value, '2026-10-08T08:30');
+  assert.equal(h.e('pickup').min, '2026-10-01T10:00');
+  assert.equal(h.e('pickup').max, '2026-10-08T10:00');
+});
+
+test("keyboard map selection places both points at the center without comparing or intercepting controls", () => {
+  const h = harness(), mapElement = h.e('map');
+  let center = {lat:37.55,lng:127.03}, prevented = 0;
+  h.context.mapStub = {stop(){},getCenter:()=>center,getSize:()=>({x:0,y:0}),invalidateSize(){}};
+  h.run('state.origin=null;state.destination=null;state.plan=null;map=mapStub;renderEndpoints=()=>{};renderMapStations=()=>{};configureMapKeyboard()');
+  mapElement.focusVisible = true;
+  mapElement.focus();
+  mapElement.onfocus();
+  assert.match(h.e('map-instruction').textContent, /arrow keys.*Enter.*starting point/);
+  const key = (target, extra = {}) => mapElement.onkeydown({
+    target,key:'Enter',preventDefault(){prevented++;},...extra,
+  });
+  key(h.e('popup-button'));
+  key(h.e('pin'));
+  key(mapElement, {repeat:true});
+  key(mapElement, {isComposing:true});
+  assert.equal(h.run('state.origin'), null);
+  key(mapElement);
+  assert.equal(h.run('state.origin.lat'), center.lat);
+  assert.equal(h.run('state.mode'), 'destination');
+  assert.match(h.e('map-instruction').textContent, /Enter.*destination/);
+  center = {lat:37.56,lng:127.04};
+  key(mapElement);
+  assert.equal(h.run('state.destination.lng'), center.lng);
+  assert.equal(h.e('compare-button').disabled, false);
+  assert.equal(h.run('state.plan'), null);
+  assert.equal(prevented, 2);
+  mapElement.focusVisible = false;
+  h.run('updateMapInstruction()');
+  assert.equal(h.e('map-instruction').textContent, 'Click the map to set your destination');
+});
+
+test("keyboard point placement stops a pan before reading the visible map center", () => {
+  const h = harness(), mapElement = h.e('map'), calls = [];
+  let center = {lat:37.55,lng:127.03};
+  h.context.mapStub = {
+    stop() {calls.push('stop');center = {lat:37.56,lng:127.04};},
+    getCenter() {calls.push('center');return center;},
+    getSize: () => ({x:0,y:0}),
+    invalidateSize() {},
+  };
+  h.run('state.origin=null;state.destination=null;state.plan=null;map=mapStub;renderEndpoints=()=>{};renderMapStations=()=>{};configureMapKeyboard()');
+  mapElement.onkeydown({target:mapElement,key:'Enter',preventDefault(){}});
+  assert.deepEqual(calls, ['stop','center']);
+  assert.equal(h.run('state.origin.lat'), 37.56);
+  assert.equal(h.run('state.origin.lng'), 127.04);
+});
+
+test('keyboard guidance resizing synchronizes focus and blur before selecting the visible center', async () => {
+  const h = harness(), mapElement = h.e('map'), instruction = h.e('map-instruction');
+  let cachedSize = {x:296,y:121};
+  const invalidations = [], requests = [];
+  mapElement.clientWidth = 296;
+  mapElement.clientHeight = 121;
+  Object.defineProperty(instruction, 'textContent', {
+    get() {return this.label || '';},
+    set(value) {
+      this.label = value;
+      mapElement.clientHeight = value.startsWith('Use arrow keys') ? 116 : 121;
+    },
+  });
+  h.context.mapStub = {
+    stop() {},
+    getSize: () => cachedSize,
+    invalidateSize(options) {
+      invalidations.push(options.pan);
+      cachedSize = {x:mapElement.clientWidth,y:mapElement.clientHeight};
+    },
+    getCenter() {
+      // A stale cached height would return a point offset from the visible center.
+      return {lat:37.55 + (cachedSize.y - mapElement.clientHeight) * .001,lng:127.03};
+    },
+  };
+  h.context.window.BikeStatic.request = async path => {requests.push(path);return {};};
+  h.run('map=mapStub;state.origin=null;state.destination=null;state.plan=null;renderEndpoints=()=>{};renderMapStations=()=>{};configureMapKeyboard()');
+  const before = h.run('JSON.stringify({origin:state.origin,destination:state.destination,pickup:state.pickup,selected:state.selectedId,request:state.request})');
+  mapElement.focusVisible = true;
+  mapElement.focus();
+  mapElement.onfocus();
+  assert.deepEqual(invalidations, [false]);
+  mapElement.onfocus();
+  assert.deepEqual(invalidations, [false]);
+  h.e('set-origin').focus();
+  mapElement.onblur();
+  assert.deepEqual(invalidations, [false,false]);
+  assert.equal(h.run('JSON.stringify({origin:state.origin,destination:state.destination,pickup:state.pickup,selected:state.selectedId,request:state.request})'), before);
+  assert.equal(requests.length, 0);
+  // Enter also refreshes the instruction/size if no focus handler has run yet.
+  mapElement.focus();
+  mapElement.onkeydown({target:mapElement,key:'Enter',preventDefault(){}});
+  await new Promise(setImmediate);
+  assert.equal(h.run('state.origin.lat'), 37.55);
+  assert.equal(h.run('state.origin.lng'), 127.03);
+  assert.equal(h.run('state.destination'), null);
+  assert.equal(h.run('state.plan'), null);
+  assert.equal(h.document.activeElement, mapElement);
+  assert.ok(invalidations.every(pan => pan === false));
+  assert.ok(requests.every(path => path.startsWith('/api/place-label?')));
+});
+
 test('language switches preserve the journey, counts, routes, focus and cached street labels without commands', () => {
   const h = harness();
   let commands = 0;
@@ -884,6 +1128,44 @@ test('language switches preserve the journey, counts, routes, focus and cached s
   assert.equal(h.context.window.location.pathname, '/ddareungiwhere/');
   assert.match(h.e('station-rows').innerHTML, /1h 12min/);
   assert.equal(h.e('return-destination').textContent, 'Near Eulji-ro');
+  assert.equal(commands, 0);
+});
+
+test('translated map content updates a changed viewport size without moving points or querying', () => {
+  const h = harness(), mapElement = h.e('map'), legend = h.e('line-legend');
+  let commands = 0, cachedSize = {x:320,y:240};
+  const invalidations = [];
+  mapElement.clientWidth = 320;
+  mapElement.clientHeight = 240;
+  legend.setAttribute('data-i18n', 'A–B straight line, not a cycling route');
+  Object.defineProperty(legend, 'textContent', {
+    get() {return this.label || '';},
+    set(value) {
+      this.label = value;
+      mapElement.clientHeight = value === 'A–B straight line, not a cycling route' ? 240 : 252;
+    },
+  });
+  h.context.mapStub = {
+    getSize: () => cachedSize,
+    invalidateSize(options) {
+      invalidations.push(options.pan);
+      cachedSize = {x:mapElement.clientWidth,y:mapElement.clientHeight};
+    },
+  };
+  h.context.window.BikeStatic.request = () => {commands++;throw new Error('Language change must not query');};
+  h.run('map=mapStub;state.origin={lat:37.5,lng:127};state.destination={lat:37.51,lng:127.01};state.plan=null;state.view="map"');
+  h.e('language-switch').focus();
+  const before = h.run('JSON.stringify({origin:state.origin,destination:state.destination,pickup:state.pickup,selected:state.selectedId,request:state.request})');
+  h.run('applyLanguage("ko")');
+  assert.deepEqual(invalidations, [false]);
+  assert.equal(h.document.activeElement, h.e('language-switch'));
+  assert.equal(h.run('JSON.stringify({origin:state.origin,destination:state.destination,pickup:state.pickup,selected:state.selectedId,request:state.request})'), before);
+  h.run('applyLanguage("ko")');
+  assert.deepEqual(invalidations, [false]);
+  h.run('state.view="results";applyLanguage("en")');
+  assert.deepEqual(invalidations, [false]);
+  h.run('showView("map")');
+  assert.deepEqual(invalidations, [false,false]);
   assert.equal(commands, 0);
 });
 
@@ -938,7 +1220,7 @@ test('language can change during comparison and location lookup without cancelin
   const request = h.run('state.request');
   h.run('switchLanguage({preventDefault(){}})');
   assert.equal(h.run('state.request'), request);
-  assert.match(h.e('station-rows').innerHTML, /최근 조회 현황/);
+  assert.match(h.e('station-rows').innerHTML, /대여소 비교를 준비/);
   finish({departures:[{...h.station,walking_route:{minutes:5},cycling_route:{minutes:10}}],return_station:h.station,destination:{lat:37.51,lng:127.01},immediate:true,live:{refreshing:false,fetched_at:h.station.fetched_at}});
   await pending;
   assert.match(h.e('station-rows').innerHTML, /5분/);

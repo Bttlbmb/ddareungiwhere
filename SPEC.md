@@ -11,10 +11,10 @@ Compare current bikes, local walking/cycling estimates, and a distinct historica
 ## Inputs and manual queries
 
 - Start with both points unset, no A/B pins, and Compare stations / Fit journey disabled until both are chosen. Metadata recovery preserves partial selections.
-- Place/drag map pins or use Current location for the origin. GPS is one permission-controlled fix, not continuous tracking. Denied/failed/out-of-area access preserves the journey; manual edits supersede late fixes.
+- Place/drag map pins or use Current location for the origin. With keyboard focus on the map, arrow keys move it and Enter selects its center for the active point; marker, popup and control keys keep their own behavior. GPS is one permission-controlled fix, not continuous tracking. Denied/failed/out-of-area access preserves the journey; manual edits supersede late fixes.
 - Show approximate street names without house numbers. Local lookup searches within 250 m, uses the selected language where available, and adds “Near” / “근처” beyond 35 m. Missing roads fall back to meaningful station/landmark text. Ignore late lookups for older selections. Labels are visually limited to two lines, with full text retained.
 - Pickup means **collecting the bike at the station**, in Asia/Seoul (KST), now through seven days ahead. Minute-precision input has a one-minute past tolerance in the browser. Walking time does not shift pickup or enforce the abandoned ten-minute budget.
-- Now / In 30min / In 1h set the draft relative to click time. Editing points, GPS, time or map station choices invalidates the old comparison, but does not query history/routes or start live collection.
+- Now / In 30min / In 1h set the draft relative to click time. The implicit Now value and input limits follow the current clock when the pickup input gains focus, the tab becomes visible, or a comparison starts; an explicitly chosen time remains unchanged. Editing points, GPS, time or map station choices clears the old comparison, cancels pending work and resets its busy/error state, but does not query history/routes or start live collection.
 - **Compare stations** explicitly queries the draft. **Refresh bikes** updates inventory only, preserving historical and route estimates. No periodic/tab-visibility collection; short polling only finishes a user-initiated refresh. Browser operations time out after 30 seconds and release controls for retry.
 
 ## Language
@@ -27,7 +27,7 @@ Korean pickup copy explicitly says 한국 시간. **최근 조회 현황** descr
 
 The browser requests five nearest departures by straight-line origin proximity. No walking-time radius/filter or list expansion. Compare all five to the same destination station: nearest by straight-line destination proximity unless explicitly selected through a map popup. Use as departure / Use as destination moves the corresponding pin and updates the road label; queries remain manual.
 
-Station popups show **#number · station name** and the two point-selection actions. They never display bike quantities or live-count status messages; inventory remains in comparison results.
+Station popups show **#number · station name** and the two point-selection actions. **Use as departure** switches the active map point to destination only while B is unset, so the following map click preserves A. Editing a departure when B exists retains the active point. They never display bike quantities or live-count status messages; inventory remains in comparison results.
 
 The mouse wheel zooms the map around the pointer. Zooming and panning do not change journey points or request a comparison.
 
@@ -43,9 +43,9 @@ Manual comparison replaces the map with results. Back to map restores the journe
 | Ride time | Valhalla city-bicycle estimate from that departure to the common destination station, configured at 15 km/h. Whole minutes, minimum 1 for positive routes. |
 | Availability now OR Historical no-bike risk | Current availability for immediate pickup; separate archived signal for later pickup, defined below. |
 
-Selection updates the numbered map marker; table ranks remain in proximity order. Button focus survives redraws. Phone metrics reflow beneath each station in two columns, without sideways table scrolling. One right-aligned refresh completion time and Valhalla / OpenStreetMap credit. No per-row timestamps, destination dropdown, rental-history card/columns, archive captions/counts, slogans, or visible methodology block. See [DESIGN.md](DESIGN.md).
+Selection updates the numbered map marker; table ranks remain in proximity order. Button focus survives redraws. With container-query support, metrics reflow beneath each station in two columns whenever the results content area, after padding and any reserved scrollbar gutter, is at most 540 px wide, without sideways table scrolling; the destination section follows the same threshold. Older browsers retain the original 700 px page-width phone reflow. Desktop panels keep the planner visible. One right-aligned refresh completion time and Valhalla / OpenStreetMap credit. No per-row timestamps, destination dropdown, rental-history card/columns, archive captions/counts, slogans, or visible methodology block. See [DESIGN.md](DESIGN.md).
 
-**Your destination.** beneath the departure rows shows the common destination station name/number and one forward pedestrian estimate from that station to the selected destination B, at 5.1 km/h. Its station name and duration share the departure typography; desktop duration aligns with the Walk time column. The duration is followed by an arrow and the applied destination label, emphasized in a mint tag. Exact coordinates give 0 min; unavailable routes give a dash without suppressing departure results. Refresh bikes preserves this final walking estimate. This section was added at the user's request on 2026-10-01.
+**Your destination.** beneath the departure rows shows the common destination station name/number and one forward pedestrian estimate from that station to the selected destination B, at 5.1 km/h. Its station name and duration share the departure typography. In tabular results the duration aligns with Walk time; reflowed results place it in the second metric column. The duration is followed by an arrow and the applied destination label, emphasized in a mint tag. Exact coordinates give 0 min; unavailable routes give a dash without suppressing departure results. Refresh bikes preserves this final walking estimate. This section was added at the user's request on 2026-10-01.
 
 Walking/cycling estimates retain whole-minute rounding. Rounded values above 60 minutes display hours and remaining minutes, e.g. **1h 12min**, or **2h** for exact hours. Values up to 60 minutes retain the minute format. Refresh bikes follows the completion time and routing credit in the same footer, separated by a dot; on narrow screens this footer wraps within the scrolling results body.
 
@@ -78,7 +78,7 @@ Graph bounds: south 37.395, west 126.735, north 37.745, east 127.245; all 2,735 
 5. Current zero overrides history for immediate pickup; future signals remain separate. Unknown is neither zero nor Low.
 6. Displayed counts remain stable through elapsed time and failed/hanging refreshes; manual refresh updates snapshots. Automatic station suggestion still requires a report within 120 seconds. Station popups omit all inventory information.
 7. Zero walking, missing routes and same-station cycling are distinct; caching respects direction, coordinates and mode.
-8. All phone metrics/controls remain accessible, long names fit, and station focus/selection survives redraws.
+8. All phone metrics/controls remain accessible, long names fit, station focus/selection survives redraws, and the map supports keyboard point selection without intercepting its child controls.
 9. Secrets/raw datasets are absent from browser assets/static routes and credential-bearing logs/errors.
 10. Both language entries start empty in the correct language. Clicking either capsule label or its track, or pressing Enter on it, toggles once and preserves the journey and pending work; Back/forward follows the language URL. Native new-tab navigation remains available.
 
