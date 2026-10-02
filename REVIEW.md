@@ -1,6 +1,14 @@
 # Verification
 
-Dated evidence for the static-only optimization, 2026-10-01. This document reports checks, not a guarantee of every OSM route, source freshness or future availability.
+Dated evidence for optimization, interface changes and publication. Entries describe the build checked at that step; later entries may supersede its behavior or publication status. This document reports checks, not a guarantee of every OSM route, source freshness or future availability.
+
+## Release status — 2026-10-02
+
+The latest published runtime change is **e672e76**, module revision **4dbcbb51cf61e77b**: English/Korean entries and a mint capsule where either label or the track toggles language. GitHub Pages was verified during **15:12–15:14 KST**; hosted HTML, app and stylesheet matched the tested release. This supersedes the earlier capsule's current-choice no-op. Subsequent documentation-only commits do not change that runtime revision.
+
+The source workspace also retains an earlier unpublished audit covering keyboard map placement, comparison cancellation/busy state, shared-load retry guards, pickup-clock updates and street-import validation. Local source documents describe the code in that checkout; publication uses an isolated source based on the published commit and excludes those audit changes. Historical check counts apply to their stated build, rather than to every later checkout.
+
+The public verification tag and two-entry sitemap are present; Search Console ownership verification, sitemap submission, indexing and traffic have not been confirmed here. Phone-sized browser checks are desktop emulation; physical-phone performance remains unverified. The retained historical archive is still October–December 2025.
 
 ## Overseas live-count investigation — 2026-10-01
 
@@ -8,7 +16,7 @@ The user reported missing live counts in Germany, the UK and Pakistan. Source in
 
 A local POST with `stationGrpSeq=ALL` and `Origin: https://bttlbmb.github.io` returned HTTP 200, `Access-Control-Allow-Origin: *`, a successful ALL response and 2,748 stations. The response Date was 2026-10-01 11:19:48 UTC (20:19:48 KST); a separate IP-country lookup returned KR. This was a command-line check, not an overseas browser or physical-phone check. The web research service received a firewall-block page for the official homepage; that different request path does not reproduce the browser inventory POST.
 
-Seoul Bike's [official App Store developer responses](https://apps.apple.com/ca/app/서울자전거-따릉이/id1037272004), inspected on 2026-10-01, acknowledge restrictions on overseas IPs/networks; the June 17 response describes some overseas-network restrictions. Combined with the user reports, this makes provider access restrictions a likely explanation, without proving a blanket ban or specific country rules for the website feed. The [documented Seoul Open Data live-bike API](https://data.seoul.go.kr/dataList/datasetView.do?currentPageNo=1&infId=OA-15493&serviceKind=1&srvType=A) is a possible alternative; it requires an authentication key and limits each request to 1,000 rows. Its overseas reachability and category equivalence have not been verified here. A shared feed would require a deliberate architecture change and verified upstream access.
+Seoul Bike's [official App Store developer responses](https://apps.apple.com/ca/app/서울자전거-따릉이/id1037272004), inspected on 2026-10-01, acknowledge restrictions on overseas IPs/networks; the June 17 response describes some overseas-network restrictions. Combined with the user reports, this makes provider access restrictions a likely explanation, without proving a blanket ban or specific country rules for the website feed. The [documented Seoul Open Data live-bike API](https://data.seoul.go.kr/dataList/OA-15493/A/1/datasetView.do) is a possible alternative; it requires an authentication key and limits each request to 1,000 rows. Its overseas reachability and category equivalence have not been verified here. A shared feed would require a deliberate architecture change and verified upstream access.
 
 Updated source-limit documentation and the unresolved live-access issue. Runtime code, generated assets and publication were not changed. Documentation links and evidence were checked; no runtime test run was needed for these documentation-only changes.
 
@@ -154,3 +162,11 @@ At the user's follow-up request, clicking anywhere in the mint capsule now toggl
 Source checks: **13 Python** and **60 Node** pass. The isolated release from published `b526cd4` passes **11 Python** and **44 Node** checks. Updated coverage exercises both labels and background in both current languages, exactly one history change per ordinary click, native modifier behavior, pretranslated link targets, and preserved journey/counts/routes/focus/pending work. Standard builds used retained inputs and unchanged SDK/graph; no map/archive download or routing rebuild occurred.
 
 Actual local browser checks at **320×568** clicked both labels while selected and while unselected, plus the top track padding: each click changed language exactly once. At **1440×900**, keyboard Enter toggled with a visible focus outline around the entire capsule while retaining a manually selected origin and pickup. No horizontal page overflow occurred at either size. These are desktop browser viewport checks, not physical-phone evidence. Prior audit changes remain local and excluded from the isolated release.
+
+## Documentation review — 2026-10-02
+
+Reviewed all ten owning Markdown documents against the source workspace and the isolated published baseline. Updated nine; AGENTS already matches the project. Reconciled whole-capsule interaction and keyboard behavior, mint usage, Korean 근처 wording, translation/metadata ownership, retained archive dates, screenshot status and publication scope. Added Search Console follow-through to the remaining-work list; existing historical evidence remains dated and earlier local audit changes remain unpublished.
+
+All local Markdown targets exist: **32 references** in the source workspace and **31** in the release source. All **19 external link destinations** responded successfully after using normal GET requests where HEAD was unsupported; Google verification/sitemap/robots/localized-page rules and GitHub Pages availability were checked against their official documentation. These link checks do not establish the live inventory feed's browser functionality or overseas reachability.
+
+Checked documented command options and file paths, and parsed the committed English/Korean HTML and sitemap to confirm verification metadata, self-canonicals, reciprocal alternatives and selected/target language attributes. Source runtime, scripts, tests, public inputs and preview assets are byte-identical to the pre-review snapshot. The release reuses the committed site; its diff contains only nine Markdown documents. The allowlisted publisher, retained-credential scan and Git whitespace check passed. No runtime test run, map/archive download or rebuild was needed for this documentation-only update.

@@ -1,6 +1,6 @@
 # Data sources and limits
 
-Current, 2026-10-01. Local retained-source fingerprints are in [data/manifest.json](data/manifest.json); generated history and routing manifests carry source hashes. Ignored raw/processed assets are not included in a new checkout.
+Documentation reviewed 2026-10-02; individual source observations retain their dates below. Local retained-source fingerprints are in [data/manifest.json](data/manifest.json); generated history and routing manifests carry source hashes. Ignored raw/processed assets are not included in a new checkout.
 
 ## Station locations and live quantities
 
@@ -16,7 +16,7 @@ The website feed is not a published versioned API contract. There is no verified
 
 [Seoul station availability, hourly — OA-22382](https://data.seoul.go.kr/dataList/OA-22382/F/1/datasetView.do). Retained original: Q4 2025 CP949 ZIP, 6,152,132 station/date/hour observations, 2025-10-01 through 2025-12-31. Dedicated offline database stores those observations; the public page receives exact observation/zero counts, pooled by weekday/weekend and hour. Missing records are excluded; station coverage differs.
 
-These descriptive bands are not calibrated forecasts. Exact hourly sampling/aggregation semantics remain unconfirmed. Holidays follow ordinary weekdays. At least 20 recorded observations are required; Low <5% zeros, Moderate 5–<20%, High ≥20%. Six-month export is supported, but only three months are supplied today. More months do not enlarge the per-station 48-cell shape.
+These descriptive bands are not calibrated forecasts. Exact hourly sampling/aggregation semantics remain unconfirmed. Holidays follow ordinary weekdays. At least 20 recorded observations are required; Low <5% zeros, Moderate 5–<20%, High ≥20%. Six-month export is supported, but the retained input supplies only October–December 2025. More months do not enlarge the per-station 48-cell shape.
 
 ## OpenStreetMap streets and routing
 

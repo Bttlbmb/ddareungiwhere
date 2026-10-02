@@ -1,6 +1,6 @@
 # Architecture
 
-Static-only implementation, 2026-10-01. Product rules: [SPEC.md](SPEC.md); maintenance: [STATIC_SETUP.md](STATIC_SETUP.md).
+Static-only implementation in this checkout, reviewed 2026-10-02. [REVIEW.md](REVIEW.md) distinguishes published and local checks. Product rules: [SPEC.md](SPEC.md); maintenance: [STATIC_SETUP.md](STATIC_SETUP.md).
 
 ## Runtime boundary
 
@@ -20,6 +20,7 @@ No backend, proxy, secret, rental table or database download is needed at runtim
 | Source | Responsibility |
 | --- | --- |
 | `web/app.js` | Draft vs applied journey, map/results, validation feedback, stable count snapshots and asynchronous response guards |
+| `web/i18n.json`, `scripts/lib/localization.py` | Korean messages and pretranslated Korean HTML with shared assets and language-link metadata |
 | `web/static/start.mjs` | Versioned configuration and browser coordinator startup |
 | `service.mjs` | Lazy datasets, manual operations, live merge and serial route orchestration |
 | `planner.mjs` | KST validation, stable five-station shortlist, shared destination station, historical cell lookup |
@@ -28,10 +29,10 @@ No backend, proxy, secret, rental table or database download is needed at runtim
 | `routes.mjs` | One lazy worker, bounded estimate cache, pedestrian endpoint-access correction |
 | `streets.mjs` | Lazy spatial shards and nearest named-road search |
 | `scripts/build_static.py` | Stage complete public build, compress required data, version modules and install pinned SDK |
-| `scripts/lib/export_data.py`, `sdk.py` | Exact history/street export; narrowly checked SDK transport/correlation patches |
-| `scripts/import_availability.py`, `import_streets.py` | Offline validated source imports |
-| `scripts/build_browser_graph.py`, `check_browser_routes.py` | Optional pinned native graph build and browser/native diagnostic fixtures |
-| `scripts/preview_static.py`, `prepare_publication.py` | File-only HTTP preview and allowlisted publication with stale-file removal |
+| `scripts/lib/export_data.py`, `scripts/lib/sdk.py` | Exact history/street export; narrowly checked SDK transport/correlation patches |
+| `scripts/import_availability.py`, `scripts/import_streets.py` | Offline validated source imports |
+| `scripts/build_browser_graph.py`, `scripts/check_browser_routes.py` | Optional pinned native graph build and browser/native diagnostic fixtures |
+| `scripts/preview_static.py`, `scripts/prepare_publication.py` | File-only HTTP preview and allowlisted publication with stale-file removal |
 
 Static module paths above are relative to `web/static/`. Existing `/api/bootstrap`, `/api/plan`, `/api/place-label` and `/api/live` strings are **internal command names** handled by `BikeStatic.request`; they never request HTTP API routes. The frontend gives operations a 30-second abort signal. Bootstrap fetches station data and history metadata, never live inventory, count cells or WASM. Count cells load on first comparison; street shards load when labeling selected points; WASM/graph load on first estimate. Failures reset initialization promises for retry.
 
@@ -45,7 +46,7 @@ The URL determines the initial language. The entire header capsule is one real l
 
 ## Live counts
 
-POST form `stationGrpSeq=ALL` to the fixed official HTTPS endpoint documented in DATA_SOURCES. CORS mode, omitted credentials, no redirects, eight-second upstream timeout. Reject unsuccessful/non-ALL replies, invalid/duplicate stations, and counts outside the current 2,500–10,000-row coverage guard. That guard is a dated defensive threshold, not a proof of completeness.
+POST form `stationGrpSeq=ALL` to the fixed official HTTPS endpoint documented in [DATA_SOURCES.md](DATA_SOURCES.md). CORS mode, omitted credentials, no redirects, eight-second upstream timeout. Reject unsuccessful/non-ALL replies, invalid/duplicate stations, and lists outside the 2,500–10,000-row coverage guard. That guard is a dated defensive threshold, not a proof of completeness.
 
 Aggregate `parkingBikeTotCnt` + `parkingQRBikeCnt` + `parkingELECBikeCnt`, matching the official map. Invalid quantities are unknown. Session metadata is discarded. The feed supplies no observation timestamp; receipt time stays attached to the snapshot; the 120-second freshness threshold only limits automatic station suggestions. The UI does not expire valid counts or immediate-availability snapshots. One active request and a 60-second attempt cooldown per tab follow explicit actions only. Visitors do not share a global quota/cache. No polling collector or persistent inventory storage exists.
 
@@ -61,7 +62,7 @@ Current table: 2,809 historical station numbers, 134,832 cells. A station withou
 
 ## Streets and routing
 
-Named-road geometry is indexed in 0.005° cells, published in 0.05° gzip shards. A 32-shard cache bounds decoded lookup data. Search is within 250 m; labels beyond 35 m get Near. Geometry precision is retained. Optional Korean labels are carried alongside the original English fallback: processed ways `[English, geometry, Korean?]`, exported segments `[id, English, aLat, aLng, bLat, bLng, Korean?]`. Both Python/browser lookups retain `label` and add `label_ko`; old extracts/shards fall back to English. The UI selects the retained name without another lookup/request. No external reverse geocoder is called.
+Named-road geometry is indexed in 0.005° cells, published in 0.05° gzip shards. A 32-shard cache bounds decoded lookup data. Search is within 250 m; labels beyond 35 m get “Near” / “근처” in the selected language. Geometry precision is retained. Optional Korean labels are carried alongside the original English fallback: processed ways `[English, geometry, Korean?]`, exported segments `[id, English, aLat, aLng, bLat, bLng, Korean?]`. Both Python/browser lookups retain `label` and add `label_ko`; old extracts/shards fall back to English. The UI selects the retained name without another lookup/request. No external reverse geocoder is called.
 
 The browser SDK is pinned to valhalla-browser 0.2.1 / Valhalla 3.8.3 revision `a60c7cbfc83e073f50887cd27e0109d02e6b64e5`. WASM is unmodified and delivered as explicit gzip, with decoded size and SHA-256 checked before compilation. Offline graph includes bicycle/pedestrian access, excludes driving-only ways, and retains hierarchy/shortcuts. Bicycle costing: hybrid, 15 km/h. Pedestrian: 5.1 km/h; user-point radius 30 m, station radius 50 m, search cutoff 100 m, station bridge matching excluded. Geometry endpoints add short walking access; gaps over 100 m are rejected. Shape scanning retains endpoints rather than the whole decoded polyline. A checked boolean station role passes through the SDK client/worker so the station correlation applies at the origin for the final forward walking leg; omitted roles retain the existing destination-station default. The planner retains the applied destination coordinates, and the UI keeps its applied label through inventory refreshes.
 
@@ -73,4 +74,4 @@ One initialization promise prevents duplicate workers. Tile memory budget: 96 Mi
 
 A staged build replaces only a marked generated site. UI/module/configuration/worker/WASM URLs share a content revision that includes public data. Bootstrap data uses that revision; binary counts and graph releases have content-addressed paths. This avoids mixing cached modules/configuration/datasets after deployment. No service worker is installed.
 
-Publication copies only source, owning docs, small public inputs/provenance and generated site. It removes legacy files and stale assets, excludes diagnostics, checks known local credentials and GitHub's per-file size limit. Deleting files does not erase previous Git commits. Offline raw inputs, SQLite, SDK cache and environments are ignored.
+Publication copies only source, owning docs, small public inputs/provenance and generated site. It removes legacy files and stale assets, excludes diagnostics, scans retained Seoul Open Data key values from ignored local `.env` files and checks GitHub's per-file size limit. Deleting files does not erase previous Git commits. Offline raw inputs, SQLite, SDK cache and environments are ignored.

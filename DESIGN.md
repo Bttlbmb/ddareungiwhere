@@ -22,7 +22,7 @@ The selected layout is **Route Ribbon**, with the **Slate & Teal** refinement: t
 | Light teal-gray | `#b6c7c7` | Primary-button arrow, subdued map accents |
 | Dividers / header | `#dce0e1` / `#e9edee` | Quiet rules / table header fill |
 | Secondary text | `#626e72` | Supporting labels and attribution |
-| Bikes 3+ | `#c4e3d4` / `#24553f` | Mint box / dark number; mint A/B form badges and logo saddle/basket |
+| Bikes 3+ | `#c4e3d4` / `#24553f` | Mint box / dark number; A/B form badges, logo saddle/basket and selected language segment |
 | Bikes 1–2 | `#f5d689` / `#704c10` | Amber box / dark number |
 | Bikes 0 | `#efbbb5` / `#8b302a` | Coral box / dark number |
 
@@ -71,4 +71,4 @@ The user repeatedly simplified the page. Do not reintroduce without a new reques
 
 ## Durable reference
 
-The CSS/SVG and this document define the approved design. Historical local screenshots have been removed from this static-only project; no runtime screenshot dependency exists.
+The CSS/SVG and this document define the approved design. Earlier screenshot collections were removed during the static-only cleanup. Recent verification captures referenced in REVIEW remain in ignored local `dist/`; they are not published assets or runtime dependencies.

@@ -1,6 +1,6 @@
 # Remaining work
 
-Current, 2026-10-01. These entries are proposals/issues, not instructions to implement them unasked.
+Reviewed 2026-10-02. These entries are proposals/issues, not instructions to implement them unasked. [REVIEW.md](REVIEW.md) distinguishes published work from source changes checked only locally.
 
 1. **Exact-origin Oksu pier #5651:** nearby walking estimates can still be implausibly long. The earlier station-side correlation adjustment is only a partial fix. Investigate origin matching and OSM access geometry with native/browser fixtures; do not weaken gap checks to hide the problem.
 2. **Physical-phone performance:** verify cold WASM/tile downloads, memory and first comparison on actual target phones and ordinary mobile connections. Desktop viewport checks cannot establish device performance.
@@ -8,7 +8,10 @@ Current, 2026-10-01. These entries are proposals/issues, not instructions to imp
 4. **Historical evidence:** obtain complete additional availability months before claiming six-month coverage; confirm hourly sampling/aggregation semantics, station-number continuity and holidays. Validate any proposed predictive claims separately. Current Low/Moderate/High are descriptive archive bands.
 5. **Offline data maintenance:** a new checkout includes the usable page but not raw maps/archives/build environments. Map refresh and station-master continuity have no unattended pipeline.
 6. **Unused cloud project:** user can disconnect/delete the earlier Cloudflare Worker and Git build. Code removal does not modify their cloud account.
+7. **Search Console follow-through:** the verification tag, language metadata and two-entry sitemap are published. Ownership verification, sitemap submission and indexing of either language URL have not been confirmed in this workspace. Complete/check them in Search Console using STATIC_SETUP; assess search traffic when actual data is available.
 
-Completed this pass: static-only runtime/source cleanup, dedicated availability storage, exact binary summary, lazy loading, linear live merge, bounded stable shortlist, gzip-only routing/street/station publication, single worker initialization, bounded diagnostics and static-only documentation. Evidence is in [REVIEW.md](REVIEW.md).
+Completed in the 2026-10-01 static-only cleanup: dedicated availability storage, exact binary summary, lazy loading, linear live merge, bounded stable shortlist, gzip-only routing/street/station publication, single worker initialization, bounded diagnostics and static-only documentation. Evidence is in [REVIEW.md](REVIEW.md).
+
+Published on 2026-10-02: City basket identity, mouse-wheel map zoom, approved search metadata/verification tag, English/Korean entries and street labels, and the mint language capsule with whole-control toggling. Earlier audit changes to keyboard map placement, cancellation/retry handling, pickup-clock updates and street-import validation remain local and unpublished; they are not part of those releases.
 
 Deferred: turn-by-turn directions, address search, booking, accounts, saved journeys, destination-capacity forecasts, weather, alerts and background collection.
