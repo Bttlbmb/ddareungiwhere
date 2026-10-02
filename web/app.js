@@ -152,12 +152,13 @@ function applyLanguage(language) {
     document.querySelectorAll(`[data-i18n-${attribute}]`).forEach(node =>
       node.setAttribute(attribute, t(node.getAttribute(`data-i18n-${attribute}`))));
   }
-  $("language-switch").dataset.language = state.language;
-  for (const choice of ["en", "ko"]) {
-    const link = $(`language-${choice}`);
-    link.href = languageURL(choice).href;
-    link.setAttribute("aria-current", String(choice === state.language));
-  }
+  const next = state.language === "ko" ? "en" : "ko";
+  const link = $("language-switch");
+  link.dataset.language = state.language;
+  link.href = languageURL(next).href;
+  link.lang = next;
+  link.hreflang = next;
+  link.setAttribute("aria-label", t(next === "ko" ? "Switch to Korean" : "Switch to English"));
   $("home-link").href = languageURL(state.language).href;
   $("canonical-url").href = `https://bttlbmb.github.io/ddareungiwhere/${state.language === "ko" ? "ko/" : ""}`;
   for (const type of ["origin", "destination"]) updatePointLabel(type);
@@ -201,8 +202,7 @@ function applyLanguage(language) {
 function switchLanguage(event) {
   if (event.button > 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
   event.preventDefault();
-  const next = event.currentTarget.dataset.language;
-  if (next === state.language || !["en", "ko"].includes(next)) return;
+  const next = state.language === "ko" ? "en" : "ko";
   window.history.pushState(null, "", languageURL(next));
   applyLanguage(next);
 }
@@ -787,7 +787,7 @@ async function loadBootstrap() {
 async function start() {
   initializeMap();
   applyLanguage(state.language);
-  for (const language of ["en", "ko"]) $(`language-${language}`).onclick = switchLanguage;
+  $("language-switch").onclick = switchLanguage;
   window.addEventListener("popstate", () => applyLanguage(/\/ko\/(?:index\.html)?$/.test(window.location.pathname) ? "ko" : "en"));
   setNow();
   $("set-origin").onclick = () => setMode("origin");

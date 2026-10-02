@@ -863,49 +863,53 @@ test('language switches preserve the journey, counts, routes, focus and cached s
     renderResults();`);
   const before = h.run('JSON.stringify({origin:state.origin,destination:state.destination,pickup:state.pickup,departures:state.plan.departures,live:state.live,selected:state.selectedId,request:state.request})');
   h.e('pickup').value = '2026-10-02T17:30';
-  h.e('language-ko').focus();
+  h.e('language-switch').focus();
   h.e('station-rows').scrollTop = 75;
-  h.run('switchLanguage({currentTarget:{dataset:{language:"ko"}},preventDefault(){}})');
+  h.run('switchLanguage({preventDefault(){}})');
   assert.equal(h.context.window.location.pathname, '/ddareungiwhere/ko/');
   assert.equal(h.document.documentElement.lang, 'ko');
   assert.equal(h.e('language-switch').dataset.language, 'ko');
-  assert.equal(h.e('language-ko').getAttribute('aria-current'), 'true');
-  assert.equal(h.e('language-en').getAttribute('aria-current'), 'false');
-  assert.equal(h.e('language-en').href, 'https://example.test/ddareungiwhere/');
-  assert.equal(h.e('language-ko').href, 'https://example.test/ddareungiwhere/ko/');
+  assert.equal(h.e('language-switch').getAttribute('aria-label'), '영어로 전환');
+  assert.equal(h.e('language-switch').href, 'https://example.test/ddareungiwhere/');
   assert.match(h.e('station-rows').innerHTML, /1시간 12분/);
   assert.match(h.e('station-rows').innerHTML, /최근 조회 현황/);
   assert.match(h.e('station-rows').innerHTML, /직선거리 20 m/);
   assert.equal(h.e('origin-label').textContent, '세종대로');
   assert.equal(h.e('return-destination').textContent, '을지로 근처');
-  assert.equal(h.document.activeElement, h.e('language-ko'));
+  assert.equal(h.document.activeElement, h.e('language-switch'));
   assert.equal(h.e('station-rows').scrollTop, 75);
   assert.equal(h.e('pickup').value, '2026-10-02T17:30');
   assert.equal(h.run('JSON.stringify({origin:state.origin,destination:state.destination,pickup:state.pickup,departures:state.plan.departures,live:state.live,selected:state.selectedId,request:state.request})'), before);
-  h.run('switchLanguage({currentTarget:{dataset:{language:"en"}},preventDefault(){}})');
+  h.run('switchLanguage({preventDefault(){}})');
   assert.equal(h.context.window.location.pathname, '/ddareungiwhere/');
   assert.match(h.e('station-rows').innerHTML, /1h 12min/);
   assert.equal(h.e('return-destination').textContent, 'Near Eulji-ro');
   assert.equal(commands, 0);
 });
 
-test('the selected language is a no-op and modified language clicks keep native navigation', () => {
+test('either language label or capsule background toggles once; modified clicks keep native navigation', () => {
   const h = harness();
   let history = 0, prevented = 0;
-  h.context.window.history.pushState = () => {history++;};
+  h.context.window.history.pushState = (_state, _unused, url) => {history++;h.context.window.location=new URL(url);};
   h.context.preventLanguageClick = () => {prevented++;};
-  h.run('applyLanguage("en")');
-  const writes = h.e('station-rows').writes;
-  h.run('switchLanguage({currentTarget:{dataset:{language:"en"}},preventDefault:preventLanguageClick})');
-  assert.equal(history, 0);
-  assert.equal(prevented, 1);
-  assert.equal(h.e('station-rows').writes, writes);
+  for (const [language, label] of [['en','en'],['ko','ko'],['en','ko'],['ko','en'],['en',null],['ko',null]]) {
+    h.context.language = language;
+    h.run('applyLanguage(language)');
+    const before = history;
+    h.context.languageClick = {target:{lang:label},preventDefault:h.context.preventLanguageClick};
+    h.run('switchLanguage(languageClick)');
+    assert.equal(history, before + 1);
+    assert.equal(h.run('state.language'), language === 'en' ? 'ko' : 'en');
+    assert.equal(h.context.window.location.pathname, language === 'en' ? '/ddareungiwhere/ko/' : '/ddareungiwhere/');
+    assert.equal(h.e('language-switch').href, language === 'en' ? 'https://example.test/ddareungiwhere/' : 'https://example.test/ddareungiwhere/ko/');
+  }
+  assert.equal(prevented, 6);
   for (const modifier of ['ctrlKey', 'metaKey', 'shiftKey', 'altKey', 'button']) {
-    h.context.languageClick = {currentTarget:{dataset:{language:'ko'}},preventDefault:h.context.preventLanguageClick,[modifier]:modifier === 'button' ? 1 : true};
+    h.context.languageClick = {preventDefault:h.context.preventLanguageClick,[modifier]:modifier === 'button' ? 1 : true};
     h.run('switchLanguage(languageClick)');
   }
-  assert.equal(history, 0);
-  assert.equal(prevented, 1);
+  assert.equal(history, 6);
+  assert.equal(prevented, 6);
   assert.equal(h.run('state.language'), 'en');
 });
 
@@ -932,7 +936,7 @@ test('language can change during comparison and location lookup without cancelin
   h.run('state.origin={lat:37.5,lng:127};state.destination={lat:37.51,lng:127.01};state.live=state.plan.live');
   const pending = h.run('compare({preventDefault(){}})');
   const request = h.run('state.request');
-  h.run('switchLanguage({currentTarget:{dataset:{language:"ko"}},preventDefault(){}})');
+  h.run('switchLanguage({preventDefault(){}})');
   assert.equal(h.run('state.request'), request);
   assert.match(h.e('station-rows').innerHTML, /최근 조회 현황/);
   finish({departures:[{...h.station,walking_route:{minutes:5},cycling_route:{minutes:10}}],return_station:h.station,destination:{lat:37.51,lng:127.01},immediate:true,live:{refreshing:false,fetched_at:h.station.fetched_at}});
