@@ -12,12 +12,12 @@ import shutil
 def install_sdk(sdk, destination):
     runtime = json.loads((sdk / 'runtime.json').read_text())
     expected = runtime['artifacts']['public/wasm/valhalla.wasm']['sha256']
-    if runtime['sdk'] != 'valhalla-browser@0.2.1' or hashlib.sha256((sdk / 'valhalla-browser.wasm').read_bytes()).hexdigest() != expected:
+    wasm = (sdk / 'valhalla-browser.wasm').read_bytes()
+    if runtime['sdk'] != 'valhalla-browser@0.2.1' or hashlib.sha256(wasm).hexdigest() != expected:
         raise ValueError('Unexpected SDK/runtime; use valhalla-browser 0.2.1.')
     destination.mkdir(parents=True)
     for name in ['index.js', 'worker.js', 'runtime.json']:
         shutil.copyfile(sdk / name, destination / name)
-    wasm = (sdk / 'valhalla-browser.wasm').read_bytes()
     (destination / 'valhalla-browser.wasm.gz').write_bytes(gzip.compress(wasm, mtime=0))
     shutil.copytree(sdk / 'licenses', destination / 'licenses')
     shutil.copyfile(sdk.parent / 'LICENSE', destination / 'LICENSE')
@@ -78,4 +78,3 @@ def install_sdk(sdk, destination):
         raise ValueError('SDK compressed-WASM patch no longer matches.')
     text = text.replace(old, new)
     worker.write_text('// Local correlation/gzip tile/WASM delivery patches: see scripts/lib/sdk.py; SDK licenses retained.\n' + text)
-

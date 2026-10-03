@@ -4,19 +4,18 @@ The resulting dist/site folder runs on an ordinary static HTTP server/Pages.
 The SDK is obtained separately, pinned to valhalla-browser 0.2.1.
 """
 import argparse
-import gzip
 import hashlib
 import json
 import re
 import shutil
+import sys
 import tempfile
 from pathlib import Path
 from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
-import sys
 sys.path.insert(0, str(ROOT))
-from scripts.lib.files import write_json
+from scripts.lib.files import gzip_file, update_digest, write_json, write_gzip_json
 from scripts.lib.export_data import export_history, export_streets
 from scripts.lib.sdk import install_sdk
 from scripts.lib.localization import korean_page
@@ -26,13 +25,14 @@ def build(sdk, output, graph_url='', months=6, history_db=None):
     output = output.resolve()
     if output == ROOT or output in ROOT.parents:
         raise ValueError('Output must be a dedicated publication directory.')
-    for value in [graph_url]:
-        if value:
-            parsed = urlsplit(value)
-            if parsed.username or parsed.password or parsed.query or parsed.fragment or parsed.scheme not in ('http', 'https'):
-                raise ValueError('Public URLs must have no credentials/query/fragment.')
-            if parsed.scheme == 'http' and parsed.hostname not in ('localhost', '127.0.0.1'):
-                raise ValueError('Public endpoints must use HTTPS.')
+    if output.exists() and not (output / '.nojekyll').is_file():
+        raise ValueError('Existing output is not a generated site; refusing replacement.')
+    if graph_url:
+        parsed = urlsplit(graph_url)
+        if parsed.username or parsed.password or parsed.query or parsed.fragment or not parsed.hostname or parsed.scheme not in ('http', 'https'):
+            raise ValueError('Public URLs must have a host and no credentials/query/fragment.')
+        if parsed.scheme == 'http' and parsed.hostname not in ('localhost', '127.0.0.1'):
+            raise ValueError('Public endpoints must use HTTPS.')
     output.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix='.static-', dir=output.parent))
     try:
@@ -53,10 +53,7 @@ def build(sdk, output, graph_url='', months=6, history_db=None):
         (staging / 'ko').mkdir()
         (staging / '.nojekyll').touch()
         clean = json.loads((ROOT / 'data/inputs/stations.json').read_text())
-        write_json(staging / 'data/stations.json', clean)
-        stations_file = staging / 'data/stations.json'
-        stations_file.with_suffix('.json.gz').write_bytes(gzip.compress(stations_file.read_bytes(), mtime=0))
-        stations_file.unlink()
+        write_gzip_json(staging / 'data/stations.json.gz', clean)
         history = export_history(history_db or ROOT / 'data/processed/availability.sqlite3', staging / 'data', months)
         shards = export_streets(staging / 'data')
         install_sdk(sdk, staging / 'vendor/valhalla')
@@ -69,8 +66,7 @@ def build(sdk, output, graph_url='', months=6, history_db=None):
                 shutil.copyfile(source / name, target / name)
             for tile in (source / 'tiles').rglob('*.gph'):
                 compressed = target / 'tiles' / tile.relative_to(source / 'tiles').with_suffix('.gph.gz')
-                compressed.parent.mkdir(parents=True, exist_ok=True)
-                compressed.write_bytes(gzip.compress(tile.read_bytes(), mtime=0))
+                gzip_file(tile, compressed)
             graph_url = f'./routing/{current["release"]}/manifest.json'
         write_json(staging / 'config.json', {'schema': 1, 'manifestUrl': graph_url})
         # Keep code and configuration coherent for returning Pages visitors.
@@ -80,7 +76,7 @@ def build(sdk, output, graph_url='', months=6, history_db=None):
         for path in [staging / 'config.json', staging / 'app.js', staging / 'style.css', *module_paths,
                      *sorted(p for p in (staging / 'data').rglob('*') if p.is_file()),
                      *sorted(p for p in (staging / 'vendor/valhalla').iterdir() if p.is_file())]:
-            revision_hash.update(path.read_bytes())
+            update_digest(revision_hash, path)
         revision = revision_hash.hexdigest()[:16]
         for path in module_paths:
             text = re.sub(r"(['\"])(\.\.?/[^'\"]+\.(?:mjs|js))\1", lambda match: f'{match[1]}{match[2]}?v={revision}{match[1]}', path.read_text())
@@ -90,17 +86,8 @@ def build(sdk, output, graph_url='', months=6, history_db=None):
             html = html.replace(asset, f'{asset}?v={revision}')
         (staging / 'index.html').write_text(html)
         (staging / 'ko/index.html').write_text(korean_page(html, catalog))
-        # Street shards are requested explicitly compressed, including on Pages.
-        for path in list(staging.rglob('*')):
-            if path.is_file() and path.suffix in ('.json', '.js', '.mjs', '.css', '.wasm', '.html', '.gph'):
-                if path.parent.name == 'streets':
-                    compressed = path.with_suffix('.json.gz')
-                    compressed.write_bytes(gzip.compress(path.read_bytes(), mtime=0))
-                    path.unlink()
         if output.exists():
             # Only this generated directory is replaced; sources/data are untouched.
-            if not (output / '.nojekyll').exists():
-                raise ValueError('Existing output is not a generated site; refusing replacement.')
             shutil.rmtree(output)
         staging.rename(output)
         print(json.dumps({'output': str(output), 'stations': len(clean), 'historyGzipBytes': (output / 'data' / history['counts_url']).stat().st_size,

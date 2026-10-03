@@ -11,6 +11,7 @@ import io
 import json
 import sqlite3
 import sys
+import tempfile
 import zipfile
 from contextlib import closing
 from datetime import datetime
@@ -37,14 +38,19 @@ def source_rows(path):
 
 
 def build(sources, output):
+    """Stage a replacement database; a bad archive leaves the old one intact."""
+    output = output.resolve()
     sources = [path.resolve(strict=True) for path in sources]
     if len(set(sources)) != len(sources):
         raise ValueError('List each archive only once.')
+    if output in sources:
+        raise ValueError('Output must not replace a source archive.')
     inputs = [dict(fingerprint(path), kind='availability') for path in sources]
     output.parent.mkdir(parents=True, exist_ok=True)
-    temporary = output.with_suffix('.build.sqlite3')
-    if temporary.exists():
-        temporary.unlink()
+    # A unique sibling cannot collide with an existing output or another build.
+    # Keeping it on the same filesystem makes the final replace atomic.
+    with tempfile.NamedTemporaryFile(prefix='.availability-', suffix='.sqlite3', dir=output.parent, delete=False) as stream:
+        temporary = Path(stream.name)
     try:
         with closing(sqlite3.connect(temporary)) as connection:
             connection.executescript('''

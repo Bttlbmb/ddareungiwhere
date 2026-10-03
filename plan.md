@@ -1,19 +1,20 @@
 # Remaining work
 
-Reviewed 2026-10-03. These entries are proposals/issues, not instructions to implement them unasked. [REVIEW.md](REVIEW.md) distinguishes published work from source changes checked only locally.
+Reviewed 2026-10-03. These are known issues and proposals, not instructions to implement them unasked. Completed work and publication evidence belong in [REVIEW.md](REVIEW.md).
 
-1. **Exact-origin Oksu pier #5651:** nearby walking estimates can still be implausibly long. The earlier station-side correlation adjustment is only a partial fix. Investigate origin matching and OSM access geometry with native/browser fixtures; do not weaken gap checks to hide the problem.
-2. **Physical-phone performance:** verify cold WASM/tile downloads, memory and first comparison on actual target phones and ordinary mobile connections. Desktop viewport checks cannot establish device performance.
-3. **Live-source stability and overseas access:** the official website HTTPS/CORS feed works on the tested Korean connection but lacks a published versioned API contract. On 2026-10-01 the user reported failures in Germany, the UK and Pakistan; official app developer responses acknowledge overseas-network restrictions (evidence/limits in DATA_SOURCES and REVIEW). Reproduce the exact browser POST on affected networks before claiming country coverage. If worldwide counts are required, evaluate a shared service with verified upstream access or the documented Seoul Open Data API, keeping any key outside browser assets. These are proposals, not an approved runtime architecture change. Coverage thresholds are dated; failure must remain Unknown.
-4. **Historical evidence:** obtain complete additional availability months before claiming six-month coverage; confirm hourly sampling/aggregation semantics, station-number continuity and holidays. Validate any proposed predictive claims separately. Current Low/Moderate/High are descriptive archive bands.
-5. **Offline data maintenance:** a new checkout includes the usable page but not raw maps/archives/build environments. Map refresh and station-master continuity have no unattended pipeline.
-6. **Unused cloud project:** user can disconnect/delete the earlier Cloudflare Worker and Git build. Code removal does not modify their cloud account.
-7. **Search Console follow-through:** the verification tag, language metadata and two-entry sitemap are published. Ownership verification, sitemap submission and indexing of either language URL have not been confirmed in this workspace. Complete/check them in Search Console using STATIC_SETUP; assess search traffic when actual data is available.
+## Known issues and checks
 
-Completed in the 2026-10-01 static-only cleanup: dedicated availability storage, exact binary summary, lazy loading, linear live merge, bounded stable shortlist, gzip-only routing/street/station publication, single worker initialization, bounded diagnostics and static-only documentation. Evidence is in [REVIEW.md](REVIEW.md).
+1. **Oksu pier #5651:** using the pier as the exact starting point can still produce implausibly long walks. The station-side matching adjustment was only a partial fix. Investigate origin matching and OSM access geometry with native/browser fixtures; retain the access-gap checks.
+2. **Physical phones:** measure first-use routing downloads, memory and first comparison on target phones and ordinary mobile connections. Check the user's reported map failure on the affected device. Desktop viewport tests establish layout under emulation, rather than device performance or resolution of that report.
+3. **Live-source stability and overseas access:** the website feed worked on the tested Korean connection, but has no published versioned contract. Reproduce the exact browser POST on affected overseas networks before claiming country coverage. [DATA_SOURCES.md](DATA_SOURCES.md) records the 2026-10-01 reports and limits of the evidence. If worldwide counts are required, evaluate a shared service with verified upstream access or the documented Seoul Open Data API, keeping credentials outside browser assets. This is a proposal, not an approved runtime change.
+4. **Historical evidence:** obtain complete additional months before claiming six-month coverage. Confirm hourly sampling/aggregation, station-number continuity and holiday treatment. Validate predictive claims separately; current bands describe the archive.
+5. **Data maintenance:** new checkouts include the page, but raw maps, archives and routing build environments must be supplied separately. Map refreshes and station continuity have no unattended pipeline.
 
-Published on 2026-10-02: City basket identity, mouse-wheel map zoom, approved search metadata/verification tag, English/Korean entries and street labels, and the mint language capsule with whole-control toggling. The selected small-improvement release publishes visible map legends, results-panel reflow, conditional popup progression and app module preloading, plus the earlier keyboard map placement, cancellation/retry and pickup-clock safeguards. Offline street-import source/provenance validation remains local and unpublished. Publication evidence is recorded in REVIEW.
+## External follow-through
 
-Approved 2026-10-03: persistent phone Compare dock, compact phone metric rows with aligned availability, full-width tablet results, explicit destination Walk time, and station-only startup with persistent retry feedback. The prior tablet container-card layout is superseded. Physical-phone behavior and the user’s exact map failure still require a target-device check; desktop browser checks do not establish those results. Release evidence is in REVIEW.
+- **Unused Cloudflare project:** the earlier Worker and Git build may still exist in the user's account. Removing local code does not disconnect or delete them.
+- **Search Console:** the 2026-10-02 release includes the verification tag, language metadata and sitemap. Ownership verification, submission and indexing remain unconfirmed here. Follow [STATIC_SETUP.md](STATIC_SETUP.md), then assess traffic when actual data is available.
 
-Deferred: turn-by-turn directions, address search, booking, accounts, saved journeys, destination-capacity forecasts, weather, alerts and background collection.
+## Outside the current scope
+
+Walking/cycling directions, address search, walking budgets, leave-origin or door-to-door totals, booking, accounts, saved journeys, destination-capacity forecasts, weather, alerts and background collection remain deferred.

@@ -1,75 +1,87 @@
 # Design: 따릉이 Where?
 
-Approved appearance retained in the static-only page, updated 2026-10-03. This records the user's approved design and preferences. Behavior lives in [SPEC.md](SPEC.md).
+Approved appearance, reviewed 2026-10-03. [SPEC.md](SPEC.md) owns behavior; [REVIEW.md](REVIEW.md) records dated checks.
 
-## Identity
+## Identity and palette
 
-The selected name is **따릉이 Where?**: retain the public-bike program's Korean name with a lightly playful English question. The user wanted simple, elegant, cool, possibly funny, without a corny slogan.
+**따릉이 Where?** keeps the bike program's Korean name with a lightly playful English question. The selected appearance is **Route Ribbon / Slate & Teal** (2026-09-30): a compact planner beside a map/results panel, quiet rules and restrained teal. Bike counts provide the strongest color accents.
 
-The approved **City basket** logo, selected 2026-10-02, is a compact bicycle with a visible low frame, slate wheel outlines without hub dots, and a mint saddle and front basket. Use [city-basket.svg](web/assets/city-basket.svg) in the header/favicon, with readable text for the wordmark. It supersedes Looking Wheels after the user flagged its unintended resemblance; the user chose City basket over the subsequent question-mark/bicycle proposals. Preserve this selected silhouette rather than restoring the paired eye/wheel mark or adding a question mark.
+Use the approved **City basket** [logo](web/assets/city-basket.svg), selected 2026-10-02, in the header and favicon. It has a visible low bicycle frame, slate wheel outlines without hub dots, and a mint saddle/front basket. Keep its selected silhouette and a readable text wordmark. The visible logo edge aligns with the planner heading, accounting for the SVG's internal inset.
 
-## Approved appearance
-
-Search/browser title approved 2026-10-02: **Seoul Public Bike Trip Planner — 따릉이 Where?** The HTML meta description is **Plan a Seoul public-bike trip with Ddareungi (따릉이). Compare five nearby stations, current bike counts, and estimated walking and cycling times.** These are page metadata; the header wordmark and its selected description retain their existing text and appearance.
-
-The selected layout is **Route Ribbon**, with the **Slate & Teal** refinement: the third option in both relevant proposal sets. Implemented 2026-09-30. Earlier lime green felt too aggressive. Use calm teal sparingly; stronger useful color accents come from bike-count boxes. Keep the page light, elegant, and slightly playful through the logo, A/B markers, ranks, and counts.
-
-| Role | Current colors | Use |
+| Role | Colors | Use |
 | --- | --- | --- |
-| Canvas | `#f4f5f5` | Cool off-white, unframed form/results |
-| Slate | `#293338` | Text, primary button, A/B markers |
+| Canvas | `#f4f5f5` | Cool off-white form/results background |
+| Slate | `#293338` | Text, primary action, A/B map markers |
 | Muted teal | `#577778` | Focus, map guide, small accents |
-| Light teal-gray | `#b6c7c7` | Primary-button arrow, subdued map accents |
-| Dividers / header | `#dce0e1` / `#e9edee` | Quiet rules / table header fill |
-| Secondary text | `#626e72` | Supporting labels and attribution |
-| Bikes 3+ | `#c4e3d4` / `#24553f` | Mint box / dark number; A/B form badges, logo saddle/basket and selected language segment |
-| Bikes 1–2 | `#f5d689` / `#704c10` | Amber box / dark number |
-| Bikes 0 | `#efbbb5` / `#8b302a` | Coral box / dark number |
+| Light teal-gray | `#b6c7c7` | Primary-action arrow, subdued map accents |
+| Dividers / table header | `#dce0e1` / `#e9edee` | Rules / header fill |
+| Secondary text | `#626e72` | Supporting labels and credit |
+| Bikes 3+ | `#c4e3d4` / `#24553f` | Mint fill / dark green text |
+| Bikes 1–2 | `#f5d689` / `#704c10` | Amber fill / dark text |
+| Bikes 0 | `#efbbb5` / `#8b302a` | Coral fill / dark text |
 
-Risk badges use quieter tints than inventory boxes. Unknown stays neutral. Color accompanies numbers/explicit text; it is not the sole meaning. Colors are centralized in `web/style.css`; keep logo/map colors consistent with them. The optimization pass removed obsolete styles and merged repeated selectors within responsive contexts, checking the agreed appearance against the original.
+Mint also colors the form badges, logo accents and selected language segment. Risk badges use quieter tints; unknown stays neutral. Numbers and explicit text carry the meaning alongside color. Palette values live in `web/style.css`; logo and map colors should match.
 
-## Left planner and results
+## Header and planner
 
-- Compact brand header, with the user-selected description **Plan your trip with Seoul’s public bikes.** and **Right aligned** placement (2026-10-01). Small secondary text sits at the right of the desktop header; on phones it sits below the wordmark, aligned to its text and wrapping naturally. No hero panel. The logo's visible left edge aligns with the planner heading (**From**) on desktop and phones, accounting for the SVG's small internal inset.
-- Header description checked 2026-10-01 in desktop browser emulation at 1440 × 900, 1024 × 768, 390 × 844 and 320 × 568: copy fits, no horizontal page overflow, and results focus/internal scrolling remain usable. This is browser emulation, not physical-phone evidence. All 6 Python and 38 JavaScript checks passed.
-- Planner heading: **From, to, and when?**, selected 2026-10-01.
-- Starting point and Destination labels outside their controls, matching Bike pickup time.
-- Mint A/B form badges with dark green letters, connected by a thin neutral vertical line. The City basket logo uses the same mint as the available-bike box fill for its saddle/basket; frame, wheels, handlebar and wordmark stay slate (selected 2026-10-02). The earlier logo's mint accents were selected 2026-10-01. Point controls have a bottom rule, not a large colored box; active choice gets a subtle underline.
-- **⌖ Current location** sits beside Starting point, right-aligned, and only applies to origin.
-- The location crosshair is an SVG centered beside its text rather than a font glyph.
-- Street names instead of “Near #4847.” Long labels get at most two lines with ellipsis and full text retained.
-- Pickup input, then Now / In 30min / In 1h; space above the charcoal Compare stations button and light arrow accent.
-- The planner ends with Compare stations. Popular-route shortcuts were removed at the user’s request on 2026-10-01.
-- Bike stations on the map use the existing mint fill with a dark green outline: 5.5 px radius, 1.5 px outline, full opacity. Unselected numbered candidate markers use mint too; the selected candidate stays slate. Destination station uses the same colors at a larger radius. Legend matches these colors. Selected 2026-10-01. The existing legend labels remain visible at every width and wrap when needed; the 2026-10-02 refinement corrects an obsolete selector that hid nested labels.
-- Map/results share a panel. A manual comparison opens results; Back to map restores the same journey. The dashed A–B guide is not routed geometry.
-- Keyboard focus on the map shows a center crosshair and changes the existing toolbar instruction to arrow-key/Enter guidance. Mouse/touch use retains the ordinary click instruction and appearance.
-- Map station popups show **#number · station name**, followed by Use as departure / Use as destination. Omit all inventory counts and unavailable-count messages, whether quantities have been fetched or not. Selected 2026-10-01.
-- Desktop table has horizontal rules, no large outer results box or green selected-row fill. Rank boxes stay neutral, including the first/selected station. Station numbers read “Station #…”, with headings “Station”, “Bikes”, “Walk time” and “Ride time”. No Nearest/Bikes now row indicators. Bike counts are the strongest accents; walk/ride times stay plain. Rounded durations above 60 minutes use hours/minutes (e.g. **1h 12min**, or **2h** for exact hours); shorter durations retain **12 min**.
-- Unavailable bike quantities use **Quiet slash**, selected 2026-10-01: `/` in a neutral gray box with the same padding, radius and minimum width as known counts. A failed request displays one 12 px red line below the departure table and before Your destination. Its first word **Live** shares the Station header text's left inset (20 px desktop, 10 px phone). The message distinguishes missing counts from a failed refresh with retained counts; it does not identify the visitor's country or claim that geography caused the failure. Successful refresh hides it. The notice wraps within the existing internal results scroll; no extra panel, icon or retry button is added.
-- **Your destination.** follows the table on the same background, with no enclosing box. The down/right arrow sits in a neutral 25 px marker with subtle lines. Destination station names/numbers reuse the departure styles and left edge; the final duration reuses the departure duration style. The walking group starts at the walking column in desktop results and shares the station-text inset on phones. A right arrow and destination name follow it; an explicit **Walk time** label beside the final duration, with no B circle. The label was approved in the mobile-layout follow-up on 2026-10-03. The destination uses the selected **Mint tag** treatment: 14 px bold dark green text, existing mint fill, 5 px corner radius and 5 px / 10 px padding. The tag is a destination label, with no button behavior. Selected 2026-10-01.
-- No gray divider above the station table. One right-aligned footer below the destination section shows live-refresh completion time, credits Valhalla / OpenStreetMap, then **↻ Refresh bikes**, separated with dots. The refresh link inherits the footer text size. On phones the footer wraps naturally, keeping the last dot and refresh link together; it scrolls with the results body.
-- **Choose your departure.** starts the results header, matching the planner heading's size, weight and vertical position on desktop. **Back to map** is at the top-right outside the scrolling results body. On phones the results heading uses the same padding and size as the planner heading.
-- The bottom provenance footer is right-aligned, retaining Seoul Bike and OpenStreetMap credit and omitting the map-issue link.
-- Responsive layout revised and approved 2026-10-03 after the user supplied tablet screenshots and reported a hidden phone action. At 700 px and below, planning scrolls naturally with compact A/B controls and pickup fields; Compare stations occupies its own fixed bottom dock, including the device safe area. The page reserves room for that dock so it cannot cover the map or last content. Phone results replace the planner, restore viewport containment and scroll internally beneath a fixed results heading. Each compact row shows rank/name/number/distance on the left and the colored bike box on the right, with Walk/Ride below the name and availability text aligned with the box’s right edge. Availability and Walk/Ride share 12 px type; phone availability keeps its status color without a filled badge. Future rows include a compact Historical risk label. Between 701 and 1100 px, results replace the planner and use the full workspace width, shared table headings and compact aligned rows. Back to map restores the same form and journey. Above 1100 px the planner remains beside the map/results. This replaces the 2026-10-02 results-container reflow, which made tablet rows too tall. Back to map stays outside the results scroller.
+The header description is **Plan your trip with Seoul’s public bikes.**, with the selected **Right aligned** placement (2026-10-01). On desktop it sits at the header's right; on phones it sits below the wordmark, aligned with its text and allowed to wrap.
 
-## Language switch and Korean copy
+The planner heading is **From, to, and when?** Starting point, Destination and Bike pickup time labels sit outside their controls. Mint A/B badges with dark green letters connect through a thin neutral line. Point controls have a bottom rule and a subtle active underline. Long street labels occupy at most two lines, with full text retained.
 
-Approved 2026-10-02. The user selected **Mint capsule**: two visible positions labeled **ENG** and **한국어** at the right of the header. A rounded neutral track contains a sliding mint (`#c4e3d4`) segment with dark green selected text (`#24553f`); the inactive label is muted. The entire capsule is one control: clicking either label or the track toggles to the other language, as requested in the same-day follow-up. Respect reduced-motion preferences and retain visible keyboard focus around the whole capsule. It remains a real link to the other language, with an accessible label describing that action. On phones it shares the wordmark row; the selected description remains below. Keep the same compact phone form, metric rows, full-width tablet table and results scrolling in both languages. Korean browser title: **서울 따릉이 대여소·이동 시간 비교 — 따릉이 Where?** Header description: **따릉이로 이동할 계획을 세워 보세요.**
+**Current location** sits beside Starting point, right-aligned. Its crosshair is a centered SVG. The pickup field is followed by **Now / In 30min / In 1h**, then space before the charcoal **Compare stations** button and its light arrow. The planner ends at that action.
 
-Use **대여소**, **출발지**, **목적지**, **자전거 대여 시각 (한국 시간)** and **대여소 비교**. Durations use 분 / 시간. Immediate inventory uses **최근 조회 현황** and future history **과거 자전거 없음 빈도**, preserving their different meanings. Definitions remain in SPEC/docs without adding panels or captions.
+## Map
 
-## Copy choices to preserve
+Station dots use mint fill, dark green outlines, full opacity, 5.5 px radius and a 1.5 px outline (selected 2026-10-01). Unselected numbered candidates use mint; the selected candidate stays slate. The destination station uses the same colors at a larger radius. Keep legend labels visible and let them wrap at any width.
 
-The user repeatedly simplified the page. Do not reintroduce without a new request/reason:
+Map and results share a panel. The dashed A–B guide follows the points. Keyboard focus adds a center crosshair and changes the toolbar instruction to arrow-key/Enter guidance; pointer use retains the click instruction. Popups contain **#number · station name** and the two point-selection actions, without counts or inventory messages.
 
-- Additional slogans beyond the selected header description, LOCAL EDITION/live connection text, RIDE HISTORY stamp, hero title, or “01 / PLAN.”
-- Routine location permission/success/accuracy prose. Keep actionable failures and the actual browser permission prompt.
-- Pickup helper line such as “Now · Seoul time (KST). Plan up to 7 days ahead.” Validation remains.
-- History/Past zero counts, rental mean/median/record columns, or a rental-time summary card.
-- Row fetch times, “live inventory,” “historical signal,” “Counts describe now,” or “Rarely zero in archive” captions.
-- Historical date/hour/experimental paragraph, expandable “How to read these numbers,” recommendation sentence, or destination dropdown above the table. Definitions/limitations remain in docs.
-- Show 10 nearby stations / expansion actions, or automatic comparison on point selection.
+## Results
 
-## Durable reference
+**Choose your departure.** matches the planner heading's size, weight and desktop vertical position. **Back to map** sits at the top-right, outside the scrolling body. Results use horizontal rules on the page background, without an outer box or colored selected row. Rank boxes remain neutral.
 
-The CSS/SVG and this document define the approved design. Earlier screenshot collections were removed during the static-only cleanup. Recent verification captures referenced in REVIEW remain in ignored local `dist/`; they are not published assets or runtime dependencies.
+Desktop columns read **Station**, **Bikes**, **Walk time**, **Ride time**, and the applicable availability heading. Station numbers read **Station #…**; no Nearest or Bikes now row indicator is shown. Counts are prominent colored boxes. Durations remain plain and use the format in [SPEC.md](SPEC.md).
+
+Unavailable counts use **Quiet slash** (selected 2026-10-01): `/` in a neutral gray box with the same padding, radius and minimum width as known counts. After a failed request, one 12 px red notice appears below the rows and before Your destination. Its first word **Live** aligns with station text: 20 px inset on desktop, 10 px on phones. It wraps within the results scroller. The two failure messages are specified in SPEC; no extra panel, icon or retry button is added.
+
+**Your destination.** follows the rows on the same background. A down/right arrow sits in a neutral 25 px marker with subtle lines. Station name/number and duration reuse departure typography. The walking group begins at the desktop walking column and at the station-text inset on phones. It contains **Walk time**, duration, a right arrow and the destination label, without a B circle. The explicit walking label was approved 2026-10-03.
+
+The destination uses **Mint tag** (selected 2026-10-01): 14 px bold dark green text, mint fill, 5 px corner radius and 5 px / 10 px padding. It is a label, with no button behavior.
+
+One right-aligned footer below this section shows refresh completion time, Valhalla / OpenStreetMap credit and **↻ Refresh bikes**, separated by dots. The refresh action uses the footer text size. Keep its preceding dot and label together when wrapping. The footer scrolls with results. The page's bottom provenance footer is also right-aligned and credits Seoul Bike and OpenStreetMap.
+
+## Responsive layout
+
+The revision approved 2026-10-03 uses page-width breakpoints:
+
+| Width | Planning | Results |
+| --- | --- | --- |
+| Above 1100 px | Planner beside map | Planner beside results |
+| 701–1100 px | Compact planner/map workspace | Full-width table with shared headings; planner hidden |
+| 700 px and below | Natural page scrolling and a separate fixed Compare dock, with safe-area space reserved | Planner hidden; viewport-contained results with fixed heading and internal scrolling |
+
+Phone rows place rank/name/number/distance on the left and the count box on the right. Walk/Ride sit below the name; availability aligns with the count's right edge. Both use 12 px type. Availability retains its status color without a filled badge; future rows include **Historical risk**. Long names and the footer wrap without horizontal scrolling. Phone results use the planner heading's size and padding. **Back to map** restores the same draft.
+
+## Language and metadata
+
+The approved **Mint capsule** (2026-10-02) places **ENG / 한국어** at the header's right and shares the wordmark row on phones. A neutral rounded track contains a sliding mint segment with dark green selected text; the inactive label is muted. The whole capsule is one link and focus target. Clicking either label or the track toggles language. Keep visible keyboard focus and respect reduced-motion preferences. Both languages use the same compact layout.
+
+| Text | English | Korean |
+| --- | --- | --- |
+| Browser/search title | Seoul Public Bike Trip Planner — 따릉이 Where? | 서울 따릉이 대여소·이동 시간 비교 — 따릉이 Where? |
+| Header description | Plan your trip with Seoul’s public bikes. | 따릉이로 이동할 계획을 세워 보세요. |
+| Core labels | Station / Starting point / Destination / Bike pickup time / Compare stations | 대여소 / 출발지 / 목적지 / 자전거 대여 시각 (한국 시간) / 대여소 비교 |
+| Immediate / future heading | Availability now / Historical no-bike risk | 최근 조회 현황 / 과거 자전거 없음 빈도 |
+
+English metadata description: **Plan a Seoul public-bike trip with Ddareungi (따릉이). Compare five nearby stations, current bike counts, and estimated walking and cycling times.** Search metadata was approved 2026-10-02 and does not replace the header wording. Korean durations use 분 / 시간. Inventory and historical copy keep the separate meanings in SPEC.
+
+## Keep the page compact
+
+The user repeatedly removed extra copy and panels. Preserve the selected header description, actionable errors and browser permission prompt. Keep these additions out unless newly requested:
+
+- Extra slogans, hero panels, edition/connection labels or decorative section stamps.
+- Routine location success/accuracy text, pickup helper lines or automatic comparisons.
+- Rental summaries, archive counts, row timestamps, history explanations or an expandable methodology block.
+- Recommendation sentences, destination dropdowns, popular-route shortcuts or list-expansion actions.
+
+Definitions and limits belong in documentation. CSS, SVG and this document define the approved design. Local verification captures referenced in REVIEW are evidence, not published assets; browser emulation does not establish physical-phone behavior.

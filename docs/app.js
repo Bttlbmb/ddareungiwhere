@@ -28,6 +28,7 @@ const state = {
   bootstrapReady: false,
   stationLoading: false,
   stationError: "",
+  // Points and pickup are a draft; only Compare stations creates an applied plan.
   origin: null,
   destination: null,
   mode: "origin",
@@ -36,6 +37,7 @@ const state = {
   departureId: null,
   selectedId: null,
   plan: null,
+  // Reject late replies even when a canceled provider ignores its abort signal.
   request: 0,
   live: { refreshing: false },
   labelRequests: { origin: 0, destination: 0 },
@@ -84,11 +86,9 @@ function metres(value) {
   return value >= 1000 ? `${(value / 1000).toFixed(1)} km` : `${value} m`;
 }
 function isFresh(station) {
-  return (
-    station.bikes !== null &&
-    station.fetched_at &&
-    Date.now() - Date.parse(station.fetched_at) <= 120000
-  );
+  const age = Date.now() - Date.parse(station.fetched_at);
+  // Freshness limits suggestions only; displayed snapshots never expire.
+  return hasBikeCount(station) && age >= -60000 && age <= 120000;
 }
 function hasBikeCount(station) {
   return Number.isInteger(station?.bikes) && station.bikes >= 0 &&
@@ -184,9 +184,7 @@ function applyLanguage(language) {
   setLocationStatus(state.locationStatus);
   showError(state.errorMessage);
   renderStationStatus();
-  if (typeof updateMapInstruction === "function") updateMapInstruction();
-  else $("map-instruction").textContent = t(state.mode === "origin"
-    ? "Click the map to set your starting point" : "Click the map to set your destination");
+  updateMapInstruction();
   updateRefreshButton();
   if (state.plan) renderResults();
   else if (state.comparisonMessage) {
@@ -403,7 +401,7 @@ function renderEndpoints() {
       zIndexOffset: 500,
       icon: L.divIcon({
         className: "",
-        html: `<div class="map-pin ${type}">${letter}</div>`,
+        html: `<div class="map-pin">${letter}</div>`,
         iconSize: [32, 32],
         iconAnchor: [16, 16],
       }),
@@ -711,10 +709,11 @@ async function refreshLive(manual = true) {
     await loadBootstrap();
     return;
   }
+  const request = state.request;
   try {
     const response = await api(manual ? "/api/live" : "/api/live?refresh=0");
+    if (request !== state.request) return;
     state.stations = response.stations;
-    renderLive(response.live);
     if (state.plan) {
       const liveById = new Map(response.stations.map((s) => [s.id, s]));
       for (const station of state.plan.departures) {
@@ -723,28 +722,29 @@ async function refreshLive(manual = true) {
         station.fetched_at = latest?.fetched_at ?? null;
       }
       state.plan.live = response.live;
-      const available = state.plan.immediate
-        ? state.plan.departures.filter(
+      state.plan.suggested_id = state.plan.immediate
+        ? state.plan.departures.find(
             (s) =>
               isFresh(s) &&
               s.bikes > 0 &&
               s.id !== state.plan.return_station.id,
-          )
-        : [];
-      state.plan.suggested_id = available[0]?.id ?? null;
+          )?.id ?? null
+        : null;
       renderResults();
     }
     if (!response.live.refreshing) state.awaitingLive = false;
+    renderLive(response.live);
     renderMapStations();
   } catch (error) {
+    if (request !== state.request) return;
     state.live = { ...state.live, refreshing: false, error: error.message };
     if (state.plan) {
       state.plan.live = state.live;
       renderResults();
     } else showError(error.message);
     state.awaitingLive = false;
+    renderLive(state.live);
   }
-  updateLiveDisplay();
 }
 function selectDeparture(id, pan = true) {
   state.selectedId = id;
@@ -855,10 +855,6 @@ function renderResults() {
   $("return-destination").textContent = data.destination_label || t("Chosen point");
   $("return-section").hidden = false;
 }
-function updateLiveDisplay() {
-  renderRows();
-  renderLive(state.live);
-}
 async function loadBootstrap() {
   if (bootstrapRequest) return bootstrapRequest;
   state.stationLoading = true;
@@ -914,10 +910,7 @@ async function start() {
   $("retry-stations").onclick = () => loadBootstrap();
   await loadBootstrap();
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) {
-      syncPickupClock();
-      updateLiveDisplay();
-    }
+    if (!document.hidden) syncPickupClock();
   });
 }
 window.BikeAppReady = start();

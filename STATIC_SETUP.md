@@ -1,28 +1,32 @@
-# Static build and GitHub Pages
+# Build, preview and maintain
 
-Current setup, reviewed 2026-10-02. The deployed app needs no API key, Cloudflare, backend or paid domain.
+Reviewed 2026-10-03. The live page runs on GitHub Pages without an API key or application server. These tools are for preparing and checking its files. Data provenance and limits are in [DATA_SOURCES.md](DATA_SOURCES.md); release status is in [REVIEW.md](REVIEW.md).
 
 ## Preview
 
-In a clone of the published repository, `docs/` is ready to serve:
+A clone of the published repository includes a usable page in `docs/`:
 
 ```sh
 python3 scripts/preview_static.py --directory docs --port 63463
 ```
 
-In this source workspace, preview a generated build with `--directory dist/site`; `dist/publication` is the separate publication checkout. Use the HTTP URL printed by the script. Python 3.11+; no package install for preview. Live quantities and background tiles need internet access; a hosted page also needs it to download its assets. Supported browsers need ES modules, WebAssembly, DecompressionStream and Web Crypto; HTTPS is required for hosted GPS.
+Open the printed HTTP URL. In this source workspace use `--directory dist/site`; `dist/publication` is the separate Git checkout. Python 3.11+ is supported, with no package install for preview. If `python3 --version` is older, use an installed supported interpreter, such as `python3.14` here.
 
-## Build from retained local inputs
+Live quantities and background tiles need internet access. The browser needs ES modules, WebAssembly, DecompressionStream and Web Crypto; hosted GPS needs HTTPS. Do not open `web/index.html` directly: the build supplies configuration, translations, compressed data and routing assets.
 
-Required files (not downloaded by these commands):
+## Build with saved inputs
 
-- `data/inputs/stations.json` and `data/inputs/routing-coverage.json`: small public seeds included in source.
-- `data/processed/availability.sqlite3`: availability-only database.
-- `data/processed/seoul_streets.json.gz`: named-road extract.
-- `data/processed/browser-routing/current.json` and its release folder: pinned graph.
-- Unpacked `valhalla-browser@0.2.1` package, including `dist`, LICENSE and licenses.
+The build does not download maps or archives. It needs:
 
-For the SDK, download/unpack the pinned npm package once into an ignored cache; this workspace already has it at `.cache/valhalla-sdk/`. For a fresh checkout:
+| Input | Purpose |
+| --- | --- |
+| `data/inputs/stations.json`, `data/inputs/routing-coverage.json` | Small public catalogue and map provenance, included in source |
+| `data/processed/availability.sqlite3` | Hourly availability archive |
+| `data/processed/seoul_streets.json.gz` | Named-road geometry and bilingual labels |
+| `data/processed/browser-routing/current.json` and its release folder | Pinned routing tiles and manifests |
+| Unpacked `valhalla-browser@0.2.1`, including `dist`, LICENSE and licenses | Browser routing engine |
+
+Raw inputs, processed data and SDK caches are ignored. A new checkout has the ready page but cannot rebuild it until these files are supplied. This workspace retains the SDK at `.cache/valhalla-sdk/`. For a fresh checkout, obtain it once:
 
 ```sh
 mkdir -p .cache/valhalla-sdk
@@ -30,81 +34,79 @@ npm pack valhalla-browser@0.2.1 --pack-destination .cache
 tar -xzf .cache/valhalla-browser-0.2.1.tgz -C .cache/valhalla-sdk --strip-components=1
 ```
 
-Then:
+Build and preview:
 
 ```sh
 python3 -B scripts/build_static.py --sdk .cache/valhalla-sdk/dist --months 6
 python3 scripts/preview_static.py --directory dist/site --port 63463
 ```
 
-The SDK identity/WASM hash and every local patch are checked. Unexpected upstream code fails the build. `--history-db PATH` selects another dedicated archive; `--output PATH` selects a dedicated generated directory. The optional `--graph-url` must point to a compatible HTTPS manifest whose gzip tiles/config are accessible with CORS; this skips local tile publication but still reads `data/processed/browser-routing/current.json`. The standard build includes the graph in the site.
+The builder checks SDK identity, WASM hash and each local patch. Unexpected upstream code stops the build. `--history-db PATH` selects another archive; `--output PATH` selects a dedicated generated directory. An existing output must carry `.nojekyll` before replacement.
 
-## Availability updates / six months
+`--graph-url` can use a compatible HTTPS manifest with CORS-accessible gzip tiles/config instead of copying local tiles. It still reads the local `current.json`. URLs cannot carry credentials, queries or fragments; HTTP is allowed only for localhost/127.0.0.1 previews. The default build publishes the graph alongside the page.
 
-Download complete original CP949 availability ZIP/CSV sources from the source catalogue in DATA_SOURCES, retain fingerprints/provenance, then list **all archives to retain** (repeat `--archive`):
+## Update availability
+
+Download complete original CP949 ZIP/CSV archives from the catalogue linked in DATA_SOURCES. Keep source fingerprints and list **every archive to retain**, repeating `--archive`:
 
 ```sh
 python3 -B scripts/import_availability.py --archive data/raw/availability_2025_q4.zip
-# For six months, also pass the other complete quarterly/monthly archives.
+# Add the other complete quarterly/monthly archives for a longer history.
 python3 -B scripts/build_static.py --sdk .cache/valhalla-sdk/dist --months 6
 ```
 
-Importer replaces the availability-only database; it does not append implicitly, download files or read rental history. Duplicate station/date/hour observations deduplicate; conflicting quantities reject the build. Six months means the six calendar months ending in the latest supplied archive month, not six months ending today. Current input is only Q4 2025. The browser receives the same fixed 48 cells/station regardless of window length. The original dataset’s hourly measurement semantics remain unconfirmed.
+The importer builds a replacement availability-only database; it does not append, download files or read rental history. Exact duplicate station/date/hour rows deduplicate. Conflicting quantities stop the import and preserve the existing database.
 
-## Streets and routing updates
+Six months means the six calendar months ending in the latest supplied month, not today. Current inputs cover only October–December 2025. Longer coverage needs additional complete archives. The browser still receives 48 cells per station; archive measurement semantics remain unconfirmed.
 
-Rebuild labels from an existing saved Overpass response:
+## Update streets or routing
+
+Regenerate road labels from the retained Overpass response:
 
 ```sh
 python3 -B scripts/import_streets.py
 ```
 
-`--source PATH` selects a deliberate replacement `.json`/`.json.gz` source. Query and provenance are retained; no geocoder call or map download occurs.
+`--source PATH` selects another `.json`/`.json.gz` response inside the project. Copy external responses into ignored `data/raw/` first. Invalid source/provenance leaves the current extract and manifest intact. Query, timestamps and fingerprints remain recorded. Missing/empty extracts stop the build rather than silently removing labels. Re-importing the retained response supplies Korean names without a new download or routing rebuild; older extracts remain readable but lack those names.
 
-Graph rebuild is optional, costly and unrelated to ordinary code/docs updates. Supply `data/raw/seoul-routing.osm.pbf`; install `requirements-routing.txt` in a separate compatible Python environment, preserving the exact native 3.8.3 revision. Then run `scripts/build_browser_graph.py` there, or pass `--native-lib PATH` for that package directory. Driving-only ways are excluded, with pedestrian/bicycle connectivity, hierarchy and shortcuts retained. Do not remove OSM `highway=*` indiscriminately: that tag also includes residential roads, cycleways and footpaths. New graph/SDK revisions require native/browser parity and route-edge checks before publishing.
+A graph rebuild is optional and costly. Supply `data/raw/seoul-routing.osm.pbf`, then install `requirements-routing.txt` in a separate compatible environment using native Valhalla **3.8.3** at the SDK-pinned revision. Run `scripts/build_browser_graph.py` there, or pass `--native-lib PATH` for that package directory. Python 3.11+ supports the standard tools; the optional native package also needs a compatible wheel/build.
 
-Generate a local diagnostic page with the matching native package:
+The builder discards its temporary graph archive after recording its identity/index descriptors; individual tiles remain for publication and native checks. The graph excludes driving-only ways but keeps pedestrian/bicycle connectivity, hierarchy and shortcuts. Do not remove all OSM `highway=*` ways: these also include residential roads, cycleways and footpaths. Graph/SDK changes need native/browser parity and route-edge checks. Normal source/docs updates reuse existing tiles.
 
-```sh
-python3 scripts/check_browser_routes.py --native-lib PATH_TO_NATIVE_383
-```
-
-Open `/__routing_check.html` on the local preview. This diagnostic is excluded from publication. Automated checks:
+## Check changes
 
 ```sh
 python3 -B -m unittest discover -s tests -v
 node --test tests/test_frontend.cjs tests/test_static.mjs
 ```
 
-## Publish
+Node runs the JavaScript checks. For routing/SDK changes, generate fixtures with the matching native package:
 
-### Search metadata and Search Console
+```sh
+python3 scripts/check_browser_routes.py --native-lib PATH_TO_NATIVE_383
+```
 
-Approved 2026-10-02. `web/index.html` owns the page title, meta description, public Google site-verification tag and absolute canonical URL, `https://bttlbmb.github.io/ddareungiwhere/`. Keep the verification tag present after initial verification. `web/sitemap.xml` lists the English homepage and Korean `/ko/` entry; the build copies it into the generated site and the publisher includes it in `docs/`. If the public address changes, update canonical/alternate URLs in `web/index.html`, runtime canonical URLs in `web/app.js`, the Korean entry URL in `scripts/lib/localization.py`, and `web/sitemap.xml`. No route/data assets are sitemap entries, and no `lastmod` date is claimed.
+Open `/__routing_check.html` in the local preview. It is excluded from publication. Test layout/copy changes in both languages at desktop/phone widths, including focus, Compare placement and results scrolling. Browser emulation does not establish physical-phone performance. Documentation-only changes need link/fact checks, not new tests.
 
-After publishing, verify the URL-prefix property `https://bttlbmb.github.io/ddareungiwhere/` in Search Console, submit `https://bttlbmb.github.io/ddareungiwhere/sitemap.xml`, and inspect/request indexing for both language entry URLs. These files support verification and discovery; they do not confirm indexing, ranking or traffic. A project-level `robots.txt` is ineffective because crawlers read that file at the host root, `https://bttlbmb.github.io/robots.txt`. References: [Google ownership verification](https://support.google.com/webmasters/answer/9008080?hl=en), [sitemap guidance](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap), [robots location rules](https://developers.google.com/crawling/docs/robots-txt/create-robots-txt).
+## Language and search metadata
 
-The bilingual alternate links follow [Google’s localized-page guidance](https://developers.google.com/search/docs/specialty/international/localized-versions): both entries include the same fully qualified language alternatives.
+Edit `web/index.html`, `web/i18n.json` and application source, not generated Korean HTML. The builder translates annotated text/attributes and embeds runtime messages. Preserve placeholder names. Both entries share assets and must agree on the capsule's selected language, target link and accessible action. Check both labels, track, Enter, Back/forward and new-tab navigation; switching must retain the journey and pending work.
 
-### Localization maintenance
+`web/index.html` owns the title, description, public Google verification tag and canonical URL. Keep the tag after verification. The sitemap lists English and `/ko/`, without invented `lastmod` dates. If the public address changes, update HTML canonical/alternate links, `web/app.js`, the Korean renderer and `web/sitemap.xml`.
 
-`web/index.html` remains the English source. Annotated `data-i18n` text and `data-i18n-aria-label` / `data-i18n-content` attributes reference English keys in `web/i18n.json`. Keep placeholder names identical. The standard builder embeds the Korean catalog and generates `ko/index.html` after asset revisioning; both languages share the same runtime/data assets. Edit source/catalog rather than generated Korean HTML. Run the normal Python/Node checks and inspect both desktop/phone layouts after copy or layout changes.
+After publication, verify the URL-prefix property in Search Console, submit the [sitemap](https://bttlbmb.github.io/ddareungiwhere/sitemap.xml), and inspect both entry URLs. These files support discovery; they do not prove indexing or traffic. A project-level `robots.txt` has no effect because crawlers read it at the host root. References: [ownership verification](https://support.google.com/webmasters/answer/9008080?hl=en), [sitemaps](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap), [localized pages](https://developers.google.com/search/docs/specialty/international/localized-versions), [robots location](https://developers.google.com/crawling/docs/robots-txt/create-robots-txt).
 
-The language capsule is one native anchor with fixed **ENG / 한국어** labels. `web/app.js` and the Korean HTML renderer handle it specially: `data-language` identifies the selected position; its link destination, lang/hreflang and accessible action label identify the other language. Keep both initial HTML entries and in-place updates consistent. Check clicks on the selected label, other label and track, keyboard Enter, Back/forward and native new-tab navigation. Switching must preserve the journey, pending work, count snapshots and estimates without new queries; scrolling can clamp to shorter translated content.
+## Prepare publication
 
-The 2026-10-02 street importer retains `name:ko` / local Korean road names in the existing extract/shards. Re-importing the retained, manifest-checked Overpass input is sufficient; no new map download or routing rebuild is required. Older extracts remain readable but cannot supply omitted Korean names.
-
-### Publication checkout
-
-GitHub Pages is configured for `main` → `/docs`. In this source workspace the separate SSH Git checkout is `dist/publication`:
+Pages serves `main` → `/docs`. In this workspace:
 
 ```sh
 python3 scripts/prepare_publication.py dist/publication
-# Review, commit and push changes in that checkout.
+# Review the full diff, then commit/push the intended release in that checkout.
 ```
 
-The publisher removes obsolete server/Worker code, replaces generated assets, excludes raw/database/diagnostic files and scans for retained Seoul Open Data key values from ignored local `.env` files. It does not commit or push. In a single checkout, generate the page in `docs` and review/commit source and that directory together; preserve `.nojekyll` and relative URLs. [GitHub Pages availability](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages) depends on the account plan: GitHub Free supports public repositories; eligible paid plans also support private repositories.
+The publisher synchronizes allowlisted source/docs, small public inputs and `dist/site` into the separate checkout. It removes stale assets and legacy server/Worker files, excludes diagnostics, scans retained Seoul Open Data key values from ignored local `.env` files and enforces GitHub's file-size limit. It does not commit, push or change cloud settings. Preserve unrelated work before preparing a checkout; the tool copies a complete release, not selected features.
 
-The publisher copies the allowlisted source and generated site together, rather than selecting an individual feature. When a source workspace contains other unpublished changes, prepare the intended release from the published commit in an isolated directory and review its full diff. For documentation-only updates, reuse the committed site without rebuilding maps, archives or runtime assets; check links and facts. Preserve outstanding work when advancing the separate publication checkout, and record release scope in REVIEW.
+For a single checkout, build into `docs` and review source and generated files together. Keep `.nojekyll` and relative URLs. For a documentation-only release, reuse the committed site. If other source changes should be excluded, prepare from the published commit in an isolated directory. Record the scope and hosted verification in REVIEW.
 
-An earlier Cloudflare Workers Builds connection is unnecessary. Disconnect that repository build in Cloudflare, and delete the unused Worker if desired, using the account’s web interface. Removing Worker files here does not change the cloud account; leaving the Git integration attached can cause failed builds after these removals. No secret needs to be configured anywhere for the current feed.
+[GitHub Pages availability](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages) depends on the account plan. The retired Cloudflare build connection can be disconnected and the unused Worker removed in that account; local file removal does not do this. The current feed needs no secret.

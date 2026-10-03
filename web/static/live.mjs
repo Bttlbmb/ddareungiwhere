@@ -1,3 +1,5 @@
+import {timeoutSignal} from './data.mjs';
+
 /** Fixed official public feed; no account, cookies, caller URLs or API key. */
 const LIVE_URL = 'https://www.bikeseoul.com/app/station/getStationRealtimeStatus.do';
 const COUNT_FIELDS = ['parkingBikeTotCnt', 'parkingQRBikeCnt', 'parkingELECBikeCnt'];
@@ -8,14 +10,15 @@ function quantity(value) {
   return Number.isSafeInteger(count) && count >= 0 ? count : null;
 }
 
-export function normalized(row, stamp) {
+export function normalized(row, stamp, bikes = row?.parkingBikeTotCnt) {
+  if (!row || typeof row !== 'object') return null;
   const id = Number(String(row.stationId || '').replace(/^ST-/, ''));
   const match = String(row.stationName || '').match(/^(\d+)\.\s*(.*)$/);
   const lat = Number(row.stationLatitude), lng = Number(row.stationLongitude);
   if (!Number.isInteger(id) || id <= 0 || !match || !Number.isFinite(lat) ||
       !Number.isFinite(lng) || lat < 33 || lat > 39 || lng < 124 || lng > 132) return null;
   return {id, number: String(Number(match[1])), name: match[2], lat, lng,
-    bikes: quantity(row.parkingBikeTotCnt), fetched_at: stamp};
+    bikes: quantity(bikes), fetched_at: stamp};
 }
 
 export async function fetchWebsiteInventory(fetcher = fetch) {
@@ -24,7 +27,7 @@ export async function fetchWebsiteInventory(fetcher = fetch) {
     const response = await fetcher(LIVE_URL, {
       method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       body: 'stationGrpSeq=ALL', mode: 'cors', credentials: 'omit',
-      redirect: 'error', signal: AbortSignal.timeout(8000)
+      redirect: 'error', signal: timeoutSignal(8000)
     });
     if (!response.ok) throw new Error('Provider failed.');
     payload = await response.json();
@@ -32,7 +35,7 @@ export async function fetchWebsiteInventory(fetcher = fetch) {
     throw new Error('Live bike counts are unavailable. Try refreshing shortly.');
   }
   // A dated size floor detects obvious partial lists, not every provider error.
-  if (payload.checkResult !== true || payload.stationVO?.stationGrpSeq !== 'ALL' ||
+  if (payload?.checkResult !== true || payload.stationVO?.stationGrpSeq !== 'ALL' ||
       !Array.isArray(payload.realtimeList) || payload.realtimeList.length < 2500 ||
       payload.realtimeList.length > 10000) {
     throw new Error('The bike service returned an incomplete station list.');
@@ -41,9 +44,13 @@ export async function fetchWebsiteInventory(fetcher = fetch) {
   for (const row of payload.realtimeList) {
     // The website separates legacy, regular QR and smaller 새싹 quantities.
     // Its all-bike map sums them. A missing category makes the total unknown.
-    const counts = COUNT_FIELDS.map(field => quantity(row[field]));
-    const total = counts.every(count => count !== null) ? counts.reduce((a, b) => a + b, 0) : null;
-    const station = normalized({...row, parkingBikeTotCnt: total}, stamp);
+    let total = 0;
+    for (const field of COUNT_FIELDS) {
+      const count = quantity(row?.[field]);
+      if (count === null) {total = null; break;}
+      total += count;
+    }
+    const station = normalized(row, stamp, total);
     if (!station || stations.has(station.id)) throw new Error('The bike service returned an invalid station list.');
     stations.set(station.id, station);
   }

@@ -51,6 +51,7 @@ test('missing quantities remain unknown while a fresh zero remains zero',()=>{
   assert.equal(normalized(row(),'stamp').bikes,0);
   assert.equal(normalized(row(1,''),'stamp').bikes,null);
   assert.equal(normalized(row(1,null),'stamp').bikes,null);
+  assert.equal(normalized(null,'stamp'),null);
 });
 
 const websitePayload=()=>({checkResult:true,stationVO:{stationGrpSeq:'ALL'},realtimeList:
@@ -70,16 +71,20 @@ test('official HTTPS website source sums bike categories without reading or send
 });
 test('website source rejects partial, duplicated, invalid and failed citywide responses',async()=>{
   for(const mutate of [p=>p.realtimeList.pop(),p=>p.checkResult=false,p=>p.stationVO.stationGrpSeq='01',
-    p=>p.realtimeList[1]=p.realtimeList[0],p=>p.realtimeList[0].stationLatitude='0']) {
+    p=>p.realtimeList[1]=p.realtimeList[0],p=>p.realtimeList[0].stationLatitude='0',p=>p.realtimeList[0]=null]) {
     const payload=websitePayload();mutate(payload);
     await assert.rejects(fetchWebsiteInventory(async()=>Response.json(payload)),/station list/);
   }
   await assert.rejects(fetchWebsiteInventory(async()=>new Response('Blocked',{status:403})),/unavailable/);
+  await assert.rejects(fetchWebsiteInventory(async()=>Response.json(null)),/station list/);
 });
 
 test('direct browser source fetches only on request, shares refreshes and keeps old timestamps on failure',async()=>{
   const service=new StaticService(new URL('https://bttlbmb.github.io/ddareungiwhere/'),{liveSource:'seoul-website'});
   service.loaded=Promise.resolve();service.stations=stations.map(s=>({...s}));service.history=history;
+  const catalogue=service.stations,firstStation=catalogue[0];
+  const absent={...stations[0],id:2501,number:'9999',bikes:8,fetched_at:new Date(now).toISOString()};
+  catalogue.push(absent);
   service.routes={estimate(){throw new Error('Refresh must not reroute');}};
   const originalFetch=globalThis.fetch,originalNow=Date.now;let clock=now,calls=0;
   try {
@@ -87,7 +92,10 @@ test('direct browser source fetches only on request, shares refreshes and keeps 
     globalThis.fetch=async()=>{calls++;if(calls>1)throw new Error('Failed');return Response.json(websitePayload());};
     await service.request('/api/bootstrap');assert.equal(calls,0);
     const first=service.refresh(),second=service.refresh();assert.equal(first,second);await first;
-    assert.equal(calls,1);assert.equal(service.stations[0].bikes,20);assert.equal(service.stations.length,2500);
+    assert.equal(calls,1);assert.equal(service.stations[0].bikes,20);assert.equal(service.stations.length,2501);
+    assert.equal(service.stations,catalogue);assert.equal(service.stations[0],firstStation);
+    assert.equal(firstStation.name,'Example');
+    assert.equal(absent.bikes,null);assert.equal(absent.fetched_at,null);
     const stamp=service.stations[0].fetched_at;
     await service.refresh();assert.equal(calls,1);
     clock+=61000;await service.refresh();assert.equal(calls,2);
@@ -415,11 +423,16 @@ test('bilingual street names share the same geometry and cached requests with le
 });
 
 test('missing browser street shards produce no label while other fetch errors can retry',async()=>{
+  let missingCalls=0;
   const missing=new StreetLabels(new URL('https://example.test/'),async()=>{
+    missingCalls++;
     throw Object.assign(new Error('Not found'),{status:404});
   });
   assert.deepEqual(await missing.lookup(37.55,126.97),
     {label:null,label_ko:null,distance_m:null,source:'OpenStreetMap',kind:null});
+  const firstMissing=missingCalls;
+  await missing.lookup(37.55,126.97);
+  assert.equal(missingCalls,firstMissing);
   let calls=0;
   const retry=new StreetLabels(new URL('https://example.test/'),async()=>{
     if(++calls===1)throw new Error('Temporary connection failure');
@@ -437,8 +450,25 @@ test('browser street shard cache remains bounded and refetches evicted entries',
   const labels=new StreetLabels(new URL('https://example.test/'),async()=>{
     calls++;return {cells:{},segments:[]};
   });
-  for(let i=0;i<33;i++)await labels.shard(String(i));
-  assert.equal(labels.cache.size,32);assert.equal(labels.cache.has('0'),false);
-  await labels.shard('32');assert.equal(calls,33);
-  await labels.shard('0');assert.equal(calls,34);assert.equal(labels.cache.size,32);
+  for(let i=0;i<32;i++)await labels.shard(String(i));
+  await labels.shard('0');assert.equal(calls,32);
+  await labels.shard('32');
+  assert.equal(labels.cache.size,32);assert.equal(labels.cache.has('0'),true);
+  assert.equal(labels.cache.has('1'),false);
+  await labels.shard('1');assert.equal(calls,34);assert.equal(labels.cache.size,32);
+});
+
+test('an evicted failing street request cannot discard a newer retry',async()=>{
+  let rejectFirst,calls=0;
+  const labels=new StreetLabels(new URL('https://example.test/'),async()=>{
+    if(++calls===1)return new Promise((_,reject)=>rejectFirst=reject);
+    return {cells:{},segments:[]};
+  });
+  const first=labels.shard('0');
+  for(let i=1;i<=32;i++)await labels.shard(String(i));
+  const retry=labels.shard('0');await retry;
+  rejectFirst(new Error('Old connection failure'));
+  await assert.rejects(first,/Old connection/);
+  assert.equal(labels.shard('0'),retry);
+  assert.equal(calls,34);
 });

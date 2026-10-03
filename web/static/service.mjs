@@ -78,19 +78,19 @@ export class StaticService {
     this.live = {...this.live, refreshing: true, error: null};
     this.pendingLive = fetchWebsiteInventory().then(response => {
       const incoming = new Map(response.stations.map(station => [station.id, station]));
-      const existing = new Map(this.stations.map(station => [station.id, station]));
+      // Mutate the catalogue in place: the planner retains this same array.
+      // Consuming matches leaves only new stations to append, using one index.
       for (const station of this.stations) {
         const value = incoming.get(station.id);
-        station.bikes = value?.bikes ?? null;
-        station.fetched_at = value?.fetched_at ?? null;
+        if (value) {
+          Object.assign(station, value);
+          incoming.delete(station.id);
+        } else {
+          station.bikes = null;
+          station.fetched_at = null;
+        }
       }
-      // Linear merge replaces repeated full-catalogue searches. Keep the same
-      // station array so the planner sees metadata changes and new stations.
-      for (const value of incoming.values()) {
-        const station = existing.get(value.id);
-        if (station) Object.assign(station, value);
-        else this.stations.push(value);
-      }
+      for (const station of incoming.values()) this.stations.push(station);
       this.live = {...response.live, refreshing: false};
     }).catch(() => {
       // Preserve the last count snapshot and its receipt time on failure.

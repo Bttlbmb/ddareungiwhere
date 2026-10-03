@@ -39,6 +39,79 @@ class StreetImportTests(unittest.TestCase):
                 ['English only', points],
             ])
 
+    @staticmethod
+    def prepare_fixture(root):
+        (root / 'scripts').mkdir(parents=True)
+        (root / 'data/raw').mkdir(parents=True)
+        (root / 'data/processed').mkdir()
+        (root / 'scripts/seoul_streets.overpass').write_text('fixture query')
+        source = root / 'data/raw/replacement.json'
+        source.write_text(json.dumps({'elements': [{
+            'tags': {'name': 'Replacement road'},
+            'geometry': [{'lat': 37.5, 'lon': 127}, {'lat': 37.51, 'lon': 127}]}]}))
+        output = root / 'data/processed/seoul_streets.json.gz'
+        output.write_bytes(gzip.compress(b'{"streets":[]}'))
+        manifest = root / 'data/manifest.json'
+        manifest.write_text('{"files":[]}')
+        return source, output, manifest
+
+    def test_external_source_is_rejected_before_replacing_dataset(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve() / 'project'
+            source, output, manifest = self.prepare_fixture(root)
+            external = root.parent / 'external.json'
+            external.write_bytes(source.read_bytes())
+            link = root / 'data/raw/external-link.json'
+            link.symlink_to(external)
+            before = output.read_bytes(), manifest.read_bytes()
+            for selected in [external, link]:
+                with self.subTest(source=selected):
+                    with patch.object(import_streets, 'ROOT', root), patch(
+                            'sys.argv', ['import_streets.py', '--source', str(selected)]):
+                        with self.assertRaisesRegex(SystemExit, 'copy the response under data/raw'):
+                            import_streets.main()
+                    self.assertEqual((output.read_bytes(), manifest.read_bytes()), before)
+                    self.assertFalse(output.with_suffix('.gz.part').exists())
+
+    def test_unreadable_or_invalid_manifest_preserves_dataset(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            source, output, manifest = self.prepare_fixture(root)
+            before = output.read_bytes()
+            for content in ['broken JSON', '{}', '{"files":{}}', '{"files":[{}]}']:
+                with self.subTest(manifest=content):
+                    manifest.write_text(content)
+                    with patch.object(import_streets, 'ROOT', root), patch(
+                            'sys.argv', ['import_streets.py', '--source', str(source)]):
+                        with self.assertRaisesRegex(SystemExit, 'manifest'):
+                            import_streets.main()
+                    self.assertEqual(output.read_bytes(), before)
+                    self.assertEqual(manifest.read_text(), content)
+                    self.assertFalse(output.with_suffix('.gz.part').exists())
+            manifest.unlink()
+            with patch.object(import_streets, 'ROOT', root), patch(
+                    'sys.argv', ['import_streets.py', '--source', str(source)]):
+                with self.assertRaisesRegex(SystemExit, 'manifest could not be read'):
+                    import_streets.main()
+            self.assertEqual(output.read_bytes(), before)
+
+    def test_invalid_geometry_preserves_extract_and_provenance(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            source, output, manifest = self.prepare_fixture(root)
+            before = output.read_bytes(), manifest.read_bytes()
+            for point in [{'lat': float('nan'), 'lon': 127}, {'lat': 37.5}, {'lat': True, 'lon': 127}, {'lat': 91, 'lon': 127}]:
+                with self.subTest(point=point):
+                    source.write_text(json.dumps({'elements': [{
+                        'tags': {'name': 'Broken road'},
+                        'geometry': [point, {'lat': 37.51, 'lon': 127}]}]}))
+                    with patch.object(import_streets, 'ROOT', root), patch(
+                            'sys.argv', ['import_streets.py', '--source', str(source)]):
+                        with self.assertRaisesRegex(SystemExit, 'coordinates'):
+                            import_streets.main()
+                    self.assertEqual((output.read_bytes(), manifest.read_bytes()), before)
+                    self.assertFalse(output.with_suffix('.gz.part').exists())
+
     def test_explicit_replacement_preserves_download_provenance(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder).resolve()

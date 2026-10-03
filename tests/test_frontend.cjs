@@ -214,14 +214,13 @@ function harness() {
 
 test("counts and availability keep the last snapshot despite elapsed time and failed refresh", async () => {
   const h = harness();
-  h.run("renderResults();renderLive(state.plan.live);updateLiveDisplay()");
+  h.run("renderResults();renderLive(state.plan.live)");
   assert.ok(![...h.timers.values()].some(t => t.delay === 120001));
   await h.run("refreshLive()");
   let failRequest;
   h.context.fetch = () => new Promise((_, reject) => {failRequest = reject;});
   const pending = h.run("refreshLive()");
   h.advance(86400000);
-  h.run("updateLiveDisplay()");
   assert.match(h.e("station-rows").innerHTML,/class="stat bikes ">4</);
   assert.match(h.e("station-rows").innerHTML,/Available now/);
   assert.doesNotMatch(h.e("station-rows").innerHTML,/Nearest|Bikes now|small-tag/);
@@ -691,6 +690,7 @@ test("manual bike refresh updates counts without rerunning history; completion p
   };
   h.run("fixture.station.walking_route={minutes:3.2};fixture.station.cycling_route={minutes:7.8};state.plan.destination_walking_route={minutes:4.4};state.plan.destination_label='Applied road'");
   await h.run("refreshLive()");
+  assert.equal(h.e("station-rows").writes, 1);
   assert.equal(h.run("state.plan.departures[0].bikes"), 7);
   assert.equal(h.run("state.plan.departures[0].walking_route.minutes"), 3.2);
   assert.equal(h.run("state.plan.departures[0].cycling_route.minutes"), 7.8);
@@ -967,6 +967,26 @@ test("a changed draft cancels its old comparison and clears busy state and obsol
   assert.equal(h.run('state.view'), 'map');
 });
 
+test("a completed refresh cannot overwrite a newer draft or show its obsolete failure", async () => {
+  for (const failure of [false,true]) {
+    const h = harness();
+    let finish,fail;
+    h.context.window.BikeStatic.request = () => new Promise((resolve,reject) => {
+      finish=resolve;fail=reject;
+    });
+    const pending = h.run('refreshLive()');
+    h.run('setPickupOffset(30)');
+    if (failure) fail(new Error('Obsolete refresh failure'));
+    else finish({stations:[{...h.station,bikes:99}],live:{refreshing:false}});
+    await pending;
+    assert.equal(h.run('state.plan'),null);
+    assert.equal(h.run('state.stations[0].bikes'),4);
+    assert.equal(h.e('error').hidden,true);
+    assert.equal(h.e('live-error').hidden,true);
+    assert.equal(h.run('state.awaitingLive'),false);
+  }
+});
+
 test("editing during metadata recovery prevents the old submission from comparing the new draft", async () => {
   const h = harness(), requests = [];
   let recover;
@@ -1058,6 +1078,40 @@ test("pickup bounds follow the current clock while Now and a typed time retain t
   assert.equal(h.e('pickup').value, '2026-10-08T08:30');
   assert.equal(h.e('pickup').min, '2026-10-01T10:00');
   assert.equal(h.e('pickup').max, '2026-10-08T10:00');
+});
+
+test("returning to the tab keeps the result DOM and snapshots while updating implicit Now", async () => {
+  const h = harness(), listeners = new Map(), requests = [];
+  const plan = h.run('state.plan');
+  h.document.addEventListener = (name, handler) => listeners.set(name, handler);
+  h.context.window.BikeStatic.request = async path => {
+    requests.push(path);
+    return {stations:[h.station],live:plan.live};
+  };
+  await h.run('initializeMap=()=>{};start()');
+  h.context.applied = plan;
+  h.run('state.plan=applied;renderResults()');
+  const rows = h.e('station-rows'), writes = rows.writes, html = rows.innerHTML;
+  h.advance(86400000);
+  listeners.get('visibilitychange')();
+  assert.equal(h.e('pickup').value, '2026-10-01T09:00');
+  assert.equal(rows.writes, writes);
+  assert.equal(rows.innerHTML, html);
+  assert.deepEqual(requests, ['/api/bootstrap']);
+});
+
+test("automatic suggestions require valid counts and the bounded receipt-time window", () => {
+  const h = harness();
+  const now = h.context.Date.now();
+  for (const [offset, fresh] of [[-120001,false],[-120000,true],[60000,true],[60001,false]]) {
+    h.station.fetched_at = new Date(now + offset).toISOString();
+    assert.equal(h.run('isFresh(fixture.station)'), fresh);
+  }
+  h.station.fetched_at = new Date(now).toISOString();
+  for (const bikes of [null,undefined,NaN,-1,1.5]) {
+    h.station.bikes = bikes;
+    assert.equal(h.run('isFresh(fixture.station)'), false);
+  }
 });
 
 test("keyboard map selection places both points at the center without comparing or intercepting controls", () => {

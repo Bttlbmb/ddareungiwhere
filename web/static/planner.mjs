@@ -31,7 +31,8 @@ export class StaticPlanner {
     const origin = point('origin'), destination = point('destination');
     const pickup = pickupTime(query.get('pickup'), now);
     if (!this.stations.length) throw new Error('Station locations are unavailable.');
-    // Bounded, stable shortlist: one distance calculation per station/point.
+    // Keep only five candidates; ties retain catalogue order. Save distances so
+    // selected rows and the destination do not repeat the catalogue work.
     const nearest = [];
     let returnStation, returnDistance = Infinity;
     for (const station of this.stations) {
@@ -50,14 +51,16 @@ export class StaticPlanner {
       if (!query.get(key)) continue;
       const selected = this.stations.find(s => s.id === Number(query.get(key)));
       if (!selected) throw new Error('That station is unavailable. Choose another station.');
-      if (key === 'return') returnStation = selected;
+      if (key === 'return') {
+        returnStation = selected;
+        returnDistance = distance(destination, selected);
+      }
       else if (!departures.some(s => s.id === selected.id)) {
-        departures[departures.length-1] = {...selected};
+        departures[departures.length-1] = {...selected, distance_m: Math.round(distance(origin, selected))};
         departures.sort((a,b) => distance(origin,a)-distance(origin,b));
       }
     }
     for (const station of departures) {
-      station.distance_m = Math.round(distance(origin,station));
       const index = this.historyIndex.get(station.number);
       const offset = (index * 48 + Number(pickup.weekday) * 24 + pickup.hour) * 2;
       const observations = index === undefined ? 0 : this.history.counts[offset];
@@ -68,7 +71,7 @@ export class StaticPlanner {
     }
     const immediate = pickup.stamp-now <= 900000;
     const eligible = departures.find(s => s.fresh && s.bikes > 0 && s.id !== returnStation.id);
-    return {departures, return_station: {...returnStation, distance_m: Math.round(distance(destination,returnStation))},
+    return {departures, return_station: {...returnStation, distance_m: Math.round(returnDistance)},
       origin, destination, pickup: new Date(pickup.stamp).toISOString(), hour: pickup.hour,
       day_group: pickup.weekday ? 'Weekdays' : 'Weekends', immediate, suggested_id: immediate ? eligible?.id ?? null : null, live};
   }

@@ -1,5 +1,6 @@
 import math
 import json
+import gzip
 import tempfile
 import unittest
 from pathlib import Path
@@ -9,6 +10,13 @@ from scripts.lib.street_index import StreetNames, segment_distance
 
 
 class StreetTests(unittest.TestCase):
+    def test_export_requires_retained_street_geometry(self):
+        with tempfile.TemporaryDirectory() as folder, patch(
+                'scripts.lib.street_index.StreetNames', return_value=StreetNames(streets=[])):
+            with self.assertRaisesRegex(ValueError, 'missing or empty'):
+                export_streets(Path(folder))
+            self.assertEqual(list(Path(folder).iterdir()), [])
+
     def test_bilingual_names_select_the_same_segment_and_legacy_names_fall_back(self):
         source = [
             ['Long road', [[37.5, 127], [37.5, 127.02]], '긴길'],
@@ -38,10 +46,10 @@ class StreetTests(unittest.TestCase):
                 'scripts.lib.street_index.StreetNames', return_value=streets):
             destination = Path(folder)
             count = export_streets(destination)
-            shards = list((destination / 'streets').glob('*.json'))
+            shards = list((destination / 'streets').glob('*.json.gz'))
             self.assertEqual(count, len(shards))
             for shard in shards:
-                payload = json.loads(shard.read_text())
+                payload = json.loads(gzip.decompress(shard.read_bytes()))
                 for segment in payload['segments']:
                     segment_id, name, *rest = segment
                     self.assertEqual(name, streets.names[segment_id])

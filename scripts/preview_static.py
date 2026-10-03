@@ -1,6 +1,9 @@
-"""Preview the generated site over HTTP, with compression and graph validators."""
+"""Serve a generated site over local HTTP, with byte-exact asset validators.
+
+Gzip datasets are explicit .gz downloads, as on GitHub Pages. They are not
+decoded or selected through content negotiation by this preview server.
+"""
 import argparse
-import gzip
 import hashlib
 import mimetypes
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -12,26 +15,30 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def handler(directory):
     directory = directory.resolve()
+
     class Handler(SimpleHTTPRequestHandler):
         etags = {}
+
         def __init__(self, *args, **kwargs):
             super().__init__(*args, directory=str(directory), **kwargs)
+
         def send_head(self):
             path = (directory / unquote(urlsplit(self.path).path).lstrip('/')).resolve()
             if not path.is_relative_to(directory):
-                self.send_error(404);return None
+                self.send_error(404)
+                return None
             if path.is_dir():
-                path = path / 'index.html'
-            if not path.is_file():
-                self.send_error(404);return None
+                # Directory indexes can themselves be symlinks; check their
+                # resolved target just as we check directly requested files.
+                path = (path / 'index.html').resolve()
+            if not path.is_relative_to(directory) or not path.is_file():
+                self.send_error(404)
+                return None
             content_type = 'text/javascript' if path.suffix == '.mjs' else mimetypes.guess_type(path)[0] or 'application/octet-stream'
-            compressed = Path(str(path) + '.gz')
-            use_gzip = 'gzip' in self.headers.get('Accept-Encoding', '') and compressed.exists()
-            served = compressed if use_gzip else path
+            stat = path.stat()
             self.send_response(200)
             self.send_header('Content-Type', content_type)
-            self.send_header('Content-Length', str(served.stat().st_size))
-            stat = path.stat()
+            self.send_header('Content-Length', str(stat.st_size))
             signature = (stat.st_mtime_ns, stat.st_size)
             cached = self.etags.get(path)
             if not cached or cached[0] != signature:
@@ -42,12 +49,12 @@ def handler(directory):
             self.send_header('ETag', cached[1])
             self.send_header('Cache-Control', 'no-cache')
             self.send_header('X-Content-Type-Options', 'nosniff')
-            if use_gzip:
-                self.send_header('Content-Encoding', 'gzip');self.send_header('Vary', 'Accept-Encoding')
             self.end_headers()
-            return served.open('rb')
+            return path.open('rb')
+
         def log_message(self, format, *args):
             pass
+
     return Handler
 
 

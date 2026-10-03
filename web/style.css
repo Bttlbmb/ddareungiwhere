@@ -32,11 +32,11 @@
   box-sizing: border-box;
 }
 
-button, input, select {
+button, input {
   font: inherit;
 }
 
-button, a, input, select {
+button, a, input {
   touch-action: manipulation;
 }
 
@@ -65,7 +65,6 @@ a {
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
   gap: 6px 24px;
   border-bottom: 1px solid var(--line);
   width: 100%;
@@ -168,23 +167,11 @@ a {
   }
 }
 
-.eyebrow {
-  font-size: 10px;
-  font-weight: 750;
-  letter-spacing: 1.7px;
-  margin: 0 0 9px;
-  color: var(--action-ink);
-}
-
 .section-title h2, .results-heading h2, #return-heading {
   font-size: 16px;
   font-weight: 700;
   letter-spacing: -0.4px;
   margin: 0;
-}
-
-.location-button.active {
-  background: transparent;
 }
 
 .location-button.active strong {
@@ -205,14 +192,6 @@ a {
   font-weight: 700;
   margin-left: -28px;
   box-shadow: 0 0 0 5px var(--paper);
-}
-
-.start-dot {
-  background: var(--bike-good-soft);
-  color: var(--bike-good);
-}
-
-.end-dot {
   background: var(--bike-good-soft);
   color: var(--bike-good);
 }
@@ -379,11 +358,6 @@ input[type="datetime-local"] {
   width: 32px;
   height: 32px;
   background: var(--dark);
-  color: white;
-}
-
-.map-pin.destination {
-  background: var(--dark);
   color: #fff;
 }
 
@@ -493,10 +467,6 @@ tbody tr:hover {
 
 tbody tr.chosen {
   background: transparent;
-}
-
-tbody tr.chosen td:first-child {
-  box-shadow: none;
 }
 
 .station-cell {
@@ -801,11 +771,6 @@ body {
   overflow: hidden;
 }
 
-.results-heading .eyebrow {
-  margin-bottom: 5px;
-  display: none;
-}
-
 #back-to-map {
   justify-self: end;
   padding: 0 0 0 10px;
@@ -835,10 +800,6 @@ body {
   min-width: 0;
 }
 
-.origin-field .location-button {
-  width: 100%;
-}
-
 .origin-field .input-help {
   font-size: 9px;
   margin: 2px 0 5px;
@@ -863,12 +824,6 @@ body {
   flex: 0 0 auto;
   padding: 18px 18px 12px;
   gap: 6px;
-}
-
-.results-heading p.muted {
-  margin: 5px 0 0;
-  font-size: 10px;
-  margin-top: 3px;
 }
 
 .results-body {
@@ -901,12 +856,6 @@ td {
   text-align: right;
 }
 
-.results-footer .muted {
-  max-width: none;
-  width: 100%;
-  text-align: right;
-}
-
 .footer-refresh {
   white-space: nowrap;
 }
@@ -926,12 +875,11 @@ main {
   max-width: 1480px;
   width: 100%;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 12px 24px 0;
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding-top: 12px;
 }
 
 .origin-field .location-action {

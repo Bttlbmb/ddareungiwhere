@@ -1,85 +1,99 @@
 # Architecture
 
-Static-only implementation in this checkout, reviewed 2026-10-03. [REVIEW.md](REVIEW.md) distinguishes published and local checks. Product rules: [SPEC.md](SPEC.md); maintenance: [STATIC_SETUP.md](STATIC_SETUP.md).
+Reviewed 2026-10-03. [SPEC.md](SPEC.md) defines behavior; [STATIC_SETUP.md](STATIC_SETUP.md) explains maintenance; [REVIEW.md](REVIEW.md) records what was tested and published.
 
-## Runtime boundary
+## Where the work happens
+
+GitHub Pages sends the page, public data and routing engine to the browser. The browser draws the map, compares stations and calculates routes on the device. Python tools prepare the data beforehand; they do not run when someone uses the page.
 
 ```text
-GitHub Pages → HTML/CSS/JavaScript, compressed public datasets, WASM, routing tiles
-Browser → Leaflet + draft/results UI
-        → StaticService → shortlist/history, street labels, Valhalla worker
-        → fixed official HTTPS bike feed, on explicit comparison/refresh
-        → ordinary OpenStreetMap background tiles
-Offline Python tools → availability SQLite / street extract / graph → public assets
+Offline inputs → Python exporters → static page on GitHub Pages
+                                      ↓
+Browser: interface + Leaflet + station/history/street data + Valhalla worker
+         ↓ explicit comparison or refresh       ↓ map viewing
+         official HTTPS bike feed               OpenStreetMap background tiles
 ```
 
-No backend, proxy, secret, rental table or database download is needed at runtime. GPS is one browser-permission fix. Street lookup/routing stay on-device; background tile requests reveal viewed map areas to the tile provider. Live requests ask for all stations, not the selected journey.
+There is no application server, proxy, runtime database or account system. A location request takes one GPS fix with the browser's permission. Street lookup and routing stay on the device. Background tiles reveal the viewed area to the tile provider; inventory requests retrieve all stations rather than the chosen journey.
 
-## Responsibilities
+## Source responsibilities
 
 | Source | Responsibility |
 | --- | --- |
-| `web/app.js` | Draft vs applied journey, map/results, validation feedback, stable count snapshots and asynchronous response guards |
-| `web/i18n.json`, `scripts/lib/localization.py` | Korean messages and pretranslated Korean HTML with shared assets and language-link metadata |
-| `web/static/start.mjs` | Versioned configuration and browser coordinator startup |
-| `service.mjs` | Lazy datasets, manual operations, live merge and serial route orchestration |
-| `planner.mjs` | KST validation, stable five-station shortlist, shared destination station, historical cell lookup |
-| `live.mjs` | Fixed credential-free feed, category sum, coverage/row checks and receipt times |
-| `data.mjs` | Explicit gzip decoding and exact historical payload/hash validation |
-| `routes.mjs` | One lazy worker, bounded estimate cache, pedestrian endpoint-access correction |
-| `streets.mjs` | Lazy spatial shards and nearest named-road search |
-| `scripts/build_static.py` | Stage complete public build, compress required data, version modules and install pinned SDK |
-| `scripts/lib/export_data.py`, `scripts/lib/sdk.py` | Exact history/street export; narrowly checked SDK transport/correlation patches |
-| `scripts/import_availability.py`, `scripts/import_streets.py` | Offline validated source imports |
-| `scripts/build_browser_graph.py`, `scripts/check_browser_routes.py` | Optional pinned native graph build and browser/native diagnostic fixtures |
-| `scripts/preview_static.py`, `scripts/prepare_publication.py` | File-only HTTP preview and allowlisted publication with stale-file removal |
+| `web/app.js` | Draft and applied journeys, map/results, validation, language, count snapshots and late-response guards |
+| `web/index.html`, `web/style.css`, `web/assets/` | Initial English page, approved layout and logo |
+| `web/i18n.json`, `scripts/lib/localization.py` | Korean copy and pretranslated Korean entry |
+| `web/static/start.mjs` | Versioned configuration and awaited startup |
+| `web/static/service.mjs` | Lazy data loading, live merge and serial route requests |
+| `web/static/planner.mjs` | Seoul-time validation, five-station shortlist, shared destination station and history lookup |
+| `web/static/live.mjs` | Fixed official feed, quantity/coverage checks and receipt times |
+| `web/static/data.mjs` | Gzip decoding, cancellation and historical payload validation |
+| `web/static/routes.mjs` | One routing worker, bounded estimate cache and short walking-access correction |
+| `web/static/streets.mjs` | Spatial street shards and nearest named-road search |
+| `scripts/build_static.py`, `scripts/lib/export_data.py` | Complete public build and exact data exports |
+| `scripts/lib/sdk.py` | Checked patches to the pinned routing SDK's delivery and station matching |
+| `scripts/import_availability.py`, `scripts/import_streets.py` | Validated offline source imports |
+| `scripts/build_browser_graph.py`, `scripts/check_browser_routes.py` | Optional pinned graph build and native/browser route checks |
+| `scripts/preview_static.py`, `scripts/prepare_publication.py` | HTTP preview and allowlisted publication preparation |
 
-Static module paths above are relative to `web/static/`. Existing `/api/bootstrap`, `/api/plan`, `/api/place-label` and `/api/live` strings are **internal command names** handled by `BikeStatic.request`; they never request HTTP API routes. The frontend gives operations a 30-second abort signal; draft edits also abort the pending comparison and reset its busy/error state. Bootstrap fetches only station data, never history metadata, live inventory, count cells or WASM. History metadata and count cells load together on first comparison; street shards load when labeling selected points; WASM/graph load on first estimate.
+Third-party files in `web/vendor/` retain their licenses. Edit application source, not generated files in `dist/site` or `docs`.
 
-The coordinator awaits the app startup promise, so initialization failures reach the translated load-error surface. The initial map instruction shows loading until handlers are installed. Station readiness is independent of historical readiness; a persistent map status reports loading/failure and offers an explicit Retry without clearing partial points. Draft edits do not clear that status. Startup/data cancellation helpers tolerate missing AbortSignal.timeout/throwIfAborted; unavailable gzip decoding reports the browser requirement. The unchanged routing SDK still requires its existing browser capabilities. Failed initialization promises reset for retry. An immediate new request may restart a shared metadata/history load abandoned by a canceled request; ordinary failures are not retried automatically. Cancellation is checked after history loading and before planning starts live collection.
+## Loading, state and cancellation
 
-The English and Korean HTML include one `modulepreload` hint for the shared, versioned `app.js`. Its URL exactly matches the coordinator's dynamic import, overlapping the small module fetch with configuration loading without evaluating the app early. Historical cells, street shards, live requests and routing assets retain their existing triggers. This is an ordering improvement; physical-phone latency remains unmeasured.
+Startup loads only station metadata. Historical metadata and counts load on the first comparison; street shards load when selected points need labels; the routing engine and graph tiles load on the first estimate. An app-module preload overlaps its download with configuration loading without running it early.
 
-Responsive CSS uses page-width breakpoints: phone planning at 700 px and below scrolls naturally with a separate fixed Compare dock and reserved bottom space; phone results restore viewport containment and internal scrolling. Results at 1100 px and below hide the planner and occupy the full workspace, with compact phone rows and shared tablet table headings. Above 1100 px the planner remains visible. `showView` synchronizes the workspace and body result classes; no result-count expansion or automatic query is added.
+The frontend calls `BikeStatic.request` with internal command names such as `/api/plan`. These strings never request an HTTP API. Operations have a 30-second abort signal. Draft edits cancel an old comparison and clear its busy/error state; request identity guards keep late replies from replacing a newer journey. A late street label applies only to its matching point.
 
-The planner scans the catalogue once, retaining only five candidates and the nearest destination station. Stable ties retain catalogue order. Only selected rows are cloned. Explicit departure/destination-station overrides retain existing semantics; internal return keys remain compatible. Refresh uses ID maps for a linear merge, preserving the station array used by the planner. Failed refreshes preserve the last quantities and original receipt times; UI snapshots remain stable until an explicit update.
+Station readiness is independent of history. Loading/failure feedback remains on the map, and Retry preserves partly chosen points. Failed initialization promises reset for the next explicit action. A new caller can restart a shared load abandoned by cancellation; ordinary failures do not retry automatically. Cancellation is checked before planning can start inventory collection. Startup/data helpers tolerate absent newer AbortSignal methods; missing gzip support produces translated guidance. The pinned SDK has its own browser requirements.
 
-## Localization
+Shortlisting scans the catalogue once, keeping five nearby candidates and the nearest destination station. Equal distances retain catalogue order. Only selected rows are cloned. Explicit station overrides retain their existing meaning. Inventory merges use one ID map and preserve the catalogue array used by the planner. Displayed quantities and their receipt times stay attached to the last fetched snapshot until an explicit update. Refresh renders results once; returning to a tab updates the pickup clock without rebuilding unchanged result rows.
 
-`web/i18n.json` maps stable English messages to Korean, including placeholders and accessibility/error copy. The builder embeds the compact catalog in the shared `app.js`; switching needs no translation fetch or duplicated runtime. `scripts/lib/localization.py` renders initial Korean HTML after revisioning, rebasing only relative assets to the parent directory. Both entries resolve the same versioned styles/scripts/logo and data. Each has a self-canonical and reciprocal en/ko/x-default alternate links; the sitemap lists both entry URLs.
+## Language and layout
 
-The URL determines the initial language. The entire header capsule is one real link to the other language, also working without JavaScript or in new tabs. Its `data-language` identifies the highlighted position, while href/hreflang and the accessible action label identify the target language in both initial HTML entries and after each switch. One click handler toggles from current state regardless of whether a label or the track was clicked. Normal clicks use History API and rerender copy only, retaining draft/applied state and cached bilingual label descriptors. Popstate updates language; late replies render in the current language. There is no storage, automatic redirect, external translation service, route/count invalidation or map reconstruction on a switch.
+The URL selects English or Korean. Both HTML entries share versioned scripts, styles, data and logo. The builder embeds the Korean message catalog in `app.js`, so switching needs no extra download. Korean HTML is translated before JavaScript runs and rebases relative assets to the parent directory. Each entry has its own canonical URL and reciprocal language alternatives; the sitemap lists both.
 
-A ResizeObserver tracks the actual map container where supported. Visible size changes refresh Leaflet's cached size with `pan: false` and refresh station visibility; zero-sized hidden maps are skipped. Coarse pointers use a canvas hit tolerance without changing the station dot radius. Instruction updates synchronize size before Enter reads the map center. Hidden results maps use the existing Back to map size refresh. This preserves chosen points and prevents stale size calculations after toolbar or legend wrapping changes.
+The ENG / 한국어 capsule is one native link to the other language. Ordinary clicks toggle copy and URL in place; modified clicks retain normal new-tab navigation. Back/forward follows the URL. Draft/applied points, pending work, selected station, estimates and bilingual labels survive a switch. Late replies render in the current language. There is no language storage or automatic redirect.
 
-## Live counts
+Phone planning at widths up to 700 px scrolls naturally and reserves space for the fixed Compare dock and safe area. Results at widths up to 1100 px replace the planner; phone rows are compact, while tablets keep shared table headings. Wider screens retain the planner beside results. Results scroll internally beneath their heading; Back to map stays outside the scroller. See [DESIGN.md](DESIGN.md) for visual details.
 
-POST form `stationGrpSeq=ALL` to the fixed official HTTPS endpoint documented in [DATA_SOURCES.md](DATA_SOURCES.md). CORS mode, omitted credentials, no redirects, eight-second upstream timeout. Reject unsuccessful/non-ALL replies, invalid/duplicate stations, and lists outside the 2,500–10,000-row coverage guard. That guard is a dated defensive threshold, not a proof of completeness.
+A ResizeObserver, where available, updates Leaflet's cached size without panning when the visible map changes size. Hidden zero-size maps are skipped. Keyboard instructions synchronize size before Enter reads the center; Back to map also refreshes size. Coarse pointers get a larger canvas hit tolerance without enlarging the station dots.
 
-Aggregate `parkingBikeTotCnt` + `parkingQRBikeCnt` + `parkingELECBikeCnt`, matching the official map. Invalid quantities are unknown. Session metadata is discarded. The feed supplies no observation timestamp; receipt time stays attached to the snapshot; the 120-second freshness threshold only limits automatic station suggestions. The UI does not expire valid counts or immediate-availability snapshots. One active request and a 60-second attempt cooldown per tab follow explicit actions only. Visitors do not share a global quota/cache. No polling collector or persistent inventory storage exists.
+## Public data formats
 
-The results UI shows missing quantities as a gray `/` box and renders a compact below-table notice from completed `live.error` state. The copy distinguishes no valid departure counts from retained counts after a failed refresh. It hides during refresh, success, draft edits and a new comparison. No browser IP lookup or inferred geographic error classification is performed. Live command exceptions use the same notice when a comparison exists; other command errors retain the ordinary error surface.
+### Stations and inventory
 
-## Historical sufficient statistics
+The saved catalogue has 2,735 station locations. Runtime matching uses ST identifiers; historical matching uses station numbers. A successful live refresh can add valid stations. Renumbering continuity remains unverified.
 
-Offline `availability.sqlite3` contains availability(number, day, hour, weekday, bikes) keyed by station/date/hour plus source metadata. Conflicting duplicate quantities abort import; exact duplicates deduplicate; missing/invalid records are excluded. The import builds a replacement before publishing it. No trip table is retained.
+The browser POSTs `stationGrpSeq=ALL` to the fixed HTTPS feed in [DATA_SOURCES.md](DATA_SOURCES.md), with CORS, omitted credentials, no redirects and an eight-second timeout. It rejects failed/non-ALL replies, duplicate/invalid stations and replies outside a defensive 2,500–10,000-row range. That range does not prove completeness. Quantities sum the legacy, QR and smaller-bike categories; malformed quantities remain unknown. Session metadata is discarded.
 
-`history.json` schema 2 carries station-number order, dates, actual observed months, method, source fingerprints, thresholds, and a content-addressed counts URL/hash. The gzip binary decodes to little-endian uint16 pairs `[observations, zero]`: 48 cells per station, weekend hours 0–23 then weekday hours 0–23. The browser checks byte length and SHA-256 before lookup. Counts remain exact; this is not probability quantization. At the allowed maximum 120-month window each group/hour count fits uint16. Six months merely changes the offline aggregation window, not the fixed browser cell dimensions.
+Only explicit actions start collection. Each tab shares one pending request and a 60-second attempt cooldown; there is no global visitor quota, polling collector or persistent inventory store. Receipt time is local because the provider supplies no observation timestamp. Freshness limits station suggestions, not how long displayed counts remain visible. Failed refreshes retain the previous quantities and receipt times. The results notice distinguishes missing counts from a failed update with retained counts and does not infer the visitor's country.
 
-Current table: 2,809 historical station numbers, 134,832 cells. A station without evidence is Unknown. The saved map has 2,735 station locations; live refresh can append valid new stations. Historical matching uses station number; continuity across renumbering remains unverified.
+### History
 
-## Streets and routing
+Offline SQLite stores `availability(number, day, hour, weekday, bikes)`, keyed by station/date/hour, plus source metadata. Exact duplicates deduplicate; conflicting quantities reject the import; missing/invalid records are excluded. A replacement database is built before it replaces the existing one. No rental table is retained.
 
-Named-road geometry is indexed in 0.005° cells, published in 0.05° gzip shards. A 32-shard cache bounds decoded lookup data. Search is within 250 m; labels beyond 35 m get “Near” / “근처” in the selected language. Geometry precision is retained. Optional Korean labels are carried alongside the original English fallback: processed ways `[English, geometry, Korean?]`, exported segments `[id, English, aLat, aLng, bLat, bLng, Korean?]`. Both Python/browser lookups retain `label` and add `label_ko`; old extracts/shards fall back to English. The UI selects the retained name without another lookup/request. No external reverse geocoder is called.
+`history.json` schema 2 lists station-number order, dates, actual observed months, method, fingerprints, thresholds and the counts URL/hash. Gzip counts decode to little-endian uint16 pairs `[observations, zero]`: 48 cells per station, weekend hours 0–23 followed by weekday hours 0–23. Each cell stores how many values were recorded and how many were zero. The browser checks the byte length and SHA-256 fingerprint before lookup. Counts are exact, not rounded probabilities. The supported maximum 120-month window fits this representation.
 
-The browser SDK is pinned to valhalla-browser 0.2.1 / Valhalla 3.8.3 revision `a60c7cbfc83e073f50887cd27e0109d02e6b64e5`. WASM is unmodified and delivered as explicit gzip, with decoded size and SHA-256 checked before compilation. Offline graph includes bicycle/pedestrian access, excludes driving-only ways, and retains hierarchy/shortcuts. Bicycle costing: hybrid, 15 km/h. Pedestrian: 5.1 km/h; user-point radius 30 m, station radius 50 m, search cutoff 100 m, station bridge matching excluded. Geometry endpoints add short walking access; gaps over 100 m are rejected. Shape scanning retains endpoints rather than the whole decoded polyline. A checked boolean station role passes through the SDK client/worker so the station correlation applies at the origin for the final forward walking leg; omitted roles retain the existing destination-station default. The planner retains the applied destination coordinates, and the UI keeps its applied label through inventory refreshes.
+The retained archive supplies 2,809 station numbers and 134,832 cells for October–December 2025. Missing evidence is Unknown. A longer export window changes the observations included, not the 48-cell shape; six-month coverage needs more source months. Sampling and continuity limits are in DATA_SOURCES.
 
-Only `.gph.gz` tiles and `.wasm.gz` engine data are published. Full-tile requests decode explicitly for Pages, validating bounded size, SHA-256 and native GraphId. Range-transport checks remain unchanged; this deployment uses individual tiles. Graph manifest/config retain upstream archive descriptors for provenance; `graph.tar` is not published or used. Do not use archive transport against this deployment.
+### Streets
 
-One initialization promise prevents duplicate workers. Tile memory budget: 96 MiB; WASM initial 64 MiB, maximum 512 MiB; 2,048 direction/mode/coordinate/station-role-keyed estimates in LRU order. HTTP assets cache across visits under host policy; decoded/native caches are session-local. Eleven serial routes (five pickup walks, five rides, one destination-station-to-point walk) avoid loading multiple workers. Diagnostic route samples are disabled in normal use, bounded to ten when explicitly enabled.
+Named roads use 0.005° cells, distributed in 0.05° gzip shards. The browser keeps 32 shards in least-recently-used order, including cached absence for a missing shard in that versioned release. Transient failures remain retryable. Each lookup indexes only segments in the searched cells. Search extends 250 m; labels beyond 35 m add Near / 근처. Geometry precision is retained.
 
-## Publication
+Processed ways are `[English, geometry, Korean?]`; public segments are `[id, English, aLat, aLng, bLat, bLng, Korean?]`. Python/browser lookup retains `label` and optional `label_ko`. Older extracts fall back to English. The UI chooses the cached name without another request. These are approximate road labels, not postal addresses; no external geocoder is called.
 
-A staged build replaces only a marked generated site. UI/module/configuration/worker/WASM URLs share a content revision that includes public data. Bootstrap data uses that revision; binary counts and graph releases have content-addressed paths. This avoids mixing cached modules/configuration/datasets after deployment. No service worker is installed.
+## Routing and storage
 
-Publication copies only source, owning docs, small public inputs/provenance and generated site. It removes legacy files and stale assets, excludes diagnostics, scans retained Seoul Open Data key values from ignored local `.env` files and checks GitHub's per-file size limit. Deleting files does not erase previous Git commits. Offline raw inputs, SQLite, SDK cache and environments are ignored.
+The compiled routing code runs as WebAssembly (WASM) in a background worker. Routing is pinned to valhalla-browser 0.2.1 / Valhalla 3.8.3 revision `a60c7cbfc83e073f50887cd27e0109d02e6b64e5`. The graph includes bicycle/pedestrian access, hierarchy and shortcuts, excluding driving-only ways. Bicycle estimates use hybrid costing at 15 km/h; walking uses 5.1 km/h.
+
+Pedestrian matching uses a 30 m user-point radius, 50 m station radius and 100 m search cutoff; station matching excludes bridges. The SDK carries a checked boolean station role so the final forward walk treats its origin as the station. Short gaps to the routed geometry add walking access; gaps over 100 m are rejected. Shape scanning keeps endpoints instead of a full decoded line. The exact-origin Oksu pier #5651 detour remains unresolved.
+
+Only gzip tiles and gzip WASM are published. Decoding verifies bounded length, SHA-256 and tile GraphId before use. Range-transport checks remain intact, but this deployment uses individual tiles. Manifest archive descriptors retain build provenance; `graph.tar` is unnecessary for delivery or native tile-directory checks. WASM itself is unmodified.
+
+One shared initialization prevents duplicate workers. The tile memory budget is 96 MiB; WASM starts at 64 MiB and can grow to 512 MiB. The cache keeps the 2,048 most recently used estimates, distinguished by direction, mode, coordinates and station role. Eleven serial estimates cover five pickup walks, five rides and one final walk. Normal use disables diagnostic samples; explicitly enabled samples are limited to ten. HTTP assets follow host caching policy; decoded/native caches last only for the session. These limits are settings, not measured peak phone memory.
+
+## Build and publication
+
+A staged build replaces only a marked generated site. Small UI, module, configuration, worker and WASM URLs share a content revision that includes public data; count binaries and graph releases use content-addressed paths. This keeps returning visitors from mixing release assets. No service worker is installed.
+
+The publisher copies allowlisted source, documentation, small public inputs/provenance and the generated site, removes stale assets and excludes diagnostics. Credential and per-file size checks precede publication preparation. It never commits or pushes. Raw inputs, SQLite, SDK cache and local environments stay ignored; removing a file does not remove it from prior Git history.

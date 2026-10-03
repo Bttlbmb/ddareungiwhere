@@ -1,19 +1,29 @@
 # Decisions
 
-Current rationale, updated 2026-10-03.
+Current rationale, reviewed 2026-10-03. Product rules are in [SPEC.md](SPEC.md), source limits in [DATA_SOURCES.md](DATA_SOURCES.md), and dated evidence in [REVIEW.md](REVIEW.md).
 
-- **Static-only, user-approved.** GitHub Pages serves plain JavaScript/Leaflet and browser Valhalla. Python and SQLite remain offline build tools. The legacy application server, rental imports/analysis, Cloudflare Worker and their tests/docs are removed. Existing product behavior and approved design remain.
-- **Direct official HTTPS inventory.** The official ALL-station website feed currently accepts CORS without a key; the browser sends no credentials/cookies. This supersedes the planned secret-hiding Worker. The website endpoint has no published versioned contract; breakage must produce unknown counts and retryable errors. Per-tab throttling replaces shared proxy caching.
-- **Sufficient statistics, not detailed history.** Station × weekday/weekend × hour observation/zero counts reproduce the current historical bands exactly. Compressed little-endian counts reduce transfer/object allocation without approximating evidence. Six-month aggregation needs additional complete sources; it cannot invent history from the three supplied months.
-- **Keep routing connectivity.** Pinned walking/bicycle graph excludes driving-only access but preserves hierarchy/shortcuts. Removing every highway would remove walkable/cyclable OSM roads too. Raw tile/WASM copies, unused compressed siblings and alternative flat-graph tooling are removed from publication; requested compressed tiles keep existing integrity checks. First-use WASM/tile costs remain material.
-- **Manual action, separate meanings.** Draft edits do not query. Refresh changes inventory only. Pickup is collection time, not origin departure. Immediate availability follows the retained live-count snapshot; future historical bands are descriptive, not calibrated probabilities or refill forecasts.
-- **Valhalla estimates rather than rental durations.** Rentals include stops and detours. Popular-route shortcuts and their seeds were removed at the user’s request on 2026-10-01; no rental data is required to use/build the page. Kakao routing, rental summary cards, pooled medians and walking-budget filters are superseded.
-- **Stable snapshots, user-approved 2026-10-01.** Displayed counts and immediate availability stay unchanged until manual comparison/refresh replaces them. This supersedes the earlier two-minute display expiry; the refresh time and unknown/zero distinction remain. Automatic station suggestion still uses recent reports.
-- **Small existing UI.** Route Ribbon / Slate & Teal, City basket logo (selected 2026-10-02, superseding Looking Wheels), five candidates, shared destination station, compact desktop/phone results. No framework, slogans, extra methodology UI, accounts or background collection added.
+## Runtime and data
 
-- **English/Korean static entries, approved 2026-10-02.** Use `/` and `/ko/` with shared assets, self-canonicals and reciprocal alternates. The selected mint capsule is one native link: clicking either label or its track toggles language. Copy and URL update in place, preserving the journey and count snapshots. Embed a small catalog; retain Korean road labels in existing lazy shards. Independent wording reviews require descriptive archive frequency and receipt-time copy, with missing counts distinct from zero. No redirects, language storage or translation requests. The added payload is measured in REVIEW; physical-phone latency remains unverified.
-- **Search discovery, approved 2026-10-02.** Descriptive titles, initial HTML metadata, a public verification tag and a two-entry sitemap make both language pages discoverable without adding analytics or changing the planner. Shipping those files does not establish Search Console ownership verification, indexing, ranking or traffic.
+**Run the planner in the browser.** GitHub Pages serves plain JavaScript, Leaflet and on-device Valhalla. Python and SQLite prepare data offline. This keeps deployment small and removes the need for an application server. The earlier Python application and Cloudflare proxy have been removed.
 
-- **Responsive revision, approved 2026-10-03.** Phone planning uses natural scrolling and a persistent action dock; tablet results use the full width with shared headings. This supersedes the 540 px results-container card reflow, whose tall rows and fixed narrow planner failed the user’s tablet screenshots. Phone availability aligns with its count and matches Walk/Ride type. Destination duration explicitly says Walk time. Station bootstrap is independent of history so a history failure cannot hide the map catalogue. Desktop emulation still does not establish physical-phone behavior.
+**Use the official HTTPS inventory feed directly.** It accepted cross-origin requests without credentials in the dated checks. This avoids a proxy and browser secrets. The feed has no published versioned contract and may be restricted on some networks; failures must preserve received snapshots or show unknown counts. Each tab limits attempts independently.
 
-Known correctness/performance limits belong in [plan.md](plan.md), source limits in [DATA_SOURCES.md](DATA_SOURCES.md), dated measurements in [REVIEW.md](REVIEW.md).
+**Publish counts that preserve the evidence.** For each station, hour and weekday/weekend group, recorded-value and zero counts reproduce the historical bands exactly. Compressing these small summaries avoids downloading the archive without approximating it. Six-month coverage still requires six months of source data.
+
+**Retain roads needed for walking and cycling.** The graph excludes driving-only access while keeping routing hierarchy and shortcuts. OSM's “highway” category also includes paths and cycleways, so removing that entire category would break routes. Only required compressed routing assets are published. First-use downloads and memory remain material costs.
+
+**Estimate routes from roads, rather than rental duration.** Rentals can include stops and detours. Valhalla estimates walking and cycling using the saved road graph. Rental summaries, Kakao routing and walking-budget filters were superseded; popular-route shortcuts were removed at the user's request on 2026-10-01.
+
+## Interaction and appearance
+
+**Keep actions deliberate and meanings separate.** Edits prepare a draft; comparison applies it; bike refresh preserves routes/history. Pickup means collection at the station. Immediate status describes the received count, while later historical bands describe the archive. Neither guarantees a bike at pickup.
+
+**Keep displayed snapshots stable.** Approved 2026-10-01, counts and immediate status remain until manual comparison/refresh updates them. This replaces the earlier two-minute display expiry. Receipt time and the distinction between unknown and zero remain; automatic station suggestions still require recent reports.
+
+**Keep the selected compact design.** Route Ribbon / Slate & Teal uses five candidates and one destination station. The City basket logo, selected 2026-10-02, replaces Looking Wheels. The responsive revision approved 2026-10-03 keeps Compare visible in a phone dock and uses full-width tablet results, replacing tall tablet cards. Phone availability aligns with counts, and the final duration explicitly says Walk time. Station startup is independent of history so a history failure cannot hide the catalogue.
+
+**Share the English and Korean planner.** Approved 2026-10-02, `/` and `/ko/` share assets. A small embedded language catalogue and bilingual street shards avoid translation requests. The whole mint capsule toggles copy and URL while preserving the journey. There are no automatic redirects or stored language preferences.
+
+**Make both entries discoverable.** Approved 2026-10-02, descriptive titles, language metadata, a public verification tag and a two-entry sitemap support search discovery without analytics. Published metadata does not establish ownership verification, indexing, rankings or traffic.
+
+Known issues and unapproved proposals remain in [plan.md](plan.md). Desktop browser checks do not establish physical-phone performance.
