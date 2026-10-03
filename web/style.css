@@ -294,6 +294,35 @@ input[type="datetime-local"] {
   background: var(--accent-soft);
 }
 
+.station-data-status {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--soft);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+#station-data-message {
+  flex: 1;
+  min-width: 0;
+}
+
+#retry-stations {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--action-ink);
+  font-size: 11px;
+}
+
 .leaflet-container {
   font-family: inherit;
 }
@@ -505,6 +534,7 @@ tbody tr.chosen td:first-child {
 
 .station-sub {
   font-size: 10px;
+  font-weight: 400;
   color: var(--muted);
   display: block;
   margin-top: 4px;
@@ -573,98 +603,6 @@ tbody tr.chosen td:first-child {
 
 [hidden] {
   display: none !important;
-}
-@media (max-width: 700px) {
-
-  :root {
-    --station-heading-inset: 12px;
-  }
-
-  .brand {
-    font-size: 22px;
-  }
-
-  .brand-mark {
-    width: 40px;
-    height: 35px;
-  }
-
-  .location-fields {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .location-button strong {
-    font-size: 11px;
-  }
-
-  .point-dot {
-    width: 22px;
-    height: 22px;
-  }
-
-  .crosshair {
-    display: none;
-  }
-
-  .map-toolbar button span {
-    display: none;
-  }
-
-  .results-section {
-    margin-top: 26px;
-  }
-
-  .results-heading .muted {
-    font-size: 10px;
-  }
-
-  .secondary-button {
-    font-size: 10px;
-    padding: 8px;
-  }
-
-  .results-footer .muted {
-    font-size: 9px;
-  }
-
-  .map-error {
-    left: 12px;
-    right: 12px;
-    font-size: 10px;
-  }
-
-  th:first-child {
-    background: var(--table-head);
-  }
-
-  tbody tr.chosen td:first-child {
-    background: var(--paper);
-  }
-
-  .station-cell {
-    gap: 7px;
-  }
-
-  td:first-child {
-    background: var(--paper);
-  }
-
-  th:first-child, td:first-child {
-    position: sticky;
-    left: 0;
-    z-index: 1;
-    max-width: 205px;
-    padding-left: var(--station-heading-inset);
-    width: 36%;
-  }
-
-  th {
-    white-space: normal;
-  }
-
-  .stat {
-    font-size: 17px;
-  }
 }
 
 .risk-badge {
@@ -767,8 +705,7 @@ body {
 .input-help {
   font-size: 10px;
   color: var(--muted);
-  margin: 6px 0 16px;
-  margin-bottom: 10px;
+  margin: 6px 0 10px;
 }
 
 #location-status:empty {
@@ -779,10 +716,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: 20px 0 7px;
+  margin: 12px 0 7px;
   font-size: 12px;
   font-weight: 600;
-  margin-top: 12px;
 }
 
 .journey-panel {
@@ -793,6 +729,7 @@ body {
 
 .map-panel {
   position: relative;
+  isolation: isolate;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   overflow: hidden;
@@ -853,7 +790,6 @@ body {
 }
 
 .results-section {
-  margin-top: 33px;
   height: 100%;
   min-height: 0;
   margin: 0;
@@ -893,102 +829,6 @@ body {
   max-height: 70px;
   overflow-y: auto;
   flex: 0 0 auto;
-}
-@media (max-width: 700px) {
-
-  .site-header {
-    padding: 9px 12px 9px 21px;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .site-description {
-    margin-left: 51px;
-    grid-column: 1 / -1;
-    grid-row: 2;
-    justify-self: start;
-    text-align: left;
-  }
-
-  .language-switch {
-    grid-column: 2;
-  }
-
-  .planner-grid {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 10px;
-  }
-
-  .planner-card {
-    padding: 10px;
-  }
-
-  .planner-card .section-title {
-    margin-bottom: 8px;
-  }
-
-  .location-button em {
-    display: none;
-  }
-
-  .location-action {
-    min-height: 26px;
-    margin-top: 4px;
-  }
-
-  .planner-card .input-help {
-    font-size: 9px;
-    margin: 3px 0 6px;
-  }
-
-  .planner-card .time-heading {
-    margin-top: 6px;
-  }
-
-  #pickup {
-    padding: 7px 9px;
-    font-size: 12px;
-  }
-
-  .planner-card .primary-button {
-    padding: 10px 12px;
-    position: sticky;
-    bottom: 0;
-    z-index: 2;
-  }
-
-  .planner-grid.show-results {
-    grid-template-rows: minmax(0, 1fr);
-  }
-
-  .show-results .planner-card {
-    display: none;
-  }
-
-  .section-title h2, .results-heading h2, #return-heading {
-    font-size: 14px;
-  }
-
-  .map-toolbar {
-    font-size: 10px;
-    padding: 8px;
-  }
-
-  .map-bottom {
-    gap: 6px;
-    padding: 6px 8px;
-    font-size: 8px;
-  }
-
-  .site-footer {
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 7px;
-    padding: 7px 0;
-  }
 }
 
 .origin-field {
@@ -1032,7 +872,6 @@ body {
 }
 
 .results-body {
-  container: comparison / inline-size;
   overflow-y: auto;
   scrollbar-gutter: stable;
   min-height: 0;
@@ -1082,14 +921,6 @@ td {
   padding: 4px 0;
   min-height: 32px;
 }
-@media (max-width: 700px) {
-
-  th, td {
-    padding: 9px 7px;
-  }
-}
-
-
 
 main {
   max-width: 1480px;
@@ -1120,13 +951,6 @@ main {
 .stat.bikes.few {
   color: var(--bike-few);
   background: var(--bike-few-soft);
-}
-@media (max-width: 700px) {
-
-  main {
-    padding: 0 12px;
-    padding-top: 8px;
-  }
 }
 
 .time-shortcuts {
@@ -1229,39 +1053,6 @@ main {
   height: 18px;
   flex: 0 0 auto;
 }
-@media (max-width: 450px) {
-
-  .location-fields {
-    grid-template-columns: 1fr;
-  }
-
-  .planner-card .primary-button {
-    position: static;
-  }
-}
-@media (min-width: 451px) and (max-width: 700px) {
-
-  .location-fields {
-    grid-template-columns: 1fr;
-  }
-}
-@media (max-width: 700px) {
-
-  .results-heading {
-    padding: 10px 10px 12px;
-  }
-
-  .location-button {
-    gap: 7px;
-    min-width: 0;
-    min-height: 48px;
-    padding: 8px 0 12px;
-  }
-
-  .secondary-button {
-    min-height: 32px;
-  }
-}
 
 /* The return row shares the departure name, number, marker and duration styles. */
 #return-heading {
@@ -1299,6 +1090,7 @@ main {
 .return-walk {
   display: flex;
   align-items: baseline;
+  flex-wrap: wrap;
   gap: 10px;
 }
 .destination-arrow {
@@ -1313,20 +1105,287 @@ main {
   font-weight: 700;
   overflow-wrap: anywhere;
 }
-/* Reflow when the table's own content area cannot fit its 540px columns.
-   The desktop planner and headings still follow the page breakpoint. */
-@container comparison (max-width: 540px) {
-  .table-wrap {
-    border-radius: 0;
-    overflow: visible;
+
+/* Inline metric labels become visible only when the phone table reflows. */
+.metric-label {
+  display: none;
+}
+
+.return-walk-label {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.station-cell > div {
+  min-width: 0;
+}
+
+/* A tablet comparison needs the full page width to keep five compact rows. */
+@media (max-width: 1100px) {
+  .planner-grid.show-results {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  #station-table {
+  .show-results .planner-card {
+    display: none;
+  }
+}
+
+@media (min-width: 701px) and (max-width: 1100px) {
+  #station-table th:first-child {
+    width: 40%;
+  }
+
+  #station-table th:nth-child(2) {
+    width: 12%;
+  }
+
+  #station-table th:nth-child(3), #station-table th:nth-child(4) {
+    width: 14%;
+  }
+
+  #station-table th:nth-child(5) {
+    width: 20%;
+  }
+
+  #station-rows td {
+    padding: 16px 12px;
+  }
+
+  .station-name {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 700px) {
+  :root {
+    --station-heading-inset: 10px;
+    --planner-dock-height: 80px;
+  }
+
+  .site-header {
+    padding: 9px 12px 9px 21px;
+    gap: 4px;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .brand {
+    font-size: 22px;
+    gap: 11px;
+  }
+
+  .brand-mark {
+    width: 40px;
+    height: 35px;
+  }
+
+  .site-description {
+    margin-left: 51px;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: start;
+    text-align: left;
+    font-size: 12px;
+  }
+
+  .language-switch {
+    grid-column: 2;
+  }
+
+  main {
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    padding: 8px 12px calc(var(--planner-dock-height) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .planner-grid {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 12px;
+    min-height: auto;
+  }
+
+  .planner-card {
+    overflow: visible;
+    min-height: auto;
+    padding: 10px 10px 0;
+  }
+
+  .section-title {
+    margin-bottom: 8px;
+  }
+
+  .location-fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .location-label {
+    font-size: 11px;
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+
+  .location-heading {
+    margin-bottom: 2px;
+  }
+
+  .location-heading .location-action {
+    min-height: 32px;
+    padding: 3px 0;
+    font-size: 11px;
+  }
+
+  .location-button {
     min-width: 0;
+    min-height: 50px;
+    padding: 8px 0 10px;
+    gap: 10px;
+  }
+
+  .location-button strong {
+    font-size: 14px;
+  }
+
+  .location-button em {
+    display: none;
+  }
+
+  .crosshair {
+    font-size: 20px;
+  }
+
+  .planner-card .input-help {
+    font-size: 10px;
+    margin: 3px 0 6px;
+  }
+
+  .pickup-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .pickup-fields .time-heading {
+    margin: 0;
+  }
+
+  #pickup {
+    height: 42px;
+    padding: 8px;
+    font-size: 16px;
+  }
+
+  .time-shortcuts {
+    grid-column: 1 / -1;
+    margin-top: 0;
+  }
+
+  .time-shortcuts button {
+    min-height: 38px;
+    font-size: 12px;
+  }
+
+  .planner-actions {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    padding: 10px 22px calc(12px + env(safe-area-inset-bottom, 0px));
+    background: var(--paper);
+    border-top: 1px solid var(--line);
+  }
+
+  #compare-button {
+    margin-top: 0;
+    min-height: 48px;
+    padding: 13px 15px;
+  }
+
+  .journey-panel {
+    flex: 0 0 auto;
+  }
+
+  .map-panel {
+    height: clamp(280px, 46vh, 390px);
+    height: clamp(280px, 46dvh, 390px);
+  }
+
+  .map-toolbar {
+    font-size: 11px;
+    padding: 8px 12px;
+    min-height: 42px;
+    gap: 8px;
+  }
+
+  .map-toolbar button {
+    min-height: 32px;
+  }
+
+  .map-toolbar button span {
+    display: none;
+  }
+
+  .map-bottom {
+    gap: 6px 10px;
+    padding: 6px 8px;
+    font-size: 9px;
+  }
+
+  .map-bottom span:last-child {
+    margin-left: 0;
+  }
+
+  .map-error {
+    left: 12px;
+    right: 12px;
+    font-size: 11px;
+  }
+
+  .site-footer {
+    padding: 10px;
+    font-size: 9px;
+  }
+
+  /* Results keep a steady heading and their own scroll area on phones. */
+  body.results-view main {
+    overflow: hidden;
+    padding-bottom: 0;
+  }
+
+  .planner-grid.show-results {
+    display: grid;
+    flex: 1;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .results-heading {
+    padding: 10px 10px 12px;
+  }
+
+  #back-to-map {
+    min-height: 44px;
+    font-size: 12px;
+  }
+
+  .results-body {
+    padding: 0 6px 12px;
+  }
+
+  .table-wrap {
+    overflow: visible;
   }
 
   #station-table, #station-rows {
     display: block;
+    min-width: 0;
   }
 
   #station-table thead {
@@ -1335,146 +1394,163 @@ main {
 
   #station-rows tr {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 9px 14px;
-    padding: 14px 4px;
+    grid-template-columns: 24px repeat(3, minmax(0, 1fr));
+    gap: 8px 10px;
+    align-items: start;
+    padding: 12px 4px;
     border-bottom: 1px solid var(--line);
   }
 
   #station-rows td {
     padding: 0;
     border: 0;
+    width: auto;
+    max-width: none;
+    min-width: 0;
   }
 
   #station-rows td:first-child {
-    grid-column: 1 / -1;
-    position: static;
-    max-width: none;
-    width: auto;
-    padding: 0 0 5px;
-    background: transparent;
+    grid-column: 1 / 4;
+    grid-row: 1;
   }
 
-  #station-rows td[data-heading]::before {
-    content: attr(data-heading);
-    display: block;
-    color: var(--muted);
-    font-size: 11px;
-    font-weight: 400;
+  #station-rows td:nth-child(2) {
+    grid-column: 4;
+    grid-row: 1;
+    text-align: right;
+  }
+
+  #station-rows td:nth-child(3) {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  #station-rows td:nth-child(4) {
+    grid-column: 3;
+    grid-row: 2;
+  }
+
+  #station-rows td:nth-child(5) {
+    grid-column: 4;
+    grid-row: 2;
+    text-align: right;
+  }
+
+  #station-rows .ride-duration, #station-rows td:nth-child(5) {
+    font-size: 12px;
+    line-height: 1.5;
     white-space: normal;
-    margin-bottom: 4px;
+  }
+
+  .metric-label {
+    display: inline;
+    margin-right: 3px;
+    font-weight: 400;
+  }
+
+  #station-rows td:nth-child(5) .metric-label {
+    display: block;
+    margin-right: 0;
+  }
+
+  .station-cell {
+    align-items: flex-start;
+    gap: 10px;
+    padding-left: 0;
   }
 
   .station-rank {
-    display: grid;
+    min-width: 24px;
+    height: 24px;
   }
 
   .station-name {
+    display: block;
     max-width: none;
-    min-height: 32px;
+    width: 100%;
+    min-height: 44px;
+    font-size: 13px;
+  }
+
+  .station-sub {
+    font-size: 11px;
+    font-weight: 400;
+    margin-top: 4px;
+  }
+
+  .stat {
+    font-size: 20px;
+  }
+
+  .stat.bikes, .stat.unknown {
+    min-width: 36px;
+    padding: 5px 9px;
+    border-radius: 5px;
+  }
+
+  .risk-badge {
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+    font-size: inherit;
+    font-weight: 400;
+  }
+
+  #station-rows td.loading {
+    grid-column: 1 / -1;
+    padding: 32px 0;
+  }
+
+  #return-heading {
+    padding: 18px 4px 12px;
   }
 
   .return-row {
-    gap: 9px 14px;
-    padding: 14px 4px;
+    display: block;
+    padding: 12px 4px;
   }
+
   .return-station {
-    grid-column: 1 / -1;
-    padding: 0 0 5px;
+    padding: 0 0 9px;
   }
+
   #return-name {
-    display: flex;
-    align-items: center;
+    min-height: 0;
   }
+
   .return-walk {
-    grid-column: 2;
-    padding: 0;
-    flex-wrap: wrap;
-    gap: 4px 8px;
+    padding: 0 0 0 34px;
+    font-size: 12px;
+    gap: 6px 8px;
+  }
+
+  #return-destination {
+    max-width: 100%;
+    min-width: 0;
+    font-size: 13px;
+  }
+
+  .results-footer .muted {
+    font-size: 11px;
   }
 }
 
-/* Keep the existing phone layout when container queries are unavailable. */
-@supports not (container-type: inline-size) {
-  @media (max-width: 700px) {
-    .table-wrap {
-      border-radius: 0;
-      overflow: visible;
-    }
+@media (max-width: 350px) {
+  .brand {
+    font-size: 18px;
+    gap: 7px;
+  }
 
-    #station-table {
-      min-width: 0;
-    }
+  .brand-mark {
+    width: 34px;
+    height: 30px;
+  }
 
-    #station-table, #station-rows {
-      display: block;
-    }
+  .site-description {
+    margin-left: 41px;
+  }
 
-    #station-table thead {
-      display: none;
-    }
-
-    #station-rows tr {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      gap: 9px 14px;
-      padding: 14px 4px;
-      border-bottom: 1px solid var(--line);
-    }
-
-    #station-rows td {
-      padding: 0;
-      border: 0;
-    }
-
-    #station-rows td:first-child {
-      grid-column: 1 / -1;
-      position: static;
-      max-width: none;
-      width: auto;
-      padding: 0 0 5px;
-      background: transparent;
-    }
-
-    #station-rows td[data-heading]::before {
-      content: attr(data-heading);
-      display: block;
-      color: var(--muted);
-      font-size: 11px;
-      font-weight: 400;
-      white-space: normal;
-      margin-bottom: 4px;
-    }
-
-    .station-rank {
-      display: grid;
-    }
-
-    .station-name {
-      max-width: none;
-      min-height: 32px;
-    }
-
-    .return-row {
-      gap: 9px 14px;
-      padding: 14px 4px;
-    }
-
-    .return-station {
-      grid-column: 1 / -1;
-      padding: 0 0 5px;
-    }
-
-    #return-name {
-      display: flex;
-      align-items: center;
-    }
-
-    .return-walk {
-      grid-column: 2;
-      padding: 0;
-      flex-wrap: wrap;
-      gap: 4px 8px;
-    }
+  .pickup-fields {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

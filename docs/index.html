@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <meta name="theme-color" content="#293338" />
     <title data-i18n="Seoul Public Bike Trip Planner — 따릉이 Where?">Seoul Public Bike Trip Planner — 따릉이 Where?</title>
     <meta name="description" data-i18n-content="Plan a Seoul public-bike trip with Ddareungi (따릉이). Compare five nearby stations, current bike counts, and estimated walking and cycling times." content="Plan a Seoul public-bike trip with Ddareungi (따릉이). Compare five nearby stations, current bike counts, and estimated walking and cycling times." />
@@ -13,10 +13,10 @@
     <link rel="alternate" hreflang="x-default" href="https://bttlbmb.github.io/ddareungiwhere/" />
     <link rel="icon" type="image/svg+xml" href="./assets/city-basket.svg" />
     <link rel="stylesheet" href="./vendor/leaflet.css" />
-    <link rel="stylesheet" href="./style.css?v=58117882d95b0d7b" />
-    <link rel="modulepreload" href="./app.js?v=58117882d95b0d7b" />
+    <link rel="stylesheet" href="./style.css?v=85107cd7e901a9b5" />
+    <link rel="modulepreload" href="./app.js?v=85107cd7e901a9b5" />
     <script src="./vendor/leaflet.js" defer></script>
-    <script type="module" src="./static/start.mjs?v=58117882d95b0d7b"></script>
+    <script type="module" src="./static/start.mjs?v=85107cd7e901a9b5"></script>
   </head>
   <body>
     <header class="site-header">
@@ -81,6 +81,7 @@
               </button>
             </div>
           </div>
+          <div class="pickup-fields">
           <div class="time-heading">
             <label for="pickup" data-i18n="Bike pickup time">Bike pickup time</label>
           </div>
@@ -94,15 +95,18 @@
             <button id="plus-30" type="button" data-i18n="In 30min">In 30min</button>
             <button id="plus-60" type="button" data-i18n="In 1h">In 1h</button>
           </div>
+          </div>
+          <div class="planner-actions">
           <button class="primary-button" id="compare-button" type="submit" disabled>
             <span class="button-label" data-i18n="Compare stations">Compare stations</span> <span aria-hidden="true">↗</span>
           </button>
+          </div>
         </form>
         <div class="journey-panel">
           <div id="journey-map" class="map-panel">
             <div class="map-toolbar">
               <span id="map-instruction"
-                 data-i18n="Click the map to set your starting point">Click the map to set your starting point</span
+                 data-i18n="Loading map…">Loading map…</span
               ><button
                 type="button"
                 id="fit-map"
@@ -111,6 +115,10 @@
               >
                 ↗ <span data-i18n="Fit journey">Fit journey</span>
               </button>
+            </div>
+            <div id="station-data-status" class="station-data-status" role="status" aria-live="polite">
+              <span id="station-data-message" data-i18n="Loading stations…">Loading stations…</span>
+              <button id="retry-stations" class="text-button" type="button" data-i18n="Retry" hidden>Retry</button>
             </div>
             <div
               id="map"
@@ -172,7 +180,7 @@
                     <span class="station-rank return-rank" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4v10a3 3 0 0 0 3 3h11m-5-5 5 5-5 5"/></svg></span>
                     <div class="return-station-info"><span id="return-name" class="station-name"></span><span id="return-number" class="station-sub"></span></div>
                   </div></div>
-                  <div class="return-walk"><span id="return-walk-time" class="ride-duration"></span><span class="destination-arrow" aria-hidden="true">→</span><span id="return-destination"></span></div>
+                  <div class="return-walk"><span class="return-walk-label" data-i18n="Walk time">Walk time</span><span id="return-walk-time" class="ride-duration"></span><span class="destination-arrow" aria-hidden="true">→</span><span id="return-destination"></span></div>
                 </div>
               </section>
               <div id="results-footer" class="results-footer">

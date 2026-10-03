@@ -2,6 +2,7 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
+const cellsWithoutMetricLabels = html => html.replace(/<span class="metric-label">[^<]*<\/span>/g, "");
 
 test("panning preserves visible station markers and refreshed coordinates", () => {
   const h = harness();
@@ -164,7 +165,7 @@ function harness() {
   const source = fs
     .readFileSync(require("node:path").join(__dirname, "../web/app.js"), "utf8")
     .replace('/*__KOREAN_TRANSLATIONS__*/ {}', fs.readFileSync(require("node:path").join(__dirname, "../web/i18n.json"), "utf8").trim())
-    .replace(/start\(\);\s*$/, "");
+    .replace(/(?:window\.BikeAppReady\s*=\s*)?start\(\);\s*$/, "");
   // UI fixtures supply command results through the browser coordinator. The
   // response-shaped stubs below are test data, never a production HTTP API.
   context.window.BikeStatic = {request: async (path, options) => {
@@ -194,7 +195,7 @@ function harness() {
   };
   context.fixture = { station, history };
   run(
-    `state.stations=[fixture.station];state.history=fixture.history;state.selectedId=1;state.plan={departures:[fixture.station],return_station:fixture.station,suggested_id:1,immediate:true,live:{refreshing:false,fetched_at:fixture.station.fetched_at},};`,
+    `state.stations=[fixture.station];state.bootstrapReady=true;state.selectedId=1;state.plan={departures:[fixture.station],return_station:fixture.station,suggested_id:1,immediate:true,live:{refreshing:false,fetched_at:fixture.station.fetched_at},};`,
   );
   return {
     context,
@@ -283,9 +284,9 @@ test("station focus survives selection and live result redraw", () => {
 
 test("failed bootstrap recovers metadata without selecting a journey", async () => {
   const h = harness();
-  h.run("state.history=null;state.plan=null");
+  h.run("state.bootstrapReady=false;state.plan=null");
   await h.run("loadBootstrap()");
-  assert.match(h.e("error").textContent, /offline/);
+  assert.match(h.e("station-data-message").textContent, /offline/);
   const requested = [];
   h.context.fetch = async (path) => {
     requested.push(path);
@@ -300,7 +301,8 @@ test("failed bootstrap recovers metadata without selecting a journey", async () 
   };
   await h.run("refreshLive()");
   assert.equal(requested[0], "/api/bootstrap");
-  assert.equal(h.run("state.history.start"), "2026-04-01");
+  assert.equal(h.run("state.bootstrapReady"), true);
+  assert.equal(h.e("station-data-status").hidden, true);
   assert.equal(h.run("state.origin"), null);
   assert.equal(h.run("state.destination"), null);
   assert.equal(h.e("compare-button").disabled, true);
@@ -310,6 +312,68 @@ test("failed bootstrap recovers metadata without selecting a journey", async () 
     false,
   );
   assert.equal(h.run("state.plan"), null);
+});
+
+test("startup waits for station bootstrap and preserves a partly chosen journey", async () => {
+  const h = harness(), requests = [];
+  let finish, ready = false;
+  h.run('state.bootstrapReady=false;state.plan=null;state.origin={lat:37.56,lng:127.02}');
+  h.context.window.BikeStatic.request = path => {
+    requests.push(path);
+    return new Promise(resolve => {finish = resolve;});
+  };
+  const pending = h.run('initializeMap=()=>{};start()');
+  pending.then(() => {ready = true;});
+  await Promise.resolve();
+  assert.equal(ready, false);
+  assert.equal(h.e('station-data-status').hidden, false);
+  assert.equal(h.e('station-data-message').textContent, 'Loading stations…');
+  finish({stations:[h.station],live:{refreshing:false}});
+  await pending;
+  assert.equal(ready, true);
+  assert.equal(h.run('state.bootstrapReady'), true);
+  assert.equal(h.run('state.origin.lng'), 127.02);
+  assert.equal(h.run('state.destination'), null);
+  assert.equal(h.run('state.plan'), null);
+  assert.equal(h.e('station-data-status').hidden, true);
+  assert.deepEqual(requests, ['/api/bootstrap']);
+});
+
+test("station loading failure survives draft edits and explicit retry preserves partial selection", async () => {
+  const h = harness(), requests = [];
+  h.run('state.bootstrapReady=false;state.plan=null;state.origin={lat:37.56,lng:127.02}');
+  h.context.window.BikeStatic.request = async path => {
+    requests.push(path);
+    throw new Error('Connection failure');
+  };
+  await h.run('initializeMap=()=>{};start()');
+  assert.equal(h.run('state.bootstrapReady'), false);
+  assert.equal(h.e('station-data-status').hidden, false);
+  assert.match(h.e('station-data-message').textContent, /Connection failure/);
+  assert.equal(h.e('retry-stations').hidden, false);
+  assert.equal(h.e('retry-stations').disabled, false);
+  h.run('setPickupOffset(30)');
+  assert.equal(h.e('station-data-status').hidden, false);
+  assert.match(h.e('station-data-message').textContent, /Connection failure/);
+  let finish;
+  h.context.window.BikeStatic.request = path => {
+    requests.push(path);
+    return new Promise(resolve => {finish = resolve;});
+  };
+  const retry = h.e('retry-stations').onclick();
+  assert.equal(h.e('station-data-message').textContent, 'Loading stations…');
+  assert.equal(h.e('retry-stations').disabled, true);
+  assert.equal(h.run('state.origin.lng'), 127.02);
+  finish({stations:[h.station],live:{refreshing:false}});
+  await retry;
+  assert.equal(h.run('state.bootstrapReady'), true);
+  assert.equal(h.e('station-data-status').hidden, true);
+  assert.equal(h.e('retry-stations').hidden, true);
+  assert.equal(h.run('state.origin.lng'), 127.02);
+  assert.equal(h.run('state.destination'), null);
+  assert.equal(h.run('state.plan'), null);
+  assert.equal(h.e('compare-button').disabled, true);
+  assert.deepEqual(requests, ['/api/bootstrap','/api/bootstrap']);
 });
 
 test("table shows station, current bikes, walk and cycling durations, and historical risk", () => {
@@ -483,8 +547,10 @@ test("only an explicit query opens results; returning to map survives in-flight 
     });
   const pending = h.run("compare({preventDefault(){}})");
   h.context.invalidations = 0;
+  h.e("map").clientWidth = 320;
+  h.e("map").clientHeight = 240;
   h.run(
-    "map={invalidateSize(){invalidations++}};showView('map');map=undefined",
+    "map={getSize(){return {x:0,y:0}},invalidateSize(){invalidations++}};renderBaseStations=()=>{};showView('map');map=undefined",
   );
   finish({ ok: true, json: async () => h.context.result });
   await pending;
@@ -563,7 +629,7 @@ test("loading, choosing pins and editing pickup never request a comparison or li
             },
     };
   };
-  await h.run("start()");
+  await h.run("initializeMap=()=>{};start()");
   assert.equal(h.run("state.origin"), null);
   assert.equal(h.run("state.destination"), null);
   assert.equal(h.e("compare-button").disabled, true);
@@ -593,7 +659,7 @@ test("loading, choosing pins and editing pickup never request a comparison or li
 
 test("metadata recovery preserves a single chosen pin and never fills the other endpoint", async () => {
   const h = harness();
-  h.run('state.history=null;state.plan=null;state.origin={lat:37.56,lng:127.02}');
+  h.run('state.bootstrapReady=false;state.plan=null;state.origin={lat:37.56,lng:127.02}');
   h.context.fetch = async () => ({
     ok: true,
     json: async () => ({stations:[h.station],history:h.history,live:{refreshing:false}}),
@@ -745,31 +811,31 @@ test("time shortcuts are relative to the click time and do not query", () => {
 test("each station shows its own rounded local cycling time and handles missing routes", () => {
   const h = harness();
   h.run('fixture.station.cycling_route={minutes:7.8};state.plan.departures.push({...fixture.station,id:2,cycling_route:{minutes:12.3}});renderResults()');
-  assert.match(h.e("station-rows").innerHTML, />8 min<.*>12 min</s);
+  assert.match(cellsWithoutMetricLabels(h.e("station-rows").innerHTML), />8 min<.*>12 min</s);
   h.run('fixture.station.cycling_route={minutes:120.2};renderResults()');
-  assert.match(h.e("station-rows").innerHTML, />2h</);
+  assert.match(cellsWithoutMetricLabels(h.e("station-rows").innerHTML), />2h</);
   h.run('fixture.station.cycling_route={error:"Local cycling route unavailable"};renderResults()');
-  assert.match(h.e("station-rows").innerHTML, /title="Local cycling route unavailable">—/);
-  assert.match(h.e("station-rows").innerHTML, />12 min</);
+  assert.match(cellsWithoutMetricLabels(h.e("station-rows").innerHTML), /title="Local cycling route unavailable">—/);
+  assert.match(cellsWithoutMetricLabels(h.e("station-rows").innerHTML), />12 min</);
 });
 
 test("walk times are independent of cycling and handle zero and missing routes", () => {
   const h = harness();
   h.run('fixture.station.walking_route={minutes:2.6};fixture.station.cycling_route={minutes:7.8};renderResults()');
-  assert.match(h.e("station-rows").innerHTML, /Estimated walk from your starting point at 5.1 km\/h">3 min/);
-  assert.match(h.e("station-rows").innerHTML, />8 min</);
+  assert.match(cellsWithoutMetricLabels(h.e("station-rows").innerHTML), /Estimated walk from your starting point at 5.1 km\/h">3 min/);
+  assert.match(cellsWithoutMetricLabels(h.e("station-rows").innerHTML), />8 min</);
   h.run('fixture.station.walking_route={minutes:0};renderResults()');
-  assert.match(h.e("station-rows").innerHTML, /5.1 km\/h">0 min/);
+  assert.match(cellsWithoutMetricLabels(h.e("station-rows").innerHTML), /5.1 km\/h">0 min/);
   h.run('fixture.station.walking_route={minutes:.2};renderResults()');
-  assert.match(h.e("station-rows").innerHTML, /5.1 km\/h">1 min/);
+  assert.match(cellsWithoutMetricLabels(h.e("station-rows").innerHTML), /5.1 km\/h">1 min/);
   for (const [minutes, label] of [[60, "60 min"], [60.6, "1h 1min"], [72.4, "1h 12min"]]) {
     h.station.walking_route = {minutes};
     h.run('renderResults()');
-    assert.ok(h.e("station-rows").innerHTML.includes(`5.1 km/h">${label}<`));
+    assert.ok(cellsWithoutMetricLabels(h.e("station-rows").innerHTML).includes(`5.1 km/h">${label}<`));
   }
   h.run('fixture.station.walking_route={error:"Local walking route unavailable"};renderResults()');
-  assert.match(h.e("station-rows").innerHTML, /Local walking route unavailable">—/);
-  assert.match(h.e("station-rows").innerHTML, />8 min</);
+  assert.match(cellsWithoutMetricLabels(h.e("station-rows").innerHTML), /Local walking route unavailable">—/);
+  assert.match(cellsWithoutMetricLabels(h.e("station-rows").innerHTML), />8 min</);
 });
 
 test("station popup shows a prefixed number without inventory; choices update pins without comparing", async () => {
@@ -782,7 +848,7 @@ test("station popup shows a prefixed number without inventory; choices update pi
     requests.push(path);
     return {ok:true,json:async()=>({label:path.includes('lat=37.5&') ? 'Departure road' : 'Return road',distance_m:5})};
   };
-  const popup = h.run('map={closePopup(){},invalidateSize(){}};renderEndpoints=()=>{};renderMapStations=()=>{};state.origin={lat:37.51,lng:127.01};state.destination={lat:37.52,lng:127.02};stationPopup(fixture.station)');
+  const popup = h.run('map={closePopup(){},getSize(){return {x:0,y:0}},invalidateSize(){}};renderEndpoints=()=>{};renderMapStations=()=>{};state.origin={lat:37.51,lng:127.01};state.destination={lat:37.52,lng:127.02};stationPopup(fixture.station)');
   assert.ok(popup.innerHTML.includes(`>#${h.station.number} · `));
   assert.doesNotMatch(popup.innerHTML, /data-live-station|Live count|\d+ bikes/);
   h.run('fixture.station.bikes=null');
@@ -904,7 +970,7 @@ test("a changed draft cancels its old comparison and clears busy state and obsol
 test("editing during metadata recovery prevents the old submission from comparing the new draft", async () => {
   const h = harness(), requests = [];
   let recover;
-  h.run('state.history=null;state.plan=null;state.origin={lat:37.5,lng:127};state.destination={lat:37.51,lng:127.01}');
+  h.run('state.bootstrapReady=false;state.plan=null;state.origin={lat:37.5,lng:127};state.destination={lat:37.51,lng:127.01}');
   h.context.window.BikeStatic = {request: path => {
     requests.push(path);
     return new Promise(resolve => {recover = resolve;});
@@ -922,7 +988,7 @@ test("editing during metadata recovery prevents the old submission from comparin
 test("successful metadata recovery continues the explicit comparison when the draft is unchanged", async () => {
   const h = harness(), requests = [];
   const result = h.run('state.plan');
-  h.run('state.history=null;state.plan=null;state.origin={lat:37.5,lng:127};state.destination={lat:37.51,lng:127.01}');
+  h.run('state.bootstrapReady=false;state.plan=null;state.origin={lat:37.5,lng:127};state.destination={lat:37.51,lng:127.01}');
   h.context.window.BikeStatic = {request: async path => {
     requests.push(path);
     return path === '/api/bootstrap'
@@ -1068,7 +1134,8 @@ test('keyboard guidance resizing synchronizes focus and blur before selecting th
     },
   };
   h.context.window.BikeStatic.request = async path => {requests.push(path);return {};};
-  h.run('map=mapStub;state.origin=null;state.destination=null;state.plan=null;renderEndpoints=()=>{};renderMapStations=()=>{};configureMapKeyboard()');
+  h.context.catalogueRenders = 0;
+  h.run('map=mapStub;renderBaseStations=()=>{catalogueRenders++};state.origin=null;state.destination=null;state.plan=null;renderEndpoints=()=>{};renderMapStations=()=>{};configureMapKeyboard()');
   const before = h.run('JSON.stringify({origin:state.origin,destination:state.destination,pickup:state.pickup,selected:state.selectedId,request:state.request})');
   mapElement.focusVisible = true;
   mapElement.focus();
@@ -1091,6 +1158,7 @@ test('keyboard guidance resizing synchronizes focus and blur before selecting th
   assert.equal(h.run('state.plan'), null);
   assert.equal(h.document.activeElement, mapElement);
   assert.ok(invalidations.every(pan => pan === false));
+  assert.equal(h.context.catalogueRenders, 3);
   assert.ok(requests.every(path => path.startsWith('/api/place-label?')));
 });
 
@@ -1153,7 +1221,8 @@ test('translated map content updates a changed viewport size without moving poin
     },
   };
   h.context.window.BikeStatic.request = () => {commands++;throw new Error('Language change must not query');};
-  h.run('map=mapStub;state.origin={lat:37.5,lng:127};state.destination={lat:37.51,lng:127.01};state.plan=null;state.view="map"');
+  h.context.catalogueRenders = 0;
+  h.run('map=mapStub;renderBaseStations=()=>{catalogueRenders++};state.origin={lat:37.5,lng:127};state.destination={lat:37.51,lng:127.01};state.plan=null;state.view="map"');
   h.e('language-switch').focus();
   const before = h.run('JSON.stringify({origin:state.origin,destination:state.destination,pickup:state.pickup,selected:state.selectedId,request:state.request})');
   h.run('applyLanguage("ko")');
@@ -1167,6 +1236,7 @@ test('translated map content updates a changed viewport size without moving poin
   h.run('showView("map")');
   assert.deepEqual(invalidations, [false,false]);
   assert.equal(commands, 0);
+  assert.equal(h.context.catalogueRenders, 2);
 });
 
 test('either language label or capsule background toggles once; modified clicks keep native navigation', () => {

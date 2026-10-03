@@ -1,6 +1,6 @@
 # Product specification: 따릉이 Where?
 
-Static-only behavior in this checkout, reviewed 2026-10-02. [REVIEW.md](REVIEW.md) distinguishes published and local checks; rationale is in [DECISIONS.md](DECISIONS.md).
+Static-only behavior in this checkout, reviewed 2026-10-03. [REVIEW.md](REVIEW.md) distinguishes published and local checks; rationale is in [DECISIONS.md](DECISIONS.md).
 
 ## Purpose and scope
 
@@ -31,7 +31,7 @@ Station popups show **#number · station name** and the two point-selection acti
 
 The mouse wheel zooms the map around the pointer. Zooming and panning do not change journey points or request a comparison.
 
-Manual comparison replaces the map with results. Back to map restores the journey; late replies must not switch views. Desktop keeps the planner visible, phones hide it in results. Outer page fits the viewport, with internal scrolling if needed. The dashed A–B line updates with both pins and is a **straight guide, not a cycling route**.
+Manual comparison replaces the map with results. Back to map restores the journey; late replies must not switch views. Above 1100 px, the planner remains visible beside results. At 1100 px and below, results use the full workspace and hide the planner; Back restores the draft. Phone planning at 700 px and below scrolls naturally with a persistent Compare stations dock. Results remain within the viewport and scroll internally beneath their heading. The dashed A–B line updates with both pins and is a **straight guide, not a cycling route**.
 
 ## Results
 
@@ -43,9 +43,9 @@ Manual comparison replaces the map with results. Back to map restores the journe
 | Ride time | Valhalla city-bicycle estimate from that departure to the common destination station, configured at 15 km/h. Whole minutes, minimum 1 for positive routes. |
 | Availability now OR Historical no-bike risk | Current availability for immediate pickup; separate archived signal for later pickup, defined below. |
 
-Selection updates the numbered map marker; table ranks remain in proximity order. Button focus survives redraws. With container-query support, metrics reflow beneath each station in two columns whenever the results content area, after padding and any reserved scrollbar gutter, is at most 540 px wide, without sideways table scrolling; the destination section follows the same threshold. Older browsers retain the original 700 px page-width phone reflow. Desktop panels keep the planner visible. One right-aligned refresh completion time and Valhalla / OpenStreetMap credit. No per-row timestamps, destination dropdown, rental-history card/columns, archive captions/counts, slogans, or visible methodology block. See [DESIGN.md](DESIGN.md).
+Selection updates the numbered map marker; table ranks remain in proximity order. Button focus survives redraws. Phones at 700 px and below show compact rows: station identity left, colored bike count right, Walk/Ride below the name, and availability right-aligned below the count. The availability and duration text share the same font size; future rows retain an explicit historical label. Tablets use full-width table columns with shared headings. These layouts replace the previous narrow-panel card reflow, as approved 2026-10-03. One right-aligned refresh completion time and Valhalla / OpenStreetMap credit. No per-row timestamps, destination dropdown, rental-history card/columns, archive captions/counts, slogans, or visible methodology block. See [DESIGN.md](DESIGN.md).
 
-**Your destination.** beneath the departure rows shows the common destination station name/number and one forward pedestrian estimate from that station to the selected destination B, at 5.1 km/h. Its station name and duration share the departure typography. In tabular results the duration aligns with Walk time; reflowed results place it in the second metric column. The duration is followed by an arrow and the applied destination label, emphasized in a mint tag. Exact coordinates give 0 min; unavailable routes give a dash without suppressing departure results. Refresh bikes preserves this final walking estimate. This section was added at the user's request on 2026-10-01.
+**Your destination.** beneath the departure rows shows the common destination station name/number and one forward pedestrian estimate from that station to the selected destination B, at 5.1 km/h. Its station name and duration share the departure typography. An explicit **Walk time** label identifies the final duration in every layout; the label, duration, arrow and destination tag form one walking group. The duration is followed by an arrow and the applied destination label, emphasized in a mint tag. Exact coordinates give 0 min; unavailable routes give a dash without suppressing departure results. Refresh bikes preserves this final walking estimate. This section was added at the user's request on 2026-10-01.
 
 Walking/cycling estimates retain whole-minute rounding. Rounded values above 60 minutes display hours and remaining minutes, e.g. **1h 12min**, or **2h** for exact hours. Values up to 60 minutes retain the minute format. Refresh bikes follows the completion time and routing credit in the same footer, separated by a dot; on narrow screens this footer wraps within the scrolling results body.
 
@@ -71,14 +71,14 @@ Graph bounds: south 37.395, west 126.735, north 37.745, east 127.245; all 2,735 
 
 ## Acceptance criteria
 
-1. Empty startup/recovery preserves partial selection; draft edits and bootstrap cause no comparison/provider fetch.
+1. Empty startup/recovery preserves partial selection; draft edits and bootstrap cause no comparison/provider fetch. Stations load independently of historical data. A station-data error remains visible through draft edits and offers explicit Retry; missing compression support identifies the browser requirement.
 2. Explicit comparison/refresh works; refresh does not reroute/requery history. Same destination station for every departure.
 3. Map station choices update pin and road label; stale GPS/label/query replies cannot overwrite newer choices/views.
 4. Seoul time, seven-day validation and click-relative shortcuts work independently of computer timezone.
 5. Current zero overrides history for immediate pickup; future signals remain separate. Unknown is neither zero nor Low.
 6. Displayed counts remain stable through elapsed time and failed/hanging refreshes; manual refresh updates snapshots. Automatic station suggestion still requires a report within 120 seconds. Station popups omit all inventory information.
 7. Zero walking, missing routes and same-station cycling are distinct; caching respects direction, coordinates and mode.
-8. All phone metrics/controls remain accessible, long names fit, station focus/selection survives redraws, and the map supports keyboard point selection without intercepting its child controls.
+8. Compare stations is visibly reachable above the phone safe area; every result metric is readable without horizontal scrolling. Long names fit, station focus/selection survives redraws, and the map supports pointer/keyboard point selection without intercepting its child controls. Tablet results use the full width rather than tall stacked metric cards.
 9. Secrets/raw datasets are absent from browser assets/static routes and credential-bearing logs/errors.
 10. Both language entries start empty in the correct language. Clicking either capsule label or its track, or pressing Enter on it, toggles once and preserves the journey and pending work; Back/forward follows the language URL. Native new-tab navigation remains available.
 
@@ -90,4 +90,4 @@ Walking estimates are included. Walking directions, budget filters, leave-origin
 
 ## Static runtime
 
-Bootstrap loads map metadata only. Historical sufficient statistics, street shards and browser Valhalla assets load lazily; raw archives and SQLite are never downloaded. The official bike website’s fixed HTTPS feed allows direct browser requests without an API key, proxy or cookies, with one pending request and a 60-second per-tab attempt cooldown. Missing counts are Unknown; a failed refresh preserves the last received snapshot and routes/history remain usable. A six-month export window is supported, but requires additional source months before six-month coverage can be claimed. Physical-phone performance remains unverified.
+Bootstrap loads station metadata only, independently of history. Historical metadata and sufficient statistics, street shards and browser Valhalla assets load lazily; raw archives and SQLite are never downloaded. The official bike website’s fixed HTTPS feed allows direct browser requests without an API key, proxy or cookies, with one pending request and a 60-second per-tab attempt cooldown. Missing counts are Unknown; a failed refresh preserves the last received snapshot and routes/history remain usable. A six-month export window is supported, but requires additional source months before six-month coverage can be claimed. Physical-phone performance remains unverified.

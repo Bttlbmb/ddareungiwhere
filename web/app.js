@@ -25,7 +25,9 @@ const state = {
   locationStatus: "",
   comparisonMessage: "",
   stations: [],
-  history: null,
+  bootstrapReady: false,
+  stationLoading: false,
+  stationError: "",
   origin: null,
   destination: null,
   mode: "origin",
@@ -119,6 +121,13 @@ function showError(message) {
   $("error").textContent = translatedError(message);
   $("error").hidden = !message;
 }
+function renderStationStatus() {
+  $("station-data-status").hidden = !state.stationLoading && !state.stationError;
+  $("station-data-message").textContent = state.stationLoading
+    ? t("Loading stations…") : translatedError(state.stationError);
+  $("retry-stations").hidden = !state.stationError;
+  $("retry-stations").disabled = state.stationLoading;
+}
 function setLocationStatus(message) {
   state.locationStatus = message;
   $("location-status").textContent = t(message);
@@ -174,6 +183,7 @@ function applyLanguage(language) {
   $("current-location-label").textContent = t($("use-location").disabled ? "Locating…" : "Current location");
   setLocationStatus(state.locationStatus);
   showError(state.errorMessage);
+  renderStationStatus();
   if (typeof updateMapInstruction === "function") updateMapInstruction();
   else $("map-instruction").textContent = t(state.mode === "origin"
     ? "Click the map to set your starting point" : "Click the map to set your destination");
@@ -228,8 +238,11 @@ function setMode(mode) {
 function syncMapSize() {
   if (state.view !== "map" || !map) return;
   const size = map.getSize(), container = $("map");
-  if (size.x !== container.clientWidth || size.y !== container.clientHeight)
+  if (!container.clientWidth || !container.clientHeight) return;
+  if (size.x !== container.clientWidth || size.y !== container.clientHeight) {
     map.invalidateSize({ pan: false });
+    if (state.bootstrapReady) renderBaseStations();
+  }
 }
 function updateMapInstruction() {
   const origin = state.mode === "origin";
@@ -267,7 +280,8 @@ function showView(view) {
   $("journey-map").hidden = view !== "map";
   $("results").hidden = view !== "results";
   $("workspace").classList.toggle("show-results", view === "results");
-  if (view === "map" && map) map.invalidateSize({ pan: false });
+  document.body?.classList.toggle("results-view", view === "results");
+  syncMapSize();
 }
 function setPoint(type, point, label) {
   if (type === "origin") {
@@ -419,9 +433,13 @@ function initializeMap() {
   if (!window.L) {
     $("map").innerHTML =
       `<p class="loading" data-i18n="The map library could not load. Try refreshing the page.">${esc(t("The map library could not load. Try refreshing the page."))}</p>`;
-    return;
+    throw new Error("The map library could not load. Try refreshing the page.");
   }
-  map = L.map("map", { preferCanvas: true, scrollWheelZoom: true }).setView(
+  const options = { preferCanvas: true, scrollWheelZoom: true };
+  // Preserve the dots while making nearby taps easier on touch screens.
+  if (L.canvas && window.matchMedia?.("(pointer: coarse)").matches)
+    options.renderer = L.canvas({ tolerance: 12 });
+  map = L.map("map", options).setView(
     [37.56, 126.98],
     14,
   );
@@ -447,6 +465,9 @@ function initializeMap() {
   // panning can remove the click target before its activation completes.
   map.on("moveend", renderBaseStations);
   map.on("popupopen", translatePopupClose);
+  if (typeof ResizeObserver === "function")
+    new ResizeObserver(syncMapSize).observe($("map"));
+  updateMapInstruction();
 }
 function translatePopupClose() {
   document.querySelectorAll(".leaflet-popup-close-button").forEach(button =>
@@ -598,12 +619,12 @@ async function compare(event) {
     showError("Choose a starting point and destination on the map.");
     return;
   }
-  if (!state.history) {
+  if (!state.bootstrapReady) {
     const draftRequest = state.request;
     await loadBootstrap();
-    // Successful metadata recovery invalidates once. Any additional change is
+    // Successful station recovery invalidates once. Any additional change is
     // a newer draft that requires its own explicit comparison.
-    if (!state.history || state.request !== draftRequest + 1) return;
+    if (!state.bootstrapReady || state.request !== draftRequest + 1) return;
   }
   syncPickupClock();
   if (!state.origin || !state.destination) return;
@@ -686,7 +707,7 @@ function renderLiveError(live) {
 }
 async function refreshLive(manual = true) {
   if (manual) state.awaitingLive = true;
-  if (!state.history) {
+  if (!state.bootstrapReady) {
     await loadBootstrap();
     return;
   }
@@ -794,11 +815,11 @@ function renderRows() {
         : "—";
       const selected = station.id === state.selectedId;
       return `<tr class="${selected ? "chosen" : ""}" data-station="${station.id}">
-      <td><div class="station-cell"><span class="station-rank">${index + 1}</span><div><button class="station-name" type="button" data-select="${station.id}" aria-pressed="${selected}">${esc(station.name)}</button><span class="station-sub">${esc(t("Station #{number} · {distance} away", { number: station.number, distance: metres(station.distance_m) }))}</span></div></div></td>
+      <td><div class="station-cell"><span class="station-rank">${index + 1}</span><div><button class="station-name" type="button" data-select="${station.id}" aria-pressed="${selected}"><span class="station-title">${esc(station.name)}</span><span class="station-sub">${esc(t("Station #{number} · {distance} away", { number: station.number, distance: metres(station.distance_m) }))}</span></button></div></div></td>
       <td data-heading="${esc(t("Bikes"))}">${known ? `<span class="stat bikes ${station.bikes === 0 ? "empty" : station.bikes <= 2 ? "few" : ""}">${station.bikes}</span>` : `<span class="stat unknown" title="${esc(t("Live count unavailable"))}" role="img" aria-label="${esc(t("Live bike count unavailable"))}">/</span>`}</td>
-      <td data-heading="${esc(t("Walk time"))}" class="ride-duration" title="${esc(walk?.error ? translatedError(walk.error) : t("Estimated walk from your starting point at 5.1 km/h"))}">${walkTime}</td>
-      <td data-heading="${esc(t("Ride time"))}" class="ride-duration" title="${esc(route?.error ? translatedError(route.error) : t("Estimated cycling time to the destination station"))}">${rideTime}</td>
-      <td data-heading="${esc(t(data.immediate ? "Availability now" : "Historical no-bike risk"))}"><span class="risk-badge risk-${risk.level}">${risk.label}</span></td>
+      <td data-heading="${esc(t("Walk time"))}" class="ride-duration" title="${esc(walk?.error ? translatedError(walk.error) : t("Estimated walk from your starting point at 5.1 km/h"))}"><span class="metric-label">${esc(t("Walk"))} </span>${walkTime}</td>
+      <td data-heading="${esc(t("Ride time"))}" class="ride-duration" title="${esc(route?.error ? translatedError(route.error) : t("Estimated cycling time to the destination station"))}"><span class="metric-label">${esc(t("Ride"))} </span>${rideTime}</td>
+      <td data-heading="${esc(t(data.immediate ? "Availability now" : "Historical no-bike risk"))}">${data.immediate ? "" : `<span class="metric-label">${esc(t("Historical risk"))} </span>`}<span class="risk-badge risk-${risk.level}">${risk.label}</span></td>
       </tr>`;
     })
     .join("");
@@ -840,17 +861,23 @@ function updateLiveDisplay() {
 }
 async function loadBootstrap() {
   if (bootstrapRequest) return bootstrapRequest;
+  state.stationLoading = true;
+  renderStationStatus();
   bootstrapRequest = (async () => {
     try {
       const data = await api("/api/bootstrap");
       state.stations = data.stations;
-      state.history = data.history;
+      state.bootstrapReady = true;
+      state.stationError = "";
       showError("");
       renderLive(data.live);
       invalidateComparison();
     } catch (error) {
-      showError(error.message);
+      state.stationError = error.message;
       $("results").setAttribute("aria-busy", "false");
+    } finally {
+      state.stationLoading = false;
+      renderStationStatus();
     }
   })();
   try {
@@ -884,6 +911,7 @@ async function start() {
   };
   $("pickup").onfocus = syncPickupClock;
   $("refresh-live").onclick = () => refreshLive();
+  $("retry-stations").onclick = () => loadBootstrap();
   await loadBootstrap();
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) {
@@ -892,4 +920,4 @@ async function start() {
     }
   });
 }
-start();
+window.BikeAppReady = start();

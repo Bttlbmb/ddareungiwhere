@@ -1,6 +1,6 @@
 # Remaining work
 
-Reviewed 2026-10-02. These entries are proposals/issues, not instructions to implement them unasked. [REVIEW.md](REVIEW.md) distinguishes published work from source changes checked only locally.
+Reviewed 2026-10-03. These entries are proposals/issues, not instructions to implement them unasked. [REVIEW.md](REVIEW.md) distinguishes published work from source changes checked only locally.
 
 1. **Exact-origin Oksu pier #5651:** nearby walking estimates can still be implausibly long. The earlier station-side correlation adjustment is only a partial fix. Investigate origin matching and OSM access geometry with native/browser fixtures; do not weaken gap checks to hide the problem.
 2. **Physical-phone performance:** verify cold WASM/tile downloads, memory and first comparison on actual target phones and ordinary mobile connections. Desktop viewport checks cannot establish device performance.
@@ -13,5 +13,7 @@ Reviewed 2026-10-02. These entries are proposals/issues, not instructions to imp
 Completed in the 2026-10-01 static-only cleanup: dedicated availability storage, exact binary summary, lazy loading, linear live merge, bounded stable shortlist, gzip-only routing/street/station publication, single worker initialization, bounded diagnostics and static-only documentation. Evidence is in [REVIEW.md](REVIEW.md).
 
 Published on 2026-10-02: City basket identity, mouse-wheel map zoom, approved search metadata/verification tag, English/Korean entries and street labels, and the mint language capsule with whole-control toggling. The selected small-improvement release publishes visible map legends, results-panel reflow, conditional popup progression and app module preloading, plus the earlier keyboard map placement, cancellation/retry and pickup-clock safeguards. Offline street-import source/provenance validation remains local and unpublished. Publication evidence is recorded in REVIEW.
+
+Approved 2026-10-03: persistent phone Compare dock, compact phone metric rows with aligned availability, full-width tablet results, explicit destination Walk time, and station-only startup with persistent retry feedback. The prior tablet container-card layout is superseded. Physical-phone behavior and the user’s exact map failure still require a target-device check; desktop browser checks do not establish those results. Release evidence is in REVIEW.
 
 Deferred: turn-by-turn directions, address search, booking, accounts, saved journeys, destination-capacity forecasts, weather, alerts and background collection.

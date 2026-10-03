@@ -4,7 +4,7 @@ import {StaticPlanner,pickupTime,distance} from '../web/static/planner.mjs';
 import {BrowserRoutes,routeEstimate} from '../web/static/routes.mjs';
 import {StaticService} from '../web/static/service.mjs';
 import {fetchWebsiteInventory,normalized} from '../web/static/live.mjs';
-import {loadHistory} from '../web/static/data.mjs';
+import {fetchJSON,loadHistory,timeoutSignal,throwIfAborted} from '../web/static/data.mjs';
 import {StreetLabels} from '../web/static/streets.mjs';
 import {createHash} from 'node:crypto';
 import {gzipSync} from 'node:zlib';
@@ -96,6 +96,34 @@ test('direct browser source fetches only on request, shares refreshes and keeps 
   } finally {globalThis.fetch=originalFetch;Date.now=originalNow;}
 });
 
+test('request timeout and cancellation work without newer AbortSignal methods',async()=>{
+  const original=AbortSignal.timeout;
+  try {
+    AbortSignal.timeout=undefined;
+    const signal=timeoutSignal(1);
+    assert.equal(signal.aborted,false);
+    await new Promise(resolve=>signal.addEventListener('abort',resolve,{once:true}));
+    assert.equal(signal.aborted,true);
+    assert.throws(()=>throwIfAborted(signal),{name:'TimeoutError'});
+    const reason=new Error('User canceled');
+    assert.throws(()=>throwIfAborted({aborted:true,reason}),error=>error===reason);
+    assert.throws(()=>throwIfAborted({aborted:true}),{name:'AbortError'});
+    assert.doesNotThrow(()=>throwIfAborted({aborted:false}));
+  } finally {AbortSignal.timeout=original;}
+});
+
+test('older browsers get an actionable compressed-data error while plain responses stay readable',async()=>{
+  const originalFetch=globalThis.fetch,originalDecompression=globalThis.DecompressionStream;
+  try {
+    globalThis.DecompressionStream=undefined;
+    globalThis.fetch=async url=>String(url).endsWith('.gz')
+      ? new Response(gzipSync('{"ready":true}')) : Response.json({ready:true});
+    await assert.rejects(fetchJSON('https://example.test/stations.json.gz'),error=>
+      error.code==='UNSUPPORTED_GZIP' && /update your browser/i.test(error.message));
+    assert.deepEqual(await fetchJSON('https://example.test/config.json'),{ready:true});
+  } finally {globalThis.fetch=originalFetch;globalThis.DecompressionStream=originalDecompression;}
+});
+
 // Decodes the actual wire representation and verifies integrity, not a mock index.
 test('packed history preserves exact counts and rejects incomplete or corrupted data',async()=>{
   const bytes=Buffer.alloc(48*4);bytes.writeUInt16LE(127,8*4);bytes.writeUInt16LE(3,8*4+2);
@@ -122,7 +150,7 @@ test('bounded shortlist matches full sorting and preserves catalogue data and ti
   assert.deepEqual(actual.departures.map(s=>s.id),expected);assert.equal(JSON.stringify(catalogue),before);
 });
 
-test('bootstrap versions compressed seed data and leaves history cells lazy',async()=>{
+test('bootstrap versions only station data and leaves history, live inventory and routes lazy',async()=>{
   const original=globalThis.fetch,calls=[];
   const metadata={schema:2,stations:['1'],counts_url:'counts.bin.gz',counts_sha256:'unused'};
   globalThis.fetch=async url=>{
@@ -136,11 +164,51 @@ test('bootstrap versions compressed seed data and leaves history cells lazy',asy
     const service=new StaticService(new URL('https://example.test/app/?v=revision'),{});
     const result=await service.request('/api/bootstrap');
     assert.equal(result.stations.length,stations.length);
-    assert.equal(calls.length,2);
+    assert.equal(calls.length,1);
+    assert.ok(calls[0].includes('stations.json.gz'));
+    assert.equal(result.history,null);
     assert.ok(calls.every(url=>new URL(url).search==='?v=revision'));
     assert.equal(service.historyReady,null);
     assert.equal(service.routes.routerPromise,null);
     assert.ok(result.stations.every(station=>station.bikes===null));
+  } finally {globalThis.fetch=original;}
+});
+
+test('failed historical loading preserves usable station bootstrap and requires an explicit retry',async()=>{
+  const original=globalThis.fetch,calls=[];
+  const bytes=Buffer.alloc(stations.length*48*4);
+  const metadata={schema:2,stations:stations.map(s=>s.number),counts_url:'counts.bin.gz',
+    counts_sha256:createHash('sha256').update(bytes).digest('hex')};
+  let historyAttempts=0,refreshes=0;
+  globalThis.fetch=async url=>{
+    const asset=new URL(url);calls.push(asset);
+    if(asset.pathname.endsWith('stations.json.gz'))return new Response(gzipSync(JSON.stringify(stations)));
+    if(asset.pathname.endsWith('history.json')){
+      if(++historyAttempts===1)throw new Error('Historical connection failure');
+      return Response.json(metadata);
+    }
+    if(asset.pathname.endsWith('counts.bin.gz'))return new Response(gzipSync(bytes));
+    throw new Error('Unexpected asset requested.');
+  };
+  try {
+    const service=new StaticService(new URL('https://example.test/app/?v=revision'),{});
+    service.refresh=()=>refreshes++;
+    const first=await service.request('/api/bootstrap');
+    assert.equal(first.stations.length,stations.length);assert.equal(calls.length,1);
+    const q=query();q.delete('pickup');
+    await assert.rejects(service.request(`/api/plan?${q}`),/Historical connection failure/);
+    assert.equal(service.historyReady,null);assert.equal(refreshes,0);
+    assert.equal(service.routes.routerPromise,null);
+    const recovered=await service.request('/api/bootstrap');
+    assert.deepEqual(recovered.stations,first.stations);assert.equal(calls.length,2);
+    assert.equal(historyAttempts,1);assert.equal(recovered.history,null);
+    await service.loadPlanner();
+    assert.equal(historyAttempts,2);assert.ok(service.planner);
+    assert.equal(refreshes,0);assert.equal(service.routes.routerPromise,null);
+    assert.ok(calls.filter(url=>url.pathname.endsWith('history.json')).every(url=>url.search==='?v=revision'));
+    assert.equal(calls.at(-1).search,'');
+    assert.equal(service.planner.plan(q,{},now).departures.length,5);
+    await service.loadPlanner();assert.equal(calls.length,4);
   } finally {globalThis.fetch=original;}
 });
 
@@ -162,8 +230,8 @@ test('an immediate metadata retry is isolated from an earlier canceled caller',a
     const [first,second]=await Promise.allSettled([abandoned,restarted]);
     assert.equal(first.status,'rejected');assert.equal(first.reason.name,'AbortError');
     assert.equal(second.status,'fulfilled');assert.equal(current.signal.aborted,false);
-    assert.equal(calls,4);assert.equal(service.stations.length,stations.length);
-    await service.load(current.signal);assert.equal(calls,4);
+    assert.equal(calls,2);assert.equal(service.stations.length,stations.length);
+    await service.load(current.signal);assert.equal(calls,2);
     assert.equal(service.historyReady,null);assert.equal(service.routes.routerPromise,null);
   } finally {globalThis.fetch=original;}
 });
@@ -199,14 +267,14 @@ test('ordinary initialization failures require an explicit retry',async()=>{
   try {
     const service=new StaticService(new URL('https://example.test/'),{});
     await assert.rejects(service.load(new AbortController().signal),/Connection failure/);
-    assert.equal(calls,2);assert.equal(service.loaded,null);
+    assert.equal(calls,1);assert.equal(service.loaded,null);
     service.history={schema:2,stations:['1'],counts_url:'counts.bin'};
     await assert.rejects(service.loadPlanner(new AbortController().signal),/Connection failure/);
-    assert.equal(calls,3);assert.equal(service.historyReady,null);
+    assert.equal(calls,2);assert.equal(service.historyReady,null);
     const canceled=new AbortController();canceled.abort();
     await assert.rejects(service.load(canceled.signal),{name:'AbortError'});
     await assert.rejects(service.loadPlanner(canceled.signal),{name:'AbortError'});
-    assert.equal(calls,3);
+    assert.equal(calls,2);
   } finally {globalThis.fetch=original;}
 });
 

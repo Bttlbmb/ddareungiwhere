@@ -111,5 +111,12 @@
   "Marker": "지도 위치",
   "contributors": "기여자",
   "Close popup": "팝업 닫기",
-  "Language": "언어"
+  "Language": "언어",
+  "Loading map…": "지도를 불러오는 중…",
+  "Loading stations…": "대여소를 불러오는 중…",
+  "Retry": "다시 시도",
+  "Walk": "도보",
+  "Ride": "자전거",
+  "Historical risk": "과거 자전거 없음 빈도",
+  "Your browser cannot load compressed map data. Please update your browser and try again.": "이 브라우저에서는 압축된 지도 데이터를 불러올 수 없습니다. 브라우저를 업데이트한 뒤 다시 시도해 주세요."
 }

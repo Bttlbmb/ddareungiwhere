@@ -1,6 +1,6 @@
 # Decisions
 
-Current rationale, updated 2026-10-02.
+Current rationale, updated 2026-10-03.
 
 - **Static-only, user-approved.** GitHub Pages serves plain JavaScript/Leaflet and browser Valhalla. Python and SQLite remain offline build tools. The legacy application server, rental imports/analysis, Cloudflare Worker and their tests/docs are removed. Existing product behavior and approved design remain.
 - **Direct official HTTPS inventory.** The official ALL-station website feed currently accepts CORS without a key; the browser sends no credentials/cookies. This supersedes the planned secret-hiding Worker. The website endpoint has no published versioned contract; breakage must produce unknown counts and retryable errors. Per-tab throttling replaces shared proxy caching.
@@ -13,5 +13,7 @@ Current rationale, updated 2026-10-02.
 
 - **English/Korean static entries, approved 2026-10-02.** Use `/` and `/ko/` with shared assets, self-canonicals and reciprocal alternates. The selected mint capsule is one native link: clicking either label or its track toggles language. Copy and URL update in place, preserving the journey and count snapshots. Embed a small catalog; retain Korean road labels in existing lazy shards. Independent wording reviews require descriptive archive frequency and receipt-time copy, with missing counts distinct from zero. No redirects, language storage or translation requests. The added payload is measured in REVIEW; physical-phone latency remains unverified.
 - **Search discovery, approved 2026-10-02.** Descriptive titles, initial HTML metadata, a public verification tag and a two-entry sitemap make both language pages discoverable without adding analytics or changing the planner. Shipping those files does not establish Search Console ownership verification, indexing, ranking or traffic.
+
+- **Responsive revision, approved 2026-10-03.** Phone planning uses natural scrolling and a persistent action dock; tablet results use the full width with shared headings. This supersedes the 540 px results-container card reflow, whose tall rows and fixed narrow planner failed the user’s tablet screenshots. Phone availability aligns with its count and matches Walk/Ride type. Destination duration explicitly says Walk time. Station bootstrap is independent of history so a history failure cannot hide the map catalogue. Desktop emulation still does not establish physical-phone behavior.
 
 Known correctness/performance limits belong in [plan.md](plan.md), source limits in [DATA_SOURCES.md](DATA_SOURCES.md), dated measurements in [REVIEW.md](REVIEW.md).
