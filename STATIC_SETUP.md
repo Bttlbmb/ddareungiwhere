@@ -1,16 +1,16 @@
 # Build, preview and maintain
 
-Reviewed 2026-10-03. The live page runs on GitHub Pages without an API key or application server. These tools are for preparing and checking its files. Data provenance and limits are in [DATA_SOURCES.md](DATA_SOURCES.md); release status is in [REVIEW.md](REVIEW.md).
+The live page runs on GitHub Pages without an API key or application server. These tools are for preparing and checking its files. Data provenance and limits are in [DATA_SOURCES.md](DATA_SOURCES.md); verification status is in [REVIEW.md](REVIEW.md).
 
 ## Preview
 
-A clone of the published repository includes a usable page in `docs/`:
+A clone includes a usable page in `docs/`:
 
 ```sh
-python3 scripts/preview_static.py --directory docs --port 63463
+python3 scripts/preview_static.py --port 63463
 ```
 
-Open the printed HTTP URL. In this source workspace use `--directory dist/site`; `dist/publication` is the separate Git checkout. Python 3.11+ is supported, with no package install for preview. If `python3 --version` is older, use an installed supported interpreter, such as `python3.14` here.
+Open the printed HTTP URL. Python 3.11+ is supported, with no package install for preview. If `python3 --version` is older, use an installed supported interpreter, such as `python3.14` here.
 
 Live quantities and background tiles need internet access. The browser needs ES modules, WebAssembly, DecompressionStream and Web Crypto; hosted GPS needs HTTPS. Do not open `web/index.html` directly: the build supplies configuration, translations, compressed data and routing assets.
 
@@ -38,10 +38,10 @@ Build and preview:
 
 ```sh
 python3 -B scripts/build_static.py --sdk .cache/valhalla-sdk/dist --months 6
-python3 scripts/preview_static.py --directory dist/site --port 63463
+python3 scripts/preview_static.py --port 63463
 ```
 
-The builder checks SDK identity, WASM hash and each local patch. Unexpected upstream code stops the build. `--history-db PATH` selects another archive; `--output PATH` selects a dedicated generated directory. An existing output must carry `.nojekyll` before replacement.
+The builder checks SDK identity, WASM hash and each local patch. Unexpected upstream code stops the build. `--history-db PATH` selects another archive; `--output PATH` selects another dedicated generated directory instead of `docs`. An existing output must carry `.nojekyll` before replacement.
 
 `--graph-url` can use a compatible HTTPS manifest with CORS-accessible gzip tiles/config instead of copying local tiles. It still reads the local `current.json`. URLs cannot carry credentials, queries or fragments; HTTP is allowed only for localhost/127.0.0.1 previews. The default build publishes the graph alongside the page.
 
@@ -86,7 +86,7 @@ Node runs the JavaScript checks. For routing/SDK changes, generate fixtures with
 python3 scripts/check_browser_routes.py --native-lib PATH_TO_NATIVE_383
 ```
 
-Open `/__routing_check.html` in the local preview. It is excluded from publication. Test layout/copy changes in both languages at desktop/phone widths, including focus, Compare placement and results scrolling. Browser emulation does not establish physical-phone performance. Documentation-only changes need link/fact checks, not new tests.
+Open `/__routing_check.html` in the local preview. Git ignores it. Test layout/copy changes in both languages at desktop/phone widths, including focus, Compare placement and results scrolling. Browser emulation does not establish physical-phone performance. Documentation-only changes need link/fact checks, not new tests.
 
 ## Language and search metadata
 
@@ -96,17 +96,16 @@ Edit `web/index.html`, `web/i18n.json` and application source, not generated Kor
 
 After publication, verify the URL-prefix property in Search Console, submit the [sitemap](https://bttlbmb.github.io/ddareungiwhere/sitemap.xml), and inspect both entry URLs. These files support discovery; they do not prove indexing or traffic. A project-level `robots.txt` has no effect because crawlers read it at the host root. References: [ownership verification](https://support.google.com/webmasters/answer/9008080?hl=en), [sitemaps](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap), [localized pages](https://developers.google.com/search/docs/specialty/international/localized-versions), [robots location](https://developers.google.com/crawling/docs/robots-txt/create-robots-txt).
 
-## Prepare publication
+## Release
 
-Pages serves `main` → `/docs`. In this workspace:
+Pages serves `main` → `/docs`. Build into `docs`, check the release, then review and commit:
 
 ```sh
-python3 scripts/prepare_publication.py dist/publication
-# Review the full diff, then commit/push the intended release in that checkout.
+python3 -B scripts/build_static.py --sdk .cache/valhalla-sdk/dist --months 6
+python3 scripts/check_release.py
+git status   # review source and generated files together
 ```
 
-The publisher synchronizes allowlisted source/docs, small public inputs and `dist/site` into the separate checkout. It removes stale assets and legacy server/Worker files, excludes diagnostics, scans retained Seoul Open Data key values from ignored local `.env` files and enforces GitHub's file-size limit. It does not commit, push or change cloud settings. Preserve unrelated work before preparing a checkout; the tool copies a complete release, not selected features.
+The check reads every file Git would commit. It rejects `.env`, SQLite, `raw/` and `data/processed/` paths and files of 100 MiB or more. It commits and pushes nothing and changes no cloud settings. Keep `.nojekyll` and relative URLs. For a documentation-only release, leave `docs/` unchanged. After hosted verification, update the publication status in REVIEW.
 
-For a single checkout, build into `docs` and review source and generated files together. Keep `.nojekyll` and relative URLs. For a documentation-only release, reuse the committed site. If other source changes should be excluded, prepare from the published commit in an isolated directory. Record the scope and hosted verification in REVIEW.
-
-[GitHub Pages availability](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages) depends on the account plan. The retired Cloudflare build connection can be disconnected and the unused Worker removed in that account; local file removal does not do this. The current feed needs no secret.
+[GitHub Pages availability](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages) depends on the account plan. The current feed needs no secret.

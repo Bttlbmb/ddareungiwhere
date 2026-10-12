@@ -1,6 +1,6 @@
 # Architecture
 
-Reviewed 2026-10-03. [SPEC.md](SPEC.md) defines behavior; [STATIC_SETUP.md](STATIC_SETUP.md) explains maintenance; [REVIEW.md](REVIEW.md) records what was tested and published.
+[SPEC.md](SPEC.md) defines behavior; [STATIC_SETUP.md](STATIC_SETUP.md) explains maintenance; [REVIEW.md](REVIEW.md) records current verification status.
 
 ## Where the work happens
 
@@ -34,15 +34,15 @@ There is no application server, proxy, runtime database or account system. A loc
 | `scripts/lib/sdk.py` | Checked patches to the pinned routing SDK's delivery and station matching |
 | `scripts/import_availability.py`, `scripts/import_streets.py` | Validated offline source imports |
 | `scripts/build_browser_graph.py`, `scripts/check_browser_routes.py` | Optional pinned graph build and native/browser route checks |
-| `scripts/preview_static.py`, `scripts/prepare_publication.py` | HTTP preview and allowlisted publication preparation |
+| `scripts/preview_static.py`, `scripts/check_release.py` | HTTP preview and the pre-commit release check |
 
-Third-party files in `web/vendor/` retain their licenses. Edit application source, not generated files in `dist/site` or `docs`.
+Third-party files in `web/vendor/` retain their licenses. Edit application source, not the generated files in `docs`.
 
 ## Loading, state and cancellation
 
 Startup loads only station metadata. Historical metadata and counts load on the first comparison; street shards load when selected points need labels; the routing engine and graph tiles load on the first estimate. An app-module preload overlaps its download with configuration loading without running it early.
 
-The frontend calls `BikeStatic.request` with internal command names such as `/api/plan`. These strings never request an HTTP API. Operations have a 30-second abort signal. Draft edits cancel an old comparison and clear its busy/error state; request identity guards keep late replies from replacing a newer journey. A late street label applies only to its matching point.
+The frontend calls `BikeStatic.request` with internal command names such as `/api/plan`. These strings are internal command names, not HTTP requests. Operations have a 30-second abort signal. Draft edits cancel an old comparison and clear its busy/error state; request identity guards keep late replies from replacing a newer journey. A late street label applies only to its matching point.
 
 Station readiness is independent of history. Loading/failure feedback remains on the map, and Retry preserves partly chosen points. Failed initialization promises reset for the next explicit action. A new caller can restart a shared load abandoned by cancellation; ordinary failures do not retry automatically. Cancellation is checked before planning can start inventory collection. Startup/data helpers tolerate absent newer AbortSignal methods; missing gzip support produces translated guidance. The pinned SDK has its own browser requirements.
 
@@ -66,7 +66,7 @@ The saved catalogue has 2,735 station locations. Runtime matching uses ST identi
 
 The browser POSTs `stationGrpSeq=ALL` to the fixed HTTPS feed in [DATA_SOURCES.md](DATA_SOURCES.md), with CORS, omitted credentials, no redirects and an eight-second timeout. It rejects failed/non-ALL replies, duplicate/invalid stations and replies outside a defensive 2,500–10,000-row range. That range does not prove completeness. Quantities sum the legacy, QR and smaller-bike categories; malformed quantities remain unknown. Session metadata is discarded.
 
-Only explicit actions start collection. Each tab shares one pending request and a 60-second attempt cooldown; there is no global visitor quota, polling collector or persistent inventory store. Receipt time is local because the provider supplies no observation timestamp. Freshness limits station suggestions, not how long displayed counts remain visible. Failed refreshes retain the previous quantities and receipt times. The results notice distinguishes missing counts from a failed update with retained counts and does not infer the visitor's country.
+Only explicit actions start collection. Each tab shares one pending request and a 60-second attempt cooldown. Receipt time is local because the provider supplies no observation timestamp. Freshness limits station suggestions, not how long displayed counts remain visible. Failed refreshes retain the previous quantities and receipt times. The results notice distinguishes missing counts from a failed update with retained counts and does not infer the visitor's country.
 
 ### History
 
@@ -96,4 +96,4 @@ One shared initialization prevents duplicate workers. The tile memory budget is 
 
 A staged build replaces only a marked generated site. Small UI, module, configuration, worker and WASM URLs share a content revision that includes public data; count binaries and graph releases use content-addressed paths. This keeps returning visitors from mixing release assets. No service worker is installed.
 
-The publisher copies allowlisted source, documentation, small public inputs/provenance and the generated site, removes stale assets and excludes diagnostics. Credential and per-file size checks precede publication preparation. It never commits or pushes. Raw inputs, SQLite, SDK cache and local environments stay ignored; removing a file does not remove it from prior Git history.
+The builder writes the site to `docs/`, which Pages serves. `scripts/check_release.py` inspects every file Git would commit and rejects private inputs and oversized assets; it commits and pushes nothing. Raw inputs, SQLite, the SDK cache, and local environments stay ignored; removing a file does not remove it from prior Git history.

@@ -1,6 +1,6 @@
 # Data sources and limits
 
-Reviewed 2026-10-03. Each observation below keeps its own date. [data/manifest.json](data/manifest.json) records retained sources and file hashes; hashes identify the saved input versions. History and routing manifests also record their inputs. Raw/processed data is ignored and absent from new checkouts.
+Each observation below keeps its own date. [data/manifest.json](data/manifest.json) records retained sources and file hashes; hashes identify the saved input versions. History and routing manifests also record their inputs. Raw/processed data is ignored and absent from new checkouts.
 
 ## Stations and bike counts
 

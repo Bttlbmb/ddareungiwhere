@@ -21,13 +21,13 @@ Click the header's **ENG / 한국어** capsule, or focus it and press Enter, to 
 
 ## Preview and maintain
 
-A clone of the published repository includes the page in `docs/`. With Python 3.11+:
+A clone includes the generated page in `docs/`. With Python 3.11+:
 
 ```sh
-python3 scripts/preview_static.py --directory docs --port 63463
+python3 scripts/preview_static.py --port 63463
 ```
 
-Open the printed HTTP address. If `python3 --version` is older than 3.11, use a supported interpreter, such as `python3.14` installed here. In this source workspace, preview `dist/site` instead; the separate publication checkout is `dist/publication`. Preview generated output: `web/index.html` alone lacks the built data and routing files.
+Open the printed HTTP address. If `python3 --version` is older than 3.11, use a supported interpreter, such as `python3.14` installed here. Preview `docs/`, not `web/index.html`, which lacks the built data and routing files.
 
 Source is in `web/`. Python scripts prepare public data offline. A rebuild also needs the separately retained map, street and availability inputs and the pinned routing SDK. Those ignored files are not supplied by a new checkout. See [STATIC_SETUP.md](STATIC_SETUP.md) for builds, data updates and publication.
 
@@ -38,7 +38,7 @@ python3 -B -m unittest discover -s tests -v
 node --test tests/test_frontend.cjs tests/test_static.mjs
 ```
 
-Ordinary preview and data exports need no Python packages. `requirements-routing.txt` is for rebuilding routing data and checking native/browser agreement. [REVIEW.md](REVIEW.md) records which changes were tested and published.
+Ordinary preview and data exports need no Python packages. `requirements-routing.txt` is for rebuilding routing data and checking native/browser agreement. [REVIEW.md](REVIEW.md) records the current verification status.
 
 ## Documentation
 
@@ -51,7 +51,8 @@ Ordinary preview and data exports need no Python packages. `requirements-routing
 | [STATIC_SETUP.md](STATIC_SETUP.md) | Build, preview and publication instructions |
 | [DATA_SOURCES.md](DATA_SOURCES.md) | Sources, licenses and measurement limits |
 | [DECISIONS.md](DECISIONS.md) | Reasons for the current choices |
+| [WRITING.md](WRITING.md) | Style guide for repository documentation |
 | [plan.md](plan.md) | Known issues and deferred work |
-| [REVIEW.md](REVIEW.md) | Dated checks and release evidence |
+| [REVIEW.md](REVIEW.md) | Current verification status and limits |
 
 Bike data: [Seoul Bike](https://www.bikeseoul.com/) and [Seoul Open Data Plaza](https://data.seoul.go.kr/). Maps: [OpenStreetMap contributors](https://www.openstreetmap.org/copyright) and [Leaflet](https://leafletjs.com/). Routing: [Valhalla](https://github.com/valhalla/valhalla) and [valhalla-browser](https://github.com/tobilg/valhalla-wasm). Retain their bundled licenses and attribution. Background tiles follow the [OSM tile policy](https://operations.osmfoundation.org/policies/tiles/).

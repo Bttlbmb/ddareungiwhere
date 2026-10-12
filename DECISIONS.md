@@ -1,10 +1,10 @@
 # Decisions
 
-Current rationale, reviewed 2026-10-03. Product rules are in [SPEC.md](SPEC.md), source limits in [DATA_SOURCES.md](DATA_SOURCES.md), and dated evidence in [REVIEW.md](REVIEW.md).
+Current rationale. Product rules are in [SPEC.md](SPEC.md), source limits in [DATA_SOURCES.md](DATA_SOURCES.md), and dated evidence in [REVIEW.md](REVIEW.md).
 
 ## Runtime and data
 
-**Run the planner in the browser.** GitHub Pages serves plain JavaScript, Leaflet and on-device Valhalla. Python and SQLite prepare data offline. This keeps deployment small and removes the need for an application server. The earlier Python application and Cloudflare proxy have been removed.
+**Run the planner in the browser.** GitHub Pages serves plain JavaScript, Leaflet and on-device Valhalla. Python and SQLite prepare data offline. This keeps deployment small and removes the need for an application server.
 
 **Use the official HTTPS inventory feed directly.** It accepted cross-origin requests without credentials in the dated checks. This avoids a proxy and browser secrets. The feed has no published versioned contract and may be restricted on some networks; failures must preserve received snapshots or show unknown counts. Each tab limits attempts independently.
 
@@ -26,4 +26,10 @@ Current rationale, reviewed 2026-10-03. Product rules are in [SPEC.md](SPEC.md),
 
 **Make both entries discoverable.** Approved 2026-10-02, descriptive titles, language metadata, a public verification tag and a two-entry sitemap support search discovery without analytics. Published metadata does not establish ownership verification, indexing, rankings or traffic.
 
-Known issues and unapproved proposals remain in [plan.md](plan.md). Desktop browser checks do not establish physical-phone performance.
+**Keep documentation current and short.** Approved October 12, 2026, guides describe the present state and each change removes what it makes obsolete. REVIEW.md holds only current verification and open limits; Git history is the archive for past reports, benchmarks and removed features.
+
+**Publish from the source repository.** Approved October 12, 2026, the project root is the Git repository and the builder writes the Pages site to `docs/`. This replaces a separate publication checkout and its copy tool. A release check rejects private inputs and oversized files before each commit.
+
+**Write documentation to one guide.** Approved October 12, 2026, [WRITING.md](WRITING.md) sets plain explanations, American spelling, serial commas and long prose dates for repository Markdown. It applies to new and edited text; existing text is not rewritten for style alone.
+
+Known issues and unapproved proposals remain in [plan.md](plan.md).

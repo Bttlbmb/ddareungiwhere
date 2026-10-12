@@ -1,6 +1,6 @@
 # Design: 따릉이 Where?
 
-Approved appearance, reviewed 2026-10-03. [SPEC.md](SPEC.md) owns behavior; [REVIEW.md](REVIEW.md) records dated checks.
+Approved appearance. [SPEC.md](SPEC.md) owns behavior; [REVIEW.md](REVIEW.md) records current verification.
 
 ## Identity and palette
 
@@ -40,11 +40,11 @@ Map and results share a panel. The dashed A–B guide follows the points. Keyboa
 
 **Choose your departure.** matches the planner heading's size, weight and desktop vertical position. **Back to map** sits at the top-right, outside the scrolling body. Results use horizontal rules on the page background, without an outer box or colored selected row. Rank boxes remain neutral.
 
-Desktop columns read **Station**, **Bikes**, **Walk time**, **Ride time**, and the applicable availability heading. Station numbers read **Station #…**; no Nearest or Bikes now row indicator is shown. Counts are prominent colored boxes. Durations remain plain and use the format in [SPEC.md](SPEC.md).
+Desktop columns read **Station**, **Bikes**, **Walk time**, **Ride time**, and the applicable availability heading. Station numbers read **Station #…**. Counts are prominent colored boxes. Durations remain plain and use the format in [SPEC.md](SPEC.md).
 
-Unavailable counts use **Quiet slash** (selected 2026-10-01): `/` in a neutral gray box with the same padding, radius and minimum width as known counts. After a failed request, one 12 px red notice appears below the rows and before Your destination. Its first word **Live** aligns with station text: 20 px inset on desktop, 10 px on phones. It wraps within the results scroller. The two failure messages are specified in SPEC; no extra panel, icon or retry button is added.
+Unavailable counts use **Quiet slash** (selected 2026-10-01): `/` in a neutral gray box with the same padding, radius and minimum width as known counts. After a failed request, one 12 px red notice appears below the rows and before Your destination. Its first word **Live** aligns with station text: 20 px inset on desktop, 10 px on phones. It wraps within the results scroller. The two failure messages are specified in SPEC.
 
-**Your destination.** follows the rows on the same background. A down/right arrow sits in a neutral 25 px marker with subtle lines. Station name/number and duration reuse departure typography. The walking group begins at the desktop walking column and at the station-text inset on phones. It contains **Walk time**, duration, a right arrow and the destination label, without a B circle. The explicit walking label was approved 2026-10-03.
+**Your destination.** follows the rows on the same background. A down/right arrow sits in a neutral 25 px marker with subtle lines. Station name/number and duration reuse departure typography. The walking group begins at the desktop walking column and at the station-text inset on phones. It contains **Walk time**, duration, a right arrow and the destination label. The explicit walking label was approved 2026-10-03.
 
 The destination uses **Mint tag** (selected 2026-10-01): 14 px bold dark green text, mint fill, 5 px corner radius and 5 px / 10 px padding. It is a label, with no button behavior.
 
@@ -84,4 +84,4 @@ The user repeatedly removed extra copy and panels. Preserve the selected header 
 - Rental summaries, archive counts, row timestamps, history explanations or an expandable methodology block.
 - Recommendation sentences, destination dropdowns, popular-route shortcuts or list-expansion actions.
 
-Definitions and limits belong in documentation. CSS, SVG and this document define the approved design. Local verification captures referenced in REVIEW are evidence, not published assets; browser emulation does not establish physical-phone behavior.
+Definitions and limits belong in documentation. CSS, SVG and this document define the approved design.

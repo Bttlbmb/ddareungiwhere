@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "deny": [
+      "Edit(/data/raw/**)",
+      "Edit(/data/processed/**)",
+      "Edit(/docs/**)",
+      "Edit(/.cache/**)",
+      "Edit(/web/vendor/**)"
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 # Product specification: 따릉이 Where?
 
-Behavior in the source workspace, reviewed 2026-10-03. [REVIEW.md](REVIEW.md) records release and test evidence; [DESIGN.md](DESIGN.md) owns appearance and wording.
+Product behavior. [REVIEW.md](REVIEW.md) records current verification status; [DESIGN.md](DESIGN.md) owns appearance and wording.
 
 ## Purpose
 
@@ -44,7 +44,7 @@ Selection updates the numbered map marker without reordering rows. Button focus 
 
 Walking at exactly the same coordinates gives **0 min**. Positive walking/cycling estimates round to whole minutes, at least 1 min. Values above 60 minutes use hours and remaining minutes, for example **1h 12min** or **2h**; values through 60 minutes keep the minute format. Same-station cycling and failed/unavailable routes show a dash. Failure in one mode does not hide the other.
 
-One footer shows the last completed bike refresh time, Valhalla / OpenStreetMap credit and **Refresh bikes**, separated by dots. It wraps within the scrolling results body. No per-row timestamps, rental summaries, destination dropdown, archive counts or methodology panel are displayed.
+One footer shows the last completed bike refresh time, Valhalla / OpenStreetMap credit and **Refresh bikes**, separated by dots. It wraps within the scrolling results body.
 
 ## Immediate pickup and retained counts
 
@@ -107,4 +107,4 @@ Valhalla 3.8.3 uses saved OpenStreetMap data on the device; estimates do not dep
 9. Browser assets, public routes and logs contain no secrets or raw datasets.
 10. Both language entries start empty in the correct language. Capsule toggling preserves the journey and pending work; native new-tab navigation and Back/forward work.
 
-Checks are recorded in [REVIEW.md](REVIEW.md). Known issues and features outside the current scope are in [plan.md](plan.md); physical-phone performance remains unverified.
+Current checks are in [REVIEW.md](REVIEW.md). Known issues and features outside the current scope are in [plan.md](plan.md); physical-phone performance remains unverified.
