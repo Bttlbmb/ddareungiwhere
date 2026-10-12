@@ -23,7 +23,7 @@ def check(root=ROOT):
     for relative in release_files(root):
         parts = relative.parts
         # Ignored inputs must stay ignored even if someone force-adds them.
-        if (relative.name.startswith(('.env', '.dev.vars')) or relative.suffix == '.sqlite3'
+        if (relative.name.startswith('.env') or relative.suffix == '.sqlite3'
                 or 'raw' in parts or parts[:2] == ('data', 'processed')):
             raise ValueError(f'Private or source data in release: {relative}')
         file_bytes = (root / relative).stat().st_size

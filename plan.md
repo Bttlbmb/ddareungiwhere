@@ -12,7 +12,6 @@ These are known issues and proposals, not instructions to implement them unasked
 
 ## External follow-through
 
-- **Unused Cloudflare project:** the earlier Worker and Git build may still exist in the user's account. Removing local code does not disconnect or delete them.
 - **Search Console:** the 2026-10-02 release includes the verification tag, language metadata and sitemap. Ownership verification, submission and indexing remain unconfirmed here. Follow [STATIC_SETUP.md](STATIC_SETUP.md), then assess traffic when actual data is available.
 
 ## Outside the current scope
