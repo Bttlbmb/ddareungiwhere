@@ -12,12 +12,22 @@ import {gzipSync} from 'node:zlib';
 const now=Date.parse('2026-10-01T00:00:00Z');
 const stations=Array.from({length:7},(_,i)=>({id:i+1,number:String(i+1),name:`Station ${i+1}`,lat:37.55+i*.001,lng:126.97,bikes:null,fetched_at:null}));
 const history={stations:stations.map(s=>s.number),counts:Uint16Array.from(stations.flatMap(()=>Array.from({length:48},(_,i)=>[30,i===33?6:0]).flat()))};
-const query=()=>new URLSearchParams({origin_lat:'37.55',origin_lng:'126.97',destination_lat:'37.556',destination_lng:'126.97',pickup:'2026-10-01T09:30',count:'5'});
+const query=()=>new URLSearchParams({origin_lat:'37.55',origin_lng:'126.97',destination_lat:'37.556',destination_lng:'126.97',pickup:'2026-10-01T09:30'});
 
 test('Seoul pickup interpretation and limits are independent of device timezone',()=>{
   assert.deepEqual(pickupTime('2026-10-01T09:30',now),{stamp:now+1800000,hour:9,weekday:true});
   assert.throws(()=>pickupTime('2026-10-09T09:00',now));
   assert.throws(()=>pickupTime('broken',now));
+});
+test('pickup accepts one minute in the past, seven days ahead and treats 15 minutes ahead as immediate',()=>{
+  // now is 09:00 in Seoul.
+  assert.equal(pickupTime('2026-10-01T08:59',now).stamp,now-60000);
+  assert.throws(()=>pickupTime('2026-10-01T08:58',now));
+  assert.equal(pickupTime('2026-10-08T09:00',now).stamp,now+7*86400000);
+  const planner=new StaticPlanner(stations,history),q=query();
+  for(const [pickup,immediate] of [['2026-10-01T09:15',true],['2026-10-01T09:16',false]]) {
+    q.set('pickup',pickup);assert.equal(planner.plan(q,{},now).immediate,immediate);
+  }
 });
 test('five departures share one return; missing archive is distinct from zero; destination leaves history unchanged',()=>{
   const planner=new StaticPlanner(stations,history),q=query(),a=planner.plan(q,{},now);
@@ -45,6 +55,11 @@ test('walking access adjustment preserves zero, rejects long snapping gaps and r
   assert.equal(routeEstimate(native,a,b,'pedestrian').minutes,70);
   assert.ok(routeEstimate(native,{...a,lat:a.lat+.0001},b,'pedestrian').minutes>70);
   assert.throws(()=>routeEstimate(native,{...a,lat:a.lat+.01},b,'pedestrian'));
+  // A gap of about 89 m is added at 5.1 km/h (85 m/min); about 111 m is rejected.
+  const adjusted=routeEstimate(native,{...a,lat:a.lat+.0008},b,'pedestrian');
+  assert.equal(adjusted.access_distance_m,89);
+  assert.ok(Math.abs(adjusted.minutes-(70+89/85))<.01);
+  assert.throws(()=>routeEstimate(native,{...a,lat:a.lat+.001},b,'pedestrian'),/too far/);
 });
 const row=(id=1,bikes='0')=>({stationId:`ST-${id}`,stationName:`${id}. Example`,stationLatitude:'37.55',stationLongitude:'126.97',parkingBikeTotCnt:bikes});
 test('missing quantities remain unknown while a fresh zero remains zero',()=>{
@@ -98,7 +113,8 @@ test('direct browser source fetches only on request, shares refreshes and keeps 
     assert.equal(absent.bikes,null);assert.equal(absent.fetched_at,null);
     const stamp=service.stations[0].fetched_at;
     await service.refresh();assert.equal(calls,1);
-    clock+=61000;await service.refresh();assert.equal(calls,2);
+    clock+=59999;await service.refresh();assert.equal(calls,1);
+    clock+=1;await service.refresh();assert.equal(calls,2);
     assert.equal(service.stations[0].bikes,20);assert.equal(service.stations[0].fetched_at,stamp);
     assert.match(service.live.error,/unavailable/);assert.equal(service.live.refreshing,false);
   } finally {globalThis.fetch=originalFetch;Date.now=originalNow;}
@@ -330,6 +346,21 @@ test('comparison calculates one forward return-to-destination walk and retains i
   assert.equal(calls.length,11);
 });
 
+test('automatic suggestion needs a positive count received within 120 seconds',async()=>{
+  const original=Date.now;
+  try {
+    Date.now=()=>now;
+    for(const [age,expected] of [[0,1],[120000,1],[120001,null],[-60000,1],[-60001,null]]) {
+      const counted=stations.map(s=>({...s,bikes:2,fetched_at:new Date(now-age).toISOString()}));
+      const service=new StaticService(new URL('http://localhost/'),{});
+      service.stations=counted;service.planner=new StaticPlanner(counted,history);
+      service.refresh=()=>{};service.routes={estimate:async()=>({minutes:1})};
+      const q=query();q.delete('pickup');
+      assert.equal((await service.compare(q)).suggested_id,expected,`age ${age} ms`);
+    }
+  } finally {Date.now=original;}
+});
+
 test('walking endpoint roles reach the router and use separate cache entries',async()=>{
   const engine=new BrowserRoutes({},new URL('http://localhost/')),calls=[];
   const a={lat:37.55,lng:126.97},b={lat:37.56,lng:126.98};
@@ -385,6 +416,14 @@ test('browser street labels find segment interiors and use versioned gzip shards
   assert.equal(calls.length,previous);
   await assert.rejects(labels.lookup(NaN,126.97),/Choose a location/);
   await assert.rejects(labels.lookup(0,0),/Choose a location/);
+});
+
+test('browser street lookup ignores roads beyond 250 metres',async()=>{
+  const lat=37.5601,lng=126.9701,degrees=metres=>metres/111195;
+  for(const [metres,label] of [[249,'Near road'],[251,null]]) {
+    const {labels}=streetFixture([[0,'Near road',lat+degrees(metres),126.969,lat+degrees(metres),126.971]]);
+    assert.equal((await labels.lookup(lat,lng)).label,label,`${metres} m`);
+  }
 });
 
 test('browser street lookup searches both sides of a shard boundary',async()=>{

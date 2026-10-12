@@ -37,6 +37,8 @@ class StaticExportTests(unittest.TestCase):
             self.assertEqual(metadata['observed_months'], ['2025-07', '2025-10', '2025-12'])
             self.assertEqual(metadata, json.loads((destination / 'history.json').read_text()))
             self.assertNotIn('counts', metadata)
+            # web/app.js applies these same limits; test_frontend.cjs checks the published copy.
+            self.assertEqual((metadata['minimum_observations'], metadata['thresholds']), (20, [0.05, 0.2]))
             packed = gzip.decompress((destination / metadata['counts_url']).read_bytes())
             self.assertEqual(hashlib.sha256(packed).hexdigest(), metadata['counts_sha256'])
             counts = list(struct.iter_unpack('<HH', packed))
@@ -74,3 +76,22 @@ class StaticExportTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'source archive'):
                 build([source], source)
             self.assertEqual(source.read_bytes(), b'original source')
+
+    def test_import_classifies_weekdays_and_excludes_invalid_rows(self):
+        with tempfile.TemporaryDirectory() as directory, contextlib.redirect_stdout(io.StringIO()):
+            root = Path(directory)
+            source = root / 'availability.csv'
+            rows = ['2025-12-05,10,8,1',   # Friday
+                    '2025-12-06,10,8,0',   # Saturday
+                    '2025-12-07,10,8,3',   # Sunday
+                    '2025-12-08,10,24,1',  # no hour 24
+                    '2025-12-08,10,-1,1',
+                    '2025-12-08,10,8,-1',  # no negative quantity
+                    '2025-12-08,x,8,1']
+            source.write_bytes(('일시,대여소번호,시간대,거치대수량\n' + '\n'.join(rows) + '\n').encode('cp949'))
+            output = root / 'available.sqlite3'
+            metadata = build([source], output)
+            self.assertEqual((metadata['records'], metadata['excluded']), (3, 4))
+            with sqlite3.connect(output) as connection:
+                saved = connection.execute('SELECT day,weekday FROM availability ORDER BY day').fetchall()
+            self.assertEqual(saved, [('2025-12-05', 1), ('2025-12-06', 0), ('2025-12-07', 0)])

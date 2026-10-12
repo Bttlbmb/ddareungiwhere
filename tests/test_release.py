@@ -25,7 +25,7 @@ class ReleaseCheckTests(unittest.TestCase):
             self.assertEqual(check_release.check(root), (3, len('Documentation') + len('<title>Site</title>') + len('data/raw/\n')))
 
     def test_rejects_private_files_even_when_force_added(self):
-        for name in ['.env', 'data/processed/availability.sqlite3', 'data/raw/archive.zip']:
+        for name in ['.env', 'docs/history.sqlite3', 'data/processed/streets.json.gz', 'data/raw/archive.zip']:
             with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 self.repository(root)

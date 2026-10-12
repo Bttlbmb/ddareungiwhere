@@ -413,6 +413,10 @@ test("historical risk requires sufficient valid observations and respects band b
     assert.equal(h.run("historicalRisk(availability).label"), expected);
   }
   assert.equal(h.run("historicalRisk({observations:20,zero:0}).label"), "Low");
+  // The published history file records the rule above: 20 values, bands at 5% and 20%.
+  const published = JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "../docs/data/history.json"), "utf8"));
+  assert.equal(published.minimum_observations, 20);
+  assert.deepEqual(published.thresholds, [0.05, 0.2]);
 });
 
 test("live emptiness, stale counts and comparison context do not rewrite historical risk", () => {
