@@ -12,14 +12,6 @@ CELL = .005
 METRES_PER_DEGREE = 111195
 
 
-def segment_distance(point, a, b):
-    """Distance in metres to a street segment in a local planar projection."""
-    longitude_scale = METRES_PER_DEGREE * math.cos(math.radians(point[0]))
-    ax, ay = (a[1] - point[1]) * longitude_scale, (a[0] - point[0]) * METRES_PER_DEGREE
-    bx, by = (b[1] - point[1]) * longitude_scale, (b[0] - point[0]) * METRES_PER_DEGREE
-    return _projected_distance(ax, ay, bx, by)
-
-
 def _projected_distance(ax, ay, bx, by):
     dx, dy = bx - ax, by - ay
     length = dx * dx + dy * dy

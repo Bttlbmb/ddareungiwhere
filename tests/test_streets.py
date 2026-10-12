@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 from scripts.lib.export_data import export_streets
-from scripts.lib.street_index import StreetNames, segment_distance
+from scripts.lib.street_index import StreetNames
 
 
 class StreetTests(unittest.TestCase):
@@ -76,4 +76,5 @@ class StreetTests(unittest.TestCase):
         for lat, lng in [(math.nan, 127), (37.5, math.inf), (0, 0)]:
             with self.assertRaises(ValueError):
                 StreetNames(streets=[]).lookup(lat, lng)
-        self.assertEqual(segment_distance((37.5, 127), (37.5, 127), (37.5, 127)), 0)
+        point = StreetNames(streets=[['Zero length', [[37.5, 127.0], [37.5, 127.0]]]])
+        self.assertEqual(point.lookup(37.5, 127.0)['label'], 'Zero length')
