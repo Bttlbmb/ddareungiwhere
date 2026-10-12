@@ -4,13 +4,11 @@ Current verification status. A passing check supports only the behavior it teste
 
 ## Source checks
 
-On October 12, 2026, with Python 3.14, the Python and Node suites in [AGENTS.md](AGENTS.md) pass: 24 Python and 72 Node tests. The system Python 3.9 is below the documented minimum. The 15 native and browser route fixtures against Valhalla 3.8.3 (`a60c7cbfc`) last passed on October 3, 2026, including the unchanged long Oksu pier #5651 walk. They have not been rerun since.
+On October 12, 2026, with Python 3.14 and Node 26, the Python and Node suites in [AGENTS.md](AGENTS.md) pass: 26 Python and 75 Node tests. The system Python 3.9 is below the documented minimum. The 15 native and browser route fixtures against Valhalla 3.8.3 (`a60c7cbfc`) last passed on October 3, 2026, including the unchanged long Oksu pier #5651 walk. They have not been rerun since.
 
 ## Build and publication
 
-The build in `docs/` has module revision `91042991f1612db2`. Rebuilding it on October 12, 2026 reproduced the published tree exactly. It holds 2,735 station locations, 2,809 historical station numbers (October–December 2025, 134,832 cells), 87 street shards, and 13 routing tiles. The repository is at commit `3f5bad4`, the same as `origin/main`.
-
-The latest hosted check is commit `e70ee41`, module revision `85107cd7e901a9b5`, on GitHub Pages on October 3, 2026, 10:09–10:16 KST. It matched eight changed assets and covered the phone Compare dock, tablet results, and map recovery. The later audit release (`3f5bad4`) has no recorded hosted check.
+The build in `docs/` has module revision `d4e29d535843bcf8`. A rebuild from the retained inputs on October 12, 2026 reproduced the previously committed output byte for byte. It holds 2,735 station locations, 2,809 historical station numbers (October–December 2025, 134,832 cells), 87 street shards, and 13 routing tiles. The latest hosted check is commit `e70ee41`, module revision `85107cd7e901a9b5`, on GitHub Pages on October 3, 2026, 10:09–10:16 KST. It matched eight changed assets and covered the phone Compare dock, tablet results, and map recovery. No hosted check is recorded for any later revision.
 
 ## Browser checks
 

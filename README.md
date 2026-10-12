@@ -1,6 +1,6 @@
 # 따릉이 Where?
 
-Choose a starting point, destination and bike pickup time. The planner compares five nearby Seoul public-bike stations: how many bikes were last reported, how long it may take to walk and cycle, and how often the station had no bikes in the available archive.
+Choose a starting point, destination, and bike pickup time. The planner compares five nearby Seoul public-bike stations: how many bikes were last reported, how long it may take to walk and cycle, and how often the station had no bikes in the available archive.
 
 **[Open the app](https://bttlbmb.github.io/ddareungiwhere/)** · [한국어](https://bttlbmb.github.io/ddareungiwhere/ko/) · [Source](https://github.com/Bttlbmb/ddareungiwhere)
 
@@ -21,24 +21,24 @@ Click the header's **ENG / 한국어** capsule, or focus it and press Enter, to 
 
 ## Preview and maintain
 
-A clone includes the generated page in `docs/`. With Python 3.11+:
+A clone includes the generated page in `docs/`. With Python 3.11 or later:
 
 ```sh
 python3 scripts/preview_static.py --port 63463
 ```
 
-Open the printed HTTP address. If `python3 --version` is older than 3.11, use a supported interpreter, such as `python3.14` installed here. Preview `docs/`, not `web/index.html`, which lacks the built data and routing files.
+Open the printed HTTP address. If `python3 --version` is older than 3.11, install a newer interpreter and run the command with it. Preview `docs/`, not `web/index.html`, which lacks the built data and routing files.
 
-Source is in `web/`. Python scripts prepare public data offline. A rebuild also needs the separately retained map, street and availability inputs and the pinned routing SDK. Those ignored files are not supplied by a new checkout. See [STATIC_SETUP.md](STATIC_SETUP.md) for builds, data updates and publication.
+Source is in `web/`. Python scripts prepare public data offline. A rebuild also needs the separately retained map, street, and availability inputs and the pinned routing SDK. Those ignored files are not supplied by a new checkout. See [STATIC_SETUP.md](STATIC_SETUP.md) for builds, data updates, and publication.
 
-Run the project checks with Python and Node:
+Run the project checks with Python and Node (tested with Node 26):
 
 ```sh
 python3 -B -m unittest discover -s tests -v
 node --test tests/test_frontend.cjs tests/test_static.mjs
 ```
 
-Ordinary preview and data exports need no Python packages. `requirements-routing.txt` is for rebuilding routing data and checking native/browser agreement. [REVIEW.md](REVIEW.md) records the current verification status.
+Ordinary preview and data exports need no Python packages. `requirements-routing.txt` is for rebuilding routing data and checking that the native and browser routers agree. [REVIEW.md](REVIEW.md) records the current verification status.
 
 ## Documentation
 
@@ -47,9 +47,9 @@ Ordinary preview and data exports need no Python packages. `requirements-routing
 | [AGENTS.md](AGENTS.md) | Guidance for contributors |
 | [SPEC.md](SPEC.md) | Product behavior and acceptance criteria |
 | [DESIGN.md](DESIGN.md) | Approved appearance and wording |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Modules, data formats and caching |
-| [STATIC_SETUP.md](STATIC_SETUP.md) | Build, preview and publication instructions |
-| [DATA_SOURCES.md](DATA_SOURCES.md) | Sources, licenses and measurement limits |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Modules, data formats, and caching |
+| [STATIC_SETUP.md](STATIC_SETUP.md) | Build, preview, and publication instructions |
+| [DATA_SOURCES.md](DATA_SOURCES.md) | Sources, licenses, and measurement limits |
 | [DECISIONS.md](DECISIONS.md) | Reasons for the current choices |
 | [WRITING.md](WRITING.md) | Style guide for repository documentation |
 | [plan.md](plan.md) | Known issues and deferred work |

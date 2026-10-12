@@ -32,5 +32,5 @@ Use bulleted lists for steps and parallel items, and prose for reasoning. Use ta
 | Sizes | MiB and GiB for file and memory sizes: a 96 MiB tile budget |
 | Dashes | Spaced em dash — sparingly — for an aside |
 | Quotation marks | Curly quotes in prose; backticks for paths, commands, identifiers, and URL parameters, such as `stationGrpSeq=ALL` |
-| Headings | Sentence case: “Loading, state and cancellation” |
+| Headings | Sentence case: “Loading, state, and cancellation” |
 | Interface names | The product's on-screen capitalization: **Compare stations**, **Refresh bikes** |

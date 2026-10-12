@@ -4,32 +4,32 @@ Current rationale. Product rules are in [SPEC.md](SPEC.md), source limits in [DA
 
 ## Runtime and data
 
-**Run the planner in the browser.** GitHub Pages serves plain JavaScript, Leaflet and on-device Valhalla. Python and SQLite prepare data offline. This keeps deployment small and removes the need for an application server.
+**Run the planner in the browser.** GitHub Pages serves plain JavaScript, Leaflet, and on-device Valhalla. Python and SQLite prepare data offline. This keeps deployment small and removes the need for an application server.
 
 **Use the official HTTPS inventory feed directly.** It accepted cross-origin requests without credentials in the dated checks. This avoids a proxy and browser secrets. The feed has no published versioned contract and may be restricted on some networks; failures must preserve received snapshots or show unknown counts. Each tab limits attempts independently.
 
-**Publish counts that preserve the evidence.** For each station, hour and weekday/weekend group, recorded-value and zero counts reproduce the historical bands exactly. Compressing these small summaries avoids downloading the archive without approximating it. Six-month coverage still requires six months of source data.
+**Publish counts that preserve the evidence.** For each station, hour, and weekday or weekend group, recorded-value and zero counts reproduce the historical bands exactly. Compressing these small summaries avoids downloading the archive without approximating it. Six-month coverage still requires six months of source data.
 
-**Retain roads needed for walking and cycling.** The graph excludes driving-only access while keeping routing hierarchy and shortcuts. OSM's “highway” category also includes paths and cycleways, so removing that entire category would break routes. Only required compressed routing assets are published. First-use downloads and memory remain material costs.
+**Retain roads needed for walking and cycling.** The graph excludes driving-only access while keeping routing hierarchy and shortcuts. OpenStreetMap's “highway” category also includes paths and cycleways, so removing that entire category would break routes. Only required compressed routing assets are published. First-use downloads and memory remain material costs.
 
-**Estimate routes from roads, rather than rental duration.** Rentals can include stops and detours. Valhalla estimates walking and cycling using the saved road graph. Rental summaries, Kakao routing and walking-budget filters were superseded; popular-route shortcuts were removed at the user's request on 2026-10-01.
+**Estimate routes from roads, rather than rental duration.** Rentals can include stops and detours. Valhalla estimates walking and cycling using the saved road graph. Rental summaries, Kakao routing, and walking-budget filters were superseded; popular-route shortcuts were removed at the user's request on October 1, 2026.
 
 ## Interaction and appearance
 
-**Keep actions deliberate and meanings separate.** Edits prepare a draft; comparison applies it; bike refresh preserves routes/history. Pickup means collection at the station. Immediate status describes the received count, while later historical bands describe the archive. Neither guarantees a bike at pickup.
+**Keep actions deliberate and meanings separate.** Edits prepare a draft; comparison applies it; bike refresh preserves routes and history. Pickup means collection at the station. Immediate status describes the received count, while later historical bands describe the archive. Neither guarantees a bike at pickup.
 
-**Keep displayed snapshots stable.** Approved 2026-10-01, counts and immediate status remain until manual comparison/refresh updates them. This replaces the earlier two-minute display expiry. Receipt time and the distinction between unknown and zero remain; automatic station suggestions still require recent reports.
+**Keep displayed snapshots stable.** Approved October 1, 2026, counts and immediate status remain until a manual comparison or refresh updates them. This replaces the earlier two-minute display expiry. Receipt time and the distinction between unknown and zero remain; automatic station suggestions still require recent reports.
 
-**Keep the selected compact design.** Route Ribbon / Slate & Teal uses five candidates and one destination station. The City basket logo, selected 2026-10-02, replaces Looking Wheels. The responsive revision approved 2026-10-03 keeps Compare visible in a phone dock and uses full-width tablet results, replacing tall tablet cards. Phone availability aligns with counts, and the final duration explicitly says Walk time. Station startup is independent of history so a history failure cannot hide the catalogue.
+**Keep the selected compact design.** Route Ribbon / Slate & Teal uses five candidates and one destination station. The City basket logo, selected October 2, 2026, replaces Looking Wheels. The responsive revision approved October 3, 2026 keeps Compare visible in a phone dock and uses full-width tablet results, replacing tall tablet cards. Phone availability aligns with counts, and the final duration explicitly says Walk time. Station startup is independent of history so a history failure cannot hide the catalogue.
 
-**Share the English and Korean planner.** Approved 2026-10-02, `/` and `/ko/` share assets. A small embedded language catalogue and bilingual street shards avoid translation requests. The whole mint capsule toggles copy and URL while preserving the journey. There are no automatic redirects or stored language preferences.
+**Share the English and Korean planner.** Approved October 2, 2026, `/` and `/ko/` share assets. A small embedded language catalogue and bilingual street shards avoid translation requests. The whole mint capsule toggles copy and URL while preserving the journey. There are no automatic redirects or stored language preferences.
 
-**Make both entries discoverable.** Approved 2026-10-02, descriptive titles, language metadata, a public verification tag and a two-entry sitemap support search discovery without analytics. Published metadata does not establish ownership verification, indexing, rankings or traffic.
+**Make both entries discoverable.** Approved October 2, 2026, descriptive titles, language metadata, a public verification tag, and a two-entry sitemap support search discovery without analytics. Published metadata does not establish ownership verification, indexing, rankings, or traffic.
 
-**Keep documentation current and short.** Approved October 12, 2026, guides describe the present state and each change removes what it makes obsolete. REVIEW.md holds only current verification and open limits; Git history is the archive for past reports, benchmarks and removed features.
+**Keep documentation current and short.** Approved October 12, 2026, guides describe the present state and each change removes what it makes obsolete. REVIEW.md holds only current verification and open limits; Git history is the archive for past reports, benchmarks, and removed features.
 
 **Publish from the source repository.** Approved October 12, 2026, the project root is the Git repository and the builder writes the Pages site to `docs/`. This replaces a separate publication checkout and its copy tool. A release check rejects private inputs and oversized files before each commit.
 
-**Write documentation to one guide.** Approved October 12, 2026, [WRITING.md](WRITING.md) sets plain explanations, American spelling, serial commas and long prose dates for repository Markdown. It applies to new and edited text; existing text is not rewritten for style alone.
+**Write documentation to one guide.** Approved October 12, 2026, [WRITING.md](WRITING.md) sets plain explanations, American spelling, serial commas, and long prose dates for repository Markdown. It applies to new and edited text; existing text is not rewritten for style alone.
 
 Known issues and unapproved proposals remain in [plan.md](plan.md).
