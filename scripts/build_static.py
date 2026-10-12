@@ -1,6 +1,6 @@
 """Export only public assets and sufficient historical statistics; no secrets.
 
-The resulting dist/site folder runs on an ordinary static HTTP server/Pages.
+The resulting docs folder runs on an ordinary static HTTP server and is served by GitHub Pages.
 The SDK is obtained separately, pinned to valhalla-browser 0.2.1.
 """
 import argparse
@@ -24,7 +24,7 @@ from scripts.lib.localization import korean_page
 def build(sdk, output, graph_url='', months=6, history_db=None):
     output = output.resolve()
     if output == ROOT or output in ROOT.parents:
-        raise ValueError('Output must be a dedicated publication directory.')
+        raise ValueError('Output must be a dedicated site directory.')
     if output.exists() and not (output / '.nojekyll').is_file():
         raise ValueError('Existing output is not a generated site; refusing replacement.')
     if graph_url:
@@ -101,7 +101,7 @@ def build(sdk, output, graph_url='', months=6, history_db=None):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--sdk', type=Path, required=True, help='Unpacked package/dist from valhalla-browser@0.2.1')
-    parser.add_argument('--output', type=Path, default=ROOT / 'dist/site')
+    parser.add_argument('--output', type=Path, default=ROOT / 'docs')
     parser.add_argument('--graph-url', default='')
     parser.add_argument('--months', type=int, default=6)
     parser.add_argument('--history-db', type=Path, help='Optional dedicated availability database')

@@ -27,7 +27,7 @@ def main(native_lib):
     config = json.loads((folder / 'native-config.json').read_text())
     config['mjolnir'].update(tile_dir=str(folder / 'tiles'), tile_extract='')
     actor = Actor(config)
-    stations = json.loads(gzip.decompress((ROOT / 'dist/site/data/stations.json.gz').read_bytes()))
+    stations = json.loads(gzip.decompress((ROOT / 'docs/data/stations.json.gz').read_bytes()))
     by_number = {station['number']: station for station in stations}
     fixtures = []
     for a, b in PAIRS:
@@ -64,7 +64,7 @@ for(const fixture of FIXTURES){
 output.dataset.done='true';
 output.dataset.passed=String(results.every(result=>result.pass));
 </script>'''.replace('FIXTURES', json.dumps(fixtures))
-    (ROOT / 'dist/site/__routing_check.html').write_text(html)
+    (ROOT / 'docs/__routing_check.html').write_text(html)
     print('Fixtures:', len(fixtures))
 
 

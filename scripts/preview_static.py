@@ -61,7 +61,7 @@ def handler(directory):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--port', type=int, default=63463)
-    parser.add_argument('--directory', type=Path, default=ROOT / 'dist/site')
+    parser.add_argument('--directory', type=Path, default=ROOT / 'docs')
     args = parser.parse_args()
     server = ThreadingHTTPServer(('127.0.0.1', args.port), handler(args.directory))
     print(f'Static preview: http://127.0.0.1:{server.server_port}/', flush=True)

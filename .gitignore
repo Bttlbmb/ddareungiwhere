@@ -14,3 +14,10 @@ __pycache__/
 *.pyc
 node_modules/
 dist/
+
+# Local diagnostics, editor files and per-user settings.
+docs/__*.html
+.wrangler/
+.DS_Store
+.claude/settings.local.json
+CLAUDE.local.md
