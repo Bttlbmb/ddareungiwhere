@@ -653,7 +653,6 @@ async function compare(event) {
     destination_lat: state.destination.lat,
     destination_lng: state.destination.lng,
     pickup: state.pickup,
-    count: 5,
   });
   if (state.returnId !== null) query.set("return", state.returnId);
   if (state.departureId !== null) query.set("departure", state.departureId);

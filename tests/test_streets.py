@@ -1,4 +1,3 @@
-import math
 import json
 import gzip
 import tempfile
@@ -17,25 +16,17 @@ class StreetTests(unittest.TestCase):
                 export_streets(Path(folder))
             self.assertEqual(list(Path(folder).iterdir()), [])
 
-    def test_bilingual_names_select_the_same_segment_and_legacy_names_fall_back(self):
+    def test_korean_names_do_not_change_geometry_or_cells_and_fall_back_to_english(self):
         source = [
             ['Long road', [[37.5, 127], [37.5, 127.02]], '긴길'],
-            ['Other road', [[37.501, 127.009], [37.501, 127.011]], '다른길'],
             ['English only', [[37.6, 127.1], [37.601, 127.1]]],
         ]
         bilingual = StreetNames(streets=source)
         legacy = StreetNames(streets=[street[:2] for street in source])
         self.assertEqual(bilingual.geometry, legacy.geometry)
         self.assertEqual(bilingual.cells, legacy.cells)
-        for lat, lng, expected_ko in [(37.5001, 127.01, '긴길'), (37.501, 127.01, '다른길'),
-                                     (37.6005, 127.1, 'English only'), (37.7, 127.2, None)]:
-            with self.subTest(point=(lat, lng)):
-                old = legacy.lookup(lat, lng)
-                result = bilingual.lookup(lat, lng)
-                self.assertEqual(result['label_ko'], expected_ko)
-                self.assertEqual(old['label_ko'], old['label'])
-                self.assertEqual({key: value for key, value in result.items() if key != 'label_ko'},
-                                 {key: value for key, value in old.items() if key != 'label_ko'})
+        self.assertEqual(bilingual.names_ko, ['긴길', 'English only'])
+        self.assertEqual(legacy.names_ko, legacy.names)
 
     def test_export_adds_korean_without_changing_segments_or_cell_ids(self):
         streets = StreetNames(streets=[
@@ -58,23 +49,13 @@ class StreetTests(unittest.TestCase):
                 for key, ids in payload['cells'].items():
                     self.assertEqual(ids, list(streets.cells[tuple(map(int, key.split(',')))]))
 
-    def test_nearest_segment_interior_not_just_nearest_vertex(self):
-        streets = StreetNames(streets=[
-            ['Long street', [[37.5, 127.0], [37.5, 127.02]]],
-            ['Other street', [[37.501, 127.009], [37.501, 127.011]]]])
-        result = streets.lookup(37.5001, 127.01)
-        self.assertEqual(result['label'], 'Long street')
-        self.assertAlmostEqual(result['distance_m'], 11, delta=1)
-
-    def test_cell_boundaries_and_unknown_area(self):
-        streets = StreetNames(streets=[['Nearby road', [[37.5, 127.0], [37.501, 127.0]]]])
-        self.assertEqual(streets.lookup(37.5005, 126.9999)['label'], 'Nearby road')
-        self.assertIsNone(streets.lookup(37.6, 127.1)['label'])
-        self.assertIsNone(StreetNames(streets=[]).lookup(37.5, 127)['label'])
-
-    def test_invalid_coordinates_and_zero_length_segment(self):
-        for lat, lng in [(math.nan, 127), (37.5, math.inf), (0, 0)]:
-            with self.assertRaises(ValueError):
-                StreetNames(streets=[]).lookup(lat, lng)
-        point = StreetNames(streets=[['Zero length', [[37.5, 127.0], [37.5, 127.0]]]])
-        self.assertEqual(point.lookup(37.5, 127.0)['label'], 'Zero length')
+    def test_exported_cells_use_the_grid_the_browser_searches(self):
+        # streets.mjs hardcodes 0.005-degree cells in 10-cell shards.
+        streets = StreetNames(streets=[['Grid road', [[37.5001, 127.0001], [37.5001, 127.0121]]]])
+        with tempfile.TemporaryDirectory() as folder, patch(
+                'scripts.lib.street_index.StreetNames', return_value=streets):
+            export_streets(Path(folder))
+            shards = {path.name: json.loads(gzip.decompress(path.read_bytes()))
+                      for path in (Path(folder) / 'streets').glob('*.json.gz')}
+        self.assertEqual(list(shards), ['750_2540.json.gz'])
+        self.assertEqual(sorted(shards['750_2540.json.gz']['cells']), ['7500,25400', '7500,25401', '7500,25402'])

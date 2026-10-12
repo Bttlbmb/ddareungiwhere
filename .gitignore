@@ -7,10 +7,8 @@ data/processed/
 # Local tooling and generated publication staging.
 .venv/
 .cache/
-.browser-native/
 __pycache__/
 *.pyc
-node_modules/
 dist/
 
 # Local diagnostics, editor files and per-user settings.

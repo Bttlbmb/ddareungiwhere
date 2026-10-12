@@ -1,4 +1,4 @@
-import {timeoutSignal} from './data.mjs?v=91042991f1612db2';
+import {timeoutSignal} from './data.mjs?v=d4e29d535843bcf8';
 
 /** Fixed official public feed; no account, cookies, caller URLs or API key. */
 const LIVE_URL = 'https://www.bikeseoul.com/app/station/getStationRealtimeStatus.do';

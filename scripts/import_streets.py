@@ -51,10 +51,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source', type=Path, help='Project-local Overpass response (.json or .json.gz).')
     args = parser.parse_args()
-    source = args.source or ROOT / 'data/raw/seoul_streets_osm.json.gz'
-    if not source.exists() and not args.source:
-        source = ROOT / 'data/raw/seoul_streets_osm.json'
-    source = source.resolve()
+    source = (args.source or ROOT / 'data/raw/seoul_streets_osm.json.gz').resolve()
     if not source.is_relative_to(ROOT):
         raise SystemExit('Street source must be inside this project; copy the response under data/raw first.')
     manifest_path = ROOT / 'data/manifest.json'

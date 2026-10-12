@@ -27,7 +27,6 @@ export class StaticPlanner {
         throw new Error('Choose map points in or around Seoul.');
       return {lat, lng};
     };
-    if ((query.get('count') || '5') !== '5') throw new Error('Compare five nearby stations.');
     const origin = point('origin'), destination = point('destination');
     const pickup = pickupTime(query.get('pickup'), now);
     if (!this.stations.length) throw new Error('Station locations are unavailable.');
@@ -66,13 +65,10 @@ export class StaticPlanner {
       const observations = index === undefined ? 0 : this.history.counts[offset];
       const zero = index === undefined ? 0 : this.history.counts[offset + 1];
       station.availability = {observations, zero};
-      const age = now - Date.parse(station.fetched_at);
-      station.fresh = station.bikes !== null && Number.isFinite(age) && age >= -60000 && age <= 120000;
     }
-    const immediate = pickup.stamp-now <= 900000;
-    const eligible = departures.find(s => s.fresh && s.bikes > 0 && s.id !== returnStation.id);
+    // The service chooses the suggested departure after fresh counts arrive.
     return {departures, return_station: {...returnStation, distance_m: Math.round(returnDistance)},
       origin, destination, pickup: new Date(pickup.stamp).toISOString(), hour: pickup.hour,
-      day_group: pickup.weekday ? 'Weekdays' : 'Weekends', immediate, suggested_id: immediate ? eligible?.id ?? null : null, live};
+      day_group: pickup.weekday ? 'Weekdays' : 'Weekends', immediate: pickup.stamp - now <= 900000, live};
   }
 }

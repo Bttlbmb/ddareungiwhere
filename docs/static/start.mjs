@@ -1,5 +1,5 @@
-import {StaticService} from './service.mjs?v=91042991f1612db2';
-import {fetchJSON, timeoutSignal} from './data.mjs?v=91042991f1612db2';
+import {StaticService} from './service.mjs?v=d4e29d535843bcf8';
+import {fetchJSON, timeoutSignal} from './data.mjs?v=d4e29d535843bcf8';
 
 const base = new URL('../', import.meta.url);
 base.search = new URL(import.meta.url).search;
@@ -10,7 +10,7 @@ try {
   window.BikeStatic = new StaticService(base, config);
   // Configure the coordinator before the app runs, then await its own startup
   // so both import failures and initialization failures reach the same surface.
-  await import('../app.js?v=91042991f1612db2');
+  await import('../app.js?v=d4e29d535843bcf8');
   await window.BikeAppReady;
 } catch {
   const message = document.getElementById('error');
